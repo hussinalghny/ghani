@@ -39,6 +39,50 @@ if command -v /usr/libexec/PlistBuddy >/dev/null; then
   /usr/libexec/PlistBuddy -c "Delete :UISupportedInterfaceOrientations~ipad" "$PLIST" 2>/dev/null || true
 fi
 
+# منع السكرين شوت وتسجيل الشاشة على iOS: نخلي نافذة التطبيق داخل طبقة حقل سري
+APPDEL=ios/Runner/AppDelegate.swift
+if ! grep -q ScreenGuard "$APPDEL"; then
+  perl -0pi -e 's/(\n(\s*)return super\.application\(application, didFinishLaunchingWithOptions)/\n$2ScreenGuard.start()$1/' "$APPDEL"
+  cat >> "$APPDEL" <<'SWIFT'
+
+// غني أكاديمي: المحتوى يطلع أسود بالسكرين شوت وتسجيل الشاشة
+final class ScreenGuard {
+  private static var secured = Set<ObjectIdentifier>()
+
+  static func start() {
+    let c = NotificationCenter.default
+    c.addObserver(forName: UIApplication.didBecomeActiveNotification, object: nil, queue: .main) { _ in apply() }
+    c.addObserver(forName: UIWindow.didBecomeKeyNotification, object: nil, queue: .main) { _ in apply() }
+    DispatchQueue.main.async { apply() }
+  }
+
+  private static func apply() {
+    for scene in UIApplication.shared.connectedScenes {
+      guard let ws = scene as? UIWindowScene else { continue }
+      for w in ws.windows where !secured.contains(ObjectIdentifier(w)) {
+        secure(w)
+        secured.insert(ObjectIdentifier(w))
+      }
+    }
+  }
+
+  private static func secure(_ window: UIWindow) {
+    let field = UITextField()
+    field.isSecureTextEntry = true
+    field.isUserInteractionEnabled = false
+    window.addSubview(field)
+    window.layer.superlayer?.addSublayer(field.layer)
+    if #available(iOS 17.0, *) {
+      field.layer.sublayers?.last?.addSublayer(window.layer)
+    } else {
+      field.layer.sublayers?.first?.addSublayer(window.layer)
+    }
+  }
+}
+SWIFT
+  grep -q "ScreenGuard.start()" "$APPDEL" || echo "WARNING: ScreenGuard.start() not inserted"
+fi
+
 # ---------- الأيقونة ----------
 dart run flutter_launcher_icons
 echo "prepared"

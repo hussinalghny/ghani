@@ -2,7 +2,6 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
-import 'package:screen_protector/screen_protector.dart';
 
 import 'api.dart';
 import 'screens/account.dart';
@@ -13,11 +12,8 @@ import 'ui.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  // منع السكرين شوت وتسجيل الشاشة على كل التطبيق
-  try {
-    await ScreenProtector.preventScreenshotOn();
-    await ScreenProtector.protectDataLeakageWithColor(C.night);
-  } catch (_) {}
+  // منع السكرين شوت وتسجيل الشاشة مطبق بشكل أصلي:
+  // Android: FLAG_SECURE بـ MainActivity — iOS: طبقة آمنة بـ AppDelegate (tool/prepare.sh)
   SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
   await Api.i.init();
   runApp(const GhaniApp());
