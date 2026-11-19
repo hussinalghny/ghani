@@ -10,8 +10,18 @@
 <div class="learn">
     <div class="learn-main">
         @if ($lesson->type === 'video')
-            <div class="player-shell" id="player" data-progress-url="{{ route('learn.progress', $lesson) }}" data-enrolled="{{ $enrolled ? 1 : 0 }}" data-start="{{ (int) optional($done->get($lesson->id))->position }}">
-                @if ($playback['embed_url'])
+            <div class="player-shell paused" id="player" data-progress-url="{{ route('learn.progress', $lesson) }}" data-enrolled="{{ $enrolled ? 1 : 0 }}" data-start="{{ (int) optional($done->get($lesson->id))->position }}">
+                @if ($playback['provider'] === 'local')
+                    <video id="vid" src="{{ $playback['video_url'] }}" playsinline preload="metadata" controlslist="nodownload noremoteplayback" disablepictureinpicture disableremoteplayback oncontextmenu="return false"></video>
+                    <button class="vbig" type="button" id="vBig" aria-label="تشغيل">@include('partials.icon', ['n' => 'play'])</button>
+                    <div class="vctl" id="vCtl">
+                        <button type="button" id="vPlay" aria-label="تشغيل/إيقاف">@include('partials.icon', ['n' => 'play'])</button>
+                        <span class="time" id="vTime">0:00 / 0:00</span>
+                        <input type="range" id="vSeek" min="0" max="1000" value="0" aria-label="التقدم">
+                        <select id="vRate" aria-label="السرعة"><option value="0.75">0.75x</option><option value="1" selected>1x</option><option value="1.25">1.25x</option><option value="1.5">1.5x</option><option value="2">2x</option></select>
+                        <button type="button" id="vFs" aria-label="ملء الشاشة">@include('partials.icon', ['n' => 'external'])</button>
+                    </div>
+                @elseif ($playback['embed_url'])
                     {{-- لا نضع allowfullscreen: ملء الشاشة يصير على الغلاف حتى تبقى العلامة المائية ظاهرة --}}
                     <iframe id="bunny" src="{{ $playback['embed_url'] }}" loading="eager" referrerpolicy="origin" allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture 'none'" title="{{ $lesson->title }}"></iframe>
                 @else
@@ -30,8 +40,11 @@
                 <h1>{{ $lesson->title }}</h1>
             </div>
             <div class="row">
-                @if ($lesson->type === 'video' && $playback['embed_url'])
+                @if ($lesson->type === 'video' && $playback['provider'] === 'bunny')
                     <button class="btn btn-plain btn-sm" type="button" id="fs">ملء الشاشة</button>
+                @endif
+                @if ($enrolled && $course->instructor?->user_id)
+                    <form method="POST" action="{{ route('chat.instructor', $course) }}">@csrf<button class="btn btn-plain btn-sm" type="submit">@include('partials.icon', ['n' => 'mic', 'class' => 'icon icon-sm']) اسأل المدرب</button></form>
                 @endif
                 @if ($enrolled)
                     @php($isDone = (bool) optional($done->get($lesson->id))->completed_at)

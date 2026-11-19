@@ -32,6 +32,12 @@ Route::prefix('v1')->middleware('throttle:api')->group(function () {
         Route::get('lessons/{lesson}', [Api\LearnController::class, 'lesson']);
         Route::post('lessons/{lesson}/progress', [Api\LearnController::class, 'progress']);
 
+        Route::get('chats', [Api\ChatController::class, 'index']);
+        Route::post('chats/support', [Api\ChatController::class, 'support']);
+        Route::post('courses/{course}/chat', [Api\ChatController::class, 'instructor']);
+        Route::get('chats/{conversation}/messages', [Api\ChatController::class, 'messages']);
+        Route::post('chats/{conversation}/messages', [Api\ChatController::class, 'send'])->middleware('throttle:30,1');
+
         Route::get('wallet', [Api\WalletController::class, 'index']);
         Route::post('wallet/redeem', [Api\WalletController::class, 'redeem'])->middleware('throttle:redeem');
     });

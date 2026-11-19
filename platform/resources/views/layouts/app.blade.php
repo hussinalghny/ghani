@@ -33,6 +33,7 @@
                 @auth
                     <a href="{{ route('account') }}" @class(['active' => request()->routeIs('account')])>كورساتي</a>
                     <a href="{{ route('wallet') }}" @class(['active' => request()->routeIs('wallet')])>المحفظة</a>
+                    <a href="{{ route('chat.index') }}" @class(['active' => request()->routeIs('chat.*')])>الرسائل @if ($unread = $user->conversations()->sum('student_unread'))<span class="badge ltr">{{ $unread }}</span>@endif</a>
                 @endauth
             </nav>
             <div class="nav-actions">
@@ -45,6 +46,10 @@
                             @if ($user->isAdmin())
                                 <a href="{{ route('admin.dashboard') }}">@include('partials.icon', ['n' => 'dashboard']) لوحة التحكم</a>
                             @endif
+                            @if ($user->isStaff())
+                                <a href="{{ route('inbox') }}">@include('partials.icon', ['n' => 'whatsapp']) صندوق المحادثات</a>
+                            @endif
+                            <a href="{{ route('chat.index') }}">@include('partials.icon', ['n' => 'whatsapp']) الرسائل والدعم</a>
                             @if ($user->isReseller())
                                 <a href="{{ route('reseller.index') }}">@include('partials.icon', ['n' => 'ticket']) بوابة الموزعين</a>
                             @endif

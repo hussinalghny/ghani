@@ -14,7 +14,7 @@ use Illuminate\Validation\Rule;
 
 class StudentController extends Controller
 {
-    public const ROLES = ['student' => 'طالب', 'reseller' => 'موزع قسائم', 'admin' => 'مدير'];
+    public const ROLES = ['student' => 'طالب', 'instructor' => 'مدرب', 'reseller' => 'موزع قسائم', 'admin' => 'مدير'];
 
     public function index(Request $request)
     {

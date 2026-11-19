@@ -82,7 +82,12 @@ class AuthController extends Controller
 
         Cookie::queue(Cookie::make('ga_did', $deviceId, 60 * 24 * 365 * 5, null, null, null, true, false, 'Lax'));
 
-        $home = $user->isAdmin() ? route('admin.dashboard') : ($user->isReseller() ? route('reseller.index') : route('account'));
+        $home = match (true) {
+            $user->isAdmin() => route('admin.dashboard'),
+            $user->isInstructor() => route('inbox'),
+            $user->isReseller() => route('reseller.index'),
+            default => route('account'),
+        };
 
         return redirect()->intended($home)->with('success', $welcome ?? 'أهلا بعودتك '.$user->name.'.');
     }

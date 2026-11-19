@@ -36,6 +36,26 @@ class User extends Authenticatable
         return $this->role === 'reseller';
     }
 
+    public function isInstructor(): bool
+    {
+        return $this->role === 'instructor';
+    }
+
+    public function isStaff(): bool
+    {
+        return in_array($this->role, ['admin', 'instructor'], true);
+    }
+
+    public function instructorProfile(): \Illuminate\Database\Eloquent\Relations\HasOne
+    {
+        return $this->hasOne(Instructor::class);
+    }
+
+    public function conversations(): HasMany
+    {
+        return $this->hasMany(Conversation::class);
+    }
+
     public function enrollments(): HasMany
     {
         return $this->hasMany(Enrollment::class);

@@ -29,25 +29,28 @@
     new MutationObserver(function () {
       if (!document.body.contains(wm) || getComputedStyle(wm).display === 'none' || getComputedStyle(wm).opacity === '0') {
         if (iframe) iframe.remove();
+        var v = document.getElementById('vid'); if (v) { v.pause(); v.removeAttribute('src'); v.load(); }
         shell.classList.add('hidden-guard');
       }
-    }).observe(shell, { childList: true, subtree: true, attributes: true });
+    }).observe(wm, { attributes: true, attributeFilter: ['style', 'class', 'hidden'] });
+    new MutationObserver(function () { if (!shell.contains(wm)) { shell.classList.add('hidden-guard'); var v = document.getElementById('vid'); if (v) v.removeAttribute('src'); } }).observe(shell, { childList: true });
   }
 
-  // ---- ملء الشاشة ----
-  var fs = document.getElementById('fs');
-  if (fs && shell) {
-    fs.addEventListener('click', function () {
-      var el = shell;
-      if (document.fullscreenElement || document.webkitFullscreenElement) {
-        (document.exitFullscreen || document.webkitExitFullscreen).call(document);
-      } else if (el.requestFullscreen) {
-        el.requestFullscreen();
-      } else if (el.webkitRequestFullscreen) {
-        el.webkitRequestFullscreen();
-      }
-    });
-  }
+  // ---- ملء الشاشة على الغلاف (حتى تبقى العلامة المائية). آيفون: ملء شاشة بالـ CSS ----
+  var toggleFs = function () {
+    if (!shell) return;
+    if (shell.classList.contains('pseudo-fs')) { shell.classList.remove('pseudo-fs'); return; }
+    if (document.fullscreenElement || document.webkitFullscreenElement) {
+      (document.exitFullscreen || document.webkitExitFullscreen).call(document);
+    } else if (shell.requestFullscreen) {
+      shell.requestFullscreen().catch(function () { shell.classList.add('pseudo-fs'); });
+    } else if (shell.webkitRequestFullscreen) {
+      shell.webkitRequestFullscreen();
+    } else {
+      shell.classList.add('pseudo-fs');
+    }
+  };
+  ['fs', 'vFs'].forEach(function (id) { var b = document.getElementById(id); b && b.addEventListener('click', toggleFs); });
 
   // ---- Bunny player.js: التقدم والإيقاف ----
   var lastSent = 0;
@@ -93,6 +96,42 @@
       });
       player.on('ended', markDone);
     });
+  }
+
+  // ---- المشغل المجاني (فيديو على سيرفرنا) بأزرار خاصة ----
+  var vid = document.getElementById('vid');
+  if (vid && shell) {
+    var fmt = function (t) { t = Math.floor(t || 0); return Math.floor(t / 60) + ':' + ('0' + t % 60).slice(-2); };
+    var seek = document.getElementById('vSeek'), time = document.getElementById('vTime');
+    var toggle = function () { vid.paused ? vid.play() : vid.pause(); };
+    document.getElementById('vBig').addEventListener('click', toggle);
+    document.getElementById('vPlay').addEventListener('click', toggle);
+    vid.addEventListener('click', toggle);
+    document.getElementById('vRate').addEventListener('change', function (e) { vid.playbackRate = +e.target.value; });
+    vid.addEventListener('play', function () { shell.classList.remove('paused'); });
+    vid.addEventListener('pause', function () { shell.classList.add('paused'); });
+    vid.addEventListener('loadedmetadata', function () {
+      var start = parseInt(shell.dataset.start || '0', 10);
+      if (start > 10 && start < vid.duration - 5) vid.currentTime = start - 3;
+    });
+    var seeking = false;
+    seek.addEventListener('input', function () { seeking = true; time.textContent = fmt(seek.value / 1000 * vid.duration) + ' / ' + fmt(vid.duration); });
+    seek.addEventListener('change', function () { vid.currentTime = seek.value / 1000 * vid.duration; seeking = false; });
+    vid.addEventListener('timeupdate', function () {
+      if (!seeking && vid.duration) seek.value = vid.currentTime / vid.duration * 1000;
+      time.textContent = fmt(vid.currentTime) + ' / ' + fmt(vid.duration);
+      var s = Math.floor(vid.currentTime);
+      if (Math.abs(s - lastSent) >= 15) { lastSent = s; send({ position: s }); }
+    });
+    vid.addEventListener('ended', markDone);
+    shell.addEventListener('touchstart', function () { shell.classList.add('touch'); clearTimeout(shell._t); shell._t = setTimeout(function () { shell.classList.remove('touch'); }, 3000); }, { passive: true });
+    document.addEventListener('keydown', function (e) {
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+      if (e.code === 'Space') { e.preventDefault(); toggle(); }
+      if (e.key === 'ArrowLeft') vid.currentTime += 10;   // RTL: اليسار = تقديم
+      if (e.key === 'ArrowRight') vid.currentTime -= 10;
+    });
+    player = { pause: function () { vid.pause(); } };
   }
 
   // ---- مغادرة التبويب = إيقاف ----

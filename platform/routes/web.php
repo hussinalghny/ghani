@@ -31,8 +31,18 @@ Route::middleware('guest')->group(function () {
 });
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout')->middleware('auth');
 
+// فيديو الدرس: رابط موقع مؤقت (للموقع والتطبيق)
+Route::get('/video/{lesson}', [App\Http\Controllers\VideoController::class, 'stream'])->name('video.stream')->middleware(['signed', 'throttle:120,1']);
+
 // ---------- الطالب ----------
 Route::middleware('auth')->group(function () {
+    Route::get('/messages', [App\Http\Controllers\ChatController::class, 'index'])->name('chat.index');
+    Route::get('/messages/support', [App\Http\Controllers\ChatController::class, 'support'])->name('chat.support');
+    Route::post('/course/{course}/chat', [App\Http\Controllers\ChatController::class, 'instructor'])->name('chat.instructor');
+    Route::get('/messages/{conversation}', [App\Http\Controllers\ChatController::class, 'show'])->name('chat.show');
+    Route::get('/messages/{conversation}/poll', [App\Http\Controllers\ChatController::class, 'poll'])->name('chat.poll');
+    Route::post('/messages/{conversation}', [App\Http\Controllers\ChatController::class, 'send'])->name('chat.send')->middleware('throttle:30,1');
+
     Route::post('/course/{course}/enroll', [CourseController::class, 'enroll'])->name('courses.enroll');
 
     Route::get('/learn/{course}/{lesson?}', [LearnController::class, 'show'])->name('learn.show');
@@ -59,6 +69,9 @@ Route::middleware(['auth', 'role:reseller'])->prefix('reseller')->name('reseller
     Route::post('/voucher/{voucher}/sold', [ResellerController::class, 'markSold'])->name('sold');
 });
 
+// ---------- صندوق المحادثات (الأدمن والمدربين) ----------
+Route::middleware(['auth', 'role:admin,instructor'])->get('/inbox', [App\Http\Controllers\ChatController::class, 'inbox'])->name('inbox');
+
 // ---------- لوحة التحكم ----------
 Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->group(function () {
     Route::get('/', [Admin\DashboardController::class, 'index'])->name('dashboard');
@@ -78,6 +91,7 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
     Route::delete('lessons/{lesson}', [Admin\CurriculumController::class, 'destroyLesson'])->name('lessons.destroy');
     Route::post('courses/{course}/reorder', [Admin\CurriculumController::class, 'reorder'])->name('curriculum.reorder');
     Route::post('bunny/prepare', [Admin\CurriculumController::class, 'bunnyPrepare'])->name('bunny.prepare');
+    Route::post('videos/chunk', [App\Http\Controllers\VideoController::class, 'chunk'])->name('videos.chunk');
 
     Route::get('vouchers', [Admin\VoucherController::class, 'index'])->name('vouchers.index');
     Route::get('vouchers/create', [Admin\VoucherController::class, 'create'])->name('vouchers.create');

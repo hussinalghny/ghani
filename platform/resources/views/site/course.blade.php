@@ -29,6 +29,9 @@
                     <div class="row-between" style="margin-bottom:10px"><strong>تقدمك</strong><span class="ltr">{{ $progress }}%</span></div>
                     <div class="progress" style="margin-bottom:18px"><span style="width: {{ $progress }}%"></span></div>
                     <a href="{{ route('learn.show', $course) }}" class="btn btn-primary btn-block">{{ $progress ? 'أكمل من حيث توقفت' : 'ابدأ الدرس الأول' }}</a>
+                    @if ($course->instructor?->user_id)
+                        <form method="POST" action="{{ route('chat.instructor', $course) }}" style="margin-top:8px">@csrf<button class="btn btn-plain btn-block" type="submit">@include('partials.icon', ['n' => 'mic', 'class' => 'icon icon-sm']) اسأل المدرب</button></form>
+                    @endif
                 @else
                     <div class="buy-price">
                         @if ($course->isFree()) مجاني

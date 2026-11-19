@@ -497,3 +497,42 @@ table.table { width: 100%; border-collapse: collapse; font-size: 14.5px; }
   .nav, .footer, .tabbar, .flash, .no-print { display: none !important; }
   body { background: #fff; }
 }
+
+/* ---------- المحادثات ---------- */
+.chat-page { padding-top: 20px; }
+.chat-head { display: flex; align-items: center; gap: 12px; padding: 8px 0 16px; border-bottom: 1px solid var(--line); margin-bottom: 4px; }
+.chat { display: flex; flex-direction: column; height: calc(100vh - var(--nav-h) - 150px); min-height: 380px; }
+.admin .chat { height: calc(100vh - 170px); background: #fff; border: 1px solid var(--line); border-radius: var(--r-lg); overflow: hidden; }
+.chat-log { flex: 1; overflow-y: auto; padding: 18px 4px; display: flex; flex-direction: column; gap: 10px; scroll-behavior: smooth; }
+.admin .chat-log { padding: 18px; }
+.msg { display: flex; flex-direction: column; align-items: flex-start; max-width: 78%; animation: msgIn .28s var(--ease); }
+.msg.mine { align-self: flex-end; align-items: flex-end; }
+.msg .who { font-size: 12px; color: var(--violet); font-weight: 600; margin: 0 6px 3px; }
+.msg .bubble { background: var(--bg-alt); color: var(--text); padding: 10px 14px; border-radius: 18px 18px 18px 6px; white-space: pre-wrap; word-break: break-word; line-height: 1.6; font-size: 15px; }
+.msg.mine .bubble { background: var(--violet); color: #fff; border-radius: 18px 18px 6px 18px; }
+.msg .t { font-size: 11px; color: var(--text-3); margin: 3px 8px 0; }
+.chat-empty { margin: auto; color: var(--text-3); text-align: center; padding: 24px; }
+.chat-form { display: flex; gap: 8px; align-items: flex-end; padding: 12px 0; border-top: 1px solid var(--line); background: #fff; }
+.admin .chat-form { padding: 12px; }
+.chat-form textarea { min-height: 48px; resize: none; border-radius: 22px; padding: 12px 16px; }
+.chat-form .btn { width: 48px; padding: 0; border-radius: 50%; flex: none; }
+@keyframes msgIn { from { opacity: 0; transform: translateY(6px) scale(.98); } to { opacity: 1; transform: none; } }
+@media (max-width: 760px) { .chat { height: calc(100vh - var(--nav-h) - 210px); } .msg { max-width: 88%; } }
+
+/* حركة دخول خفيفة */
+.anim-in { animation: fadeUp .45s var(--ease) both; }
+@keyframes fadeUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+
+/* ---------- مشغل الفيديو المجاني ---------- */
+.player-shell video { position: absolute; inset: 0; width: 100%; height: 100%; background: #000; }
+.vctl { position: absolute; inset-inline: 0; bottom: 0; z-index: 7; display: flex; align-items: center; gap: 10px; padding: 26px 14px 10px; color: #fff; direction: ltr;
+  background: linear-gradient(transparent, rgba(0,0,0,.65)); opacity: 0; transition: opacity .25s; }
+.player-shell:hover .vctl, .player-shell.paused .vctl, .player-shell.touch .vctl { opacity: 1; }
+.vctl button { background: none; border: 0; color: #fff; cursor: pointer; padding: 4px; display: grid; place-items: center; }
+.vctl input[type=range] { flex: 1; accent-color: var(--gold); height: 4px; cursor: pointer; }
+.vctl .time { font-size: 12.5px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.vctl select { background: rgba(255,255,255,.15); color: #fff; border: 0; border-radius: 6px; font-size: 12px; padding: 2px 4px; }
+.vbig { position: absolute; inset: 0; margin: auto; z-index: 6; width: 72px; height: 72px; border-radius: 50%; border: 0; background: rgba(255,255,255,.92); color: var(--violet); display: grid; place-items: center; cursor: pointer; transition: transform .2s, opacity .2s; }
+.vbig:hover { transform: scale(1.06); }
+.player-shell:not(.paused) .vbig { opacity: 0; pointer-events: none; }
+.player-shell.pseudo-fs { position: fixed; inset: 0; z-index: 200; border-radius: 0; aspect-ratio: auto; }

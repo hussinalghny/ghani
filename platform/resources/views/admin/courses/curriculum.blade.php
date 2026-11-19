@@ -26,7 +26,7 @@
                         @include('partials.icon', ['n' => $lesson->type === 'video' ? 'play-circle' : 'file'])
                         <span style="flex:1">{{ $lesson->title }}
                             @if ($lesson->is_free_preview)<span class="badge">معاينة</span>@endif
-                            @if ($lesson->type === 'video' && ! $lesson->bunny_video_id)<span class="badge badge-red">بدون فيديو</span>@endif
+                            @if ($lesson->type === 'video' && ! $lesson->bunny_video_id && ! $lesson->video_path)<span class="badge badge-red">بدون فيديو</span>@endif
                             @if ($lesson->attachment)<span class="badge badge-gray">ملف</span>@endif
                         </span>
                         <span class="tiny ltr">{{ $lesson->durationLabel() }}</span>

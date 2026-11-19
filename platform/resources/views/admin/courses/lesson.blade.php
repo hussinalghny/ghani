@@ -16,23 +16,24 @@
             </div>
 
             <div class="panel" id="videoPanel">
-                <h2>الفيديو (Bunny Stream)</h2>
-                @if ($bunny)
-                    <div class="dropzone" id="drop">
-                        @include('partials.icon', ['n' => 'upload'])
-                        <p style="margin:8px 0 0"><strong>اسحب الفيديو هنا أو اضغط للاختيار</strong></p>
-                        <p class="tiny" style="margin:0">يترفع مباشرة إلى Bunny بدون ما يمر على السيرفر.</p>
-                        <input type="file" id="videoFile" accept="video/*" hidden>
-                    </div>
-                    <div class="upbar" id="upbar"><span></span></div>
-                    <p class="tiny" id="upmsg" style="margin:8px 0 0"></p>
-                @else
-                    <div class="alert warn" style="margin-bottom:14px">أضف بيانات Bunny في ملف <span class="ltr">.env</span> حتى يشتغل الرفع المباشر. تقدر تلصق رقم الفيديو يدويا الآن.</div>
+                <h2>الفيديو</h2>
+                <input type="hidden" name="video_path" id="video_path" value="{{ old('video_path') }}">
+                @if ($lesson->video_path)
+                    <div class="list-row" style="padding-top:0">@include('partials.icon', ['n' => 'play-circle']) <span style="flex:1">فيديو مرفوع على السيرفر</span>
+                        <label class="switch"><input type="checkbox" name="remove_video" value="1"> حذف</label></div>
                 @endif
-                <div class="form-grid" style="margin-top:14px">
-                    <div class="field"><label for="bunny_video_id">رقم الفيديو (Video ID)</label><input class="input mono" id="bunny_video_id" name="bunny_video_id" dir="ltr" value="{{ old('bunny_video_id', $lesson->bunny_video_id) }}" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"></div>
-                    <div class="field"><label for="duration_min">المدة بالدقائق</label><input class="input" id="duration_min" name="duration_min" type="number" step="0.5" min="0" dir="ltr" value="{{ old('duration_min', $lesson->duration ? round($lesson->duration / 60, 1) : '') }}"><span class="help">اتركه فارغا ويتجلب تلقائيا من Bunny.</span></div>
+                <div class="dropzone" id="drop">
+                    @include('partials.icon', ['n' => 'upload'])
+                    <p style="margin:8px 0 0"><strong>{{ $lesson->video_path ? 'بدّل الفيديو: اسحبه هنا أو اضغط' : 'اسحب الفيديو هنا أو اضغط للاختيار' }}</strong></p>
+                    <p class="tiny" style="margin:0">MP4 (H.264) أفضل صيغة. يترفع على أجزاء فما يتأثر بحد الرفع.</p>
+                    <input type="file" id="videoFile" accept="video/mp4,video/webm,video/quicktime,.m4v" hidden>
                 </div>
+                <div class="upbar" id="upbar"><span></span></div>
+                <p class="tiny" id="upmsg" style="margin:8px 0 0"></p>
+                <div class="field" style="margin-top:14px"><label for="duration_min">المدة بالدقائق</label><input class="input" id="duration_min" name="duration_min" type="number" step="0.1" min="0" dir="ltr" value="{{ old('duration_min', $lesson->duration ? round($lesson->duration / 60, 1) : '') }}"><span class="help">تنحسب تلقائيا عند اختيار الفيديو.</span></div>
+                <details style="margin-top:6px"><summary class="tiny" style="cursor:pointer">Bunny Stream (اختياري، مدفوع)</summary>
+                    <div class="field" style="margin-top:10px"><label for="bunny_video_id">رقم فيديو Bunny</label><input class="input mono" id="bunny_video_id" name="bunny_video_id" dir="ltr" value="{{ old('bunny_video_id', $lesson->bunny_video_id) }}"></div>
+                </details>
             </div>
 
             <div class="panel">
@@ -63,18 +64,16 @@
 @endsection
 
 @push('scripts')
-@if ($bunny)
-<script src="https://cdn.jsdelivr.net/npm/tus-js-client@4/dist/tus.min.js"></script>
-@endif
 <script>
 (function () {
   var type = document.getElementById('type'), panel = document.getElementById('videoPanel');
   var sync = function () { panel.style.display = type.value === 'video' ? '' : 'none'; };
   type.addEventListener('change', sync); sync();
 
-  var drop = document.getElementById('drop'); if (!drop || !window.tus) return;
-  var input = document.getElementById('videoFile'), bar = document.getElementById('upbar'), msg = document.getElementById('upmsg');
-  var save = document.getElementById('saveBtn');
+  var drop = document.getElementById('drop'), input = document.getElementById('videoFile');
+  var bar = document.getElementById('upbar'), msg = document.getElementById('upmsg'), save = document.getElementById('saveBtn');
+  var csrf = document.querySelector('meta[name=csrf-token]').content;
+  var CHUNK = 5 * 1024 * 1024;
   drop.addEventListener('click', function () { input.click(); });
   drop.addEventListener('dragover', function (e) { e.preventDefault(); drop.classList.add('over'); });
   drop.addEventListener('dragleave', function () { drop.classList.remove('over'); });
@@ -82,31 +81,33 @@
   input.addEventListener('change', function () { if (input.files[0]) start(input.files[0]); });
 
   function start(file) {
-    var title = document.getElementById('title').value || file.name;
-    msg.textContent = 'جاري التحضير...'; save.disabled = true;
-    fetch('{{ route('admin.bunny.prepare') }}', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name=csrf-token]').content },
-      body: JSON.stringify({ title: title })
-    }).then(function (r) { return r.json().then(function (j) { if (!r.ok) throw new Error(j.message || 'خطأ'); return j; }); })
-      .then(function (p) {
-        document.getElementById('bunny_video_id').value = p.video_id;
-        bar.style.display = 'block';
-        var up = new tus.Upload(file, {
-          endpoint: p.endpoint,
-          retryDelays: [0, 3000, 5000, 10000, 20000],
-          headers: { AuthorizationSignature: p.signature, AuthorizationExpire: p.expire, VideoId: p.video_id, LibraryId: p.library_id },
-          metadata: { filetype: file.type, title: title },
-          onError: function (err) { msg.textContent = 'فشل الرفع: ' + err; save.disabled = false; },
-          onProgress: function (sent, total) {
-            var pct = Math.round(sent / total * 100);
-            bar.firstElementChild.style.width = pct + '%';
-            msg.textContent = 'جاري الرفع ' + pct + '%';
-          },
-          onSuccess: function () { msg.textContent = 'تم الرفع. Bunny يعالج الفيديو الآن، احفظ الدرس.'; save.disabled = false; }
+    // المدة من الملف نفسه قبل الرفع
+    var v = document.createElement('video'); v.preload = 'metadata';
+    v.onloadedmetadata = function () { document.getElementById('duration_min').value = (v.duration / 60).toFixed(1); URL.revokeObjectURL(v.src); };
+    v.src = URL.createObjectURL(file);
+
+    var id = (Date.now().toString(36) + Math.random().toString(36).slice(2)).replace(/[^a-z0-9]/g, '').slice(0, 30);
+    var total = Math.max(1, Math.ceil(file.size / CHUNK)), i = 0, tries = 0;
+    save.disabled = true; bar.style.display = 'block';
+    var next = function () {
+      var fd = new FormData();
+      fd.append('upload_id', id); fd.append('index', i); fd.append('total', total); fd.append('name', file.name);
+      fd.append('chunk', file.slice(i * CHUNK, (i + 1) * CHUNK), 'chunk');
+      fetch('{{ route('admin.videos.chunk') }}', { method: 'POST', headers: { 'X-CSRF-TOKEN': csrf, Accept: 'application/json' }, body: fd, credentials: 'same-origin' })
+        .then(function (r) { return r.json().then(function (j) { if (!r.ok) throw new Error(j.message || 'خطأ'); return j; }); })
+        .then(function (j) {
+          tries = 0; i++;
+          var p = Math.round(i / total * 100);
+          bar.firstElementChild.style.width = p + '%'; msg.textContent = 'جاري الرفع ' + p + '%';
+          if (j.path) { document.getElementById('video_path').value = j.path; msg.textContent = 'تم رفع الفيديو (' + j.size + ' MB). احفظ الدرس.'; save.disabled = false; }
+          else next();
+        })
+        .catch(function (e) {
+          if (++tries <= 3) { msg.textContent = 'انقطع الاتصال، نعيد المحاولة...'; setTimeout(next, 2000 * tries); }
+          else { msg.textContent = 'فشل الرفع: ' + e.message; save.disabled = false; }
         });
-        up.start();
-      }).catch(function (e) { msg.textContent = e.message; save.disabled = false; });
+    };
+    next();
   }
 })();
 </script>

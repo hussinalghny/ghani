@@ -14,7 +14,11 @@
 <body>
 <div class="admin">
     <aside class="side" id="side">
-        <a class="brand" href="{{ route('admin.dashboard') }}"><img src="{{ asset('img/logo-light.png') }}" alt="Ghani Academy"></a>
+        <a class="brand" href="{{ auth()->user()->isAdmin() ? route('admin.dashboard') : route('inbox') }}"><img src="{{ asset('img/logo-light.png') }}" alt="Ghani Academy"></a>
+        @php($me = auth()->user())
+        @php($inboxUnread = app(\App\Services\ChatService::class)->staffScope($me)->sum('staff_unread'))
+        <a href="{{ route('inbox') }}" @class(['active' => request()->routeIs('inbox', 'chat.*')])>@include('partials.icon', ['n' => 'whatsapp']) المحادثات @if ($inboxUnread)<span class="badge badge-gold ltr" style="margin-inline-start:auto">{{ $inboxUnread }}</span>@endif</a>
+        @if ($me->isAdmin())
         <a href="{{ route('admin.dashboard') }}" @class(['active' => request()->routeIs('admin.dashboard')])>@include('partials.icon', ['n' => 'dashboard']) الرئيسية</a>
         <div class="grp">المحتوى</div>
         <a href="{{ route('admin.courses.index') }}" @class(['active' => request()->routeIs('admin.courses.*', 'admin.lessons.*')])>@include('partials.icon', ['n' => 'play-circle']) الكورسات</a>
@@ -27,6 +31,7 @@
         <div class="grp">النظام</div>
         <a href="{{ route('admin.app') }}" @class(['active' => request()->routeIs('admin.app')])>@include('partials.icon', ['n' => 'phone']) تطبيق الموبايل</a>
         <a href="{{ route('admin.settings') }}" @class(['active' => request()->routeIs('admin.settings')])>@include('partials.icon', ['n' => 'shield']) الحماية والإعدادات</a>
+        @endif
         <div class="bottom">
             <a href="{{ route('home') }}" target="_blank">@include('partials.icon', ['n' => 'external']) عرض المنصة</a>
             <form method="POST" action="{{ route('logout') }}">@csrf<button class="btn btn-plain btn-sm btn-block" style="margin-top:8px" type="submit">تسجيل الخروج</button></form>

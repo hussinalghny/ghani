@@ -47,12 +47,21 @@ class LessonAccess
     {
         $data = [
             'type' => $lesson->type,
+            'provider' => null,
+            'video_url' => null,
             'embed_url' => null,
             'hls_url' => null,
             'expires_in' => config('academy.bunny.token_ttl') * 60,
             'watermark' => null,
         ];
-        if ($lesson->type === 'video' && $lesson->bunny_video_id) {
+        if ($lesson->type === 'video' && $lesson->video_path) {
+            // المشغل المجاني: ملف على سيرفرنا برابط موقع مؤقت
+            $data['provider'] = 'local';
+            $data['video_url'] = \Illuminate\Support\Facades\URL::temporarySignedRoute(
+                'video.stream', now()->addMinutes((int) config('academy.bunny.token_ttl')), ['lesson' => $lesson->id, 'u' => $user?->id ?? 0]
+            );
+        } elseif ($lesson->type === 'video' && $lesson->bunny_video_id) {
+            $data['provider'] = 'bunny';
             $data['embed_url'] = $this->bunny->embedUrl($lesson->bunny_video_id);
             $data['hls_url'] = $this->bunny->hlsUrl($lesson->bunny_video_id);
         }

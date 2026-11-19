@@ -18,7 +18,7 @@ class InstructorController extends Controller
 
     public function create()
     {
-        return view('admin.instructors.form', ['instructor' => new Instructor]);
+        return view('admin.instructors.form', ['instructor' => new Instructor, 'accounts' => $this->accounts()]);
     }
 
     public function store(Request $request)
@@ -30,7 +30,7 @@ class InstructorController extends Controller
 
     public function edit(Instructor $instructor)
     {
-        return view('admin.instructors.form', compact('instructor'));
+        return view('admin.instructors.form', ['instructor' => $instructor, 'accounts' => $this->accounts()]);
     }
 
     public function update(Request $request, Instructor $instructor)
@@ -50,6 +50,11 @@ class InstructorController extends Controller
         return back()->with('success', 'تم حذف المدرب.');
     }
 
+    private function accounts()
+    {
+        return \App\Models\User::whereIn('role', ['instructor', 'admin'])->orderBy('name')->get(['id', 'name', 'phone', 'role']);
+    }
+
     private function validated(Request $request, ?Instructor $instructor = null): array
     {
         $data = $request->validate([
@@ -57,7 +62,12 @@ class InstructorController extends Controller
             'title' => ['nullable', 'string', 'max:120'],
             'bio' => ['nullable', 'string', 'max:2000'],
             'photo' => ['nullable', 'image', 'max:2048'],
+            'user_id' => ['nullable', 'exists:users,id'],
         ]);
+        $data['user_id'] = $data['user_id'] ?? null;
+        if ($data['user_id']) {
+            \App\Models\User::whereKey($data['user_id'])->where('role', 'student')->update(['role' => 'instructor']);
+        }
         if ($request->hasFile('photo')) {
             if ($instructor?->photo) {
                 Storage::disk('public')->delete($instructor->photo);
