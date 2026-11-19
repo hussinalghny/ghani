@@ -22,7 +22,7 @@ jobs:
       - name: Smoke test (sqlite)
         run: |
           cp .env.example .env
-          sed -i 's/^DB_CONNECTION=.*/DB_CONNECTION=sqlite/; s/^DB_DATABASE=.*/DB_DATABASE=/; s/^SESSION_SECURE_COOKIE=.*/SESSION_SECURE_COOKIE=false/; s/^APP_DEBUG=.*/APP_DEBUG=true/; s|^APP_URL=.*|APP_URL=http://127.0.0.1:8000|' .env
+          sed -i 's/^DB_CONNECTION=.*/DB_CONNECTION=sqlite/; /^DB_DATABASE=/d; s/^SESSION_SECURE_COOKIE=.*/SESSION_SECURE_COOKIE=false/; s/^APP_DEBUG=.*/APP_DEBUG=true/; s|^APP_URL=.*|APP_URL=http://127.0.0.1:8000|' .env
           touch database/database.sqlite
           php artisan key:generate --force
           php artisan migrate --seed --force
