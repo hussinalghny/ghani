@@ -1,9 +1,11 @@
 # لما يكون public_html هو مجلد المشروع نفسه (Hostinger): كل الطلبات تروح لمجلد public
+# الملفات خارج public ما توصلها أي طلبات، فـ .env والكود محميين
 <IfModule mod_rewrite.c>
     RewriteEngine On
-    RewriteRule ^(\.env|\.git|composer\.(json|lock)|artisan|storage|vendor|bootstrap|config|database|routes|resources|app|lang)(/.*)?$ - [F,L]
-    RewriteRule ^(.*)$ public/$1 [L]
+    RewriteCond %{REQUEST_URI} !^/public/
+    RewriteRule ^(.*)$ public/$1 [L,QSA]
 </IfModule>
-<FilesMatch "^\.env">
+
+<FilesMatch "^\.env|composer\.(json|lock)$|artisan$">
     Require all denied
 </FilesMatch>
