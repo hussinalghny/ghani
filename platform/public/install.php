@@ -189,17 +189,11 @@ if ($step === 'migrate') {
             $kernel->call($cmd, $args);
             $log .= "> $cmd\n".$kernel->output()."\n";
         }
-        try {
-            $kernel->call('storage:link');
-            $log .= "> storage:link\n".$kernel->output();
-        } catch (Throwable $e) {
-            $log .= "storage:link: ".$e->getMessage()."\n";
+        // مجلد الملفات العامة (صور، تطبيقات) داخل public مباشرة بدون symlink
+        if (!is_dir(__DIR__.'/storage')) {
+            @mkdir(__DIR__.'/storage', 0755, true);
         }
-        // إذا السيرفر يمنع الروابط الرمزية، ننشئ المجلد العام كنسخة عادية
-        if (!file_exists(__DIR__.'/storage')) {
-            @mkdir($root.'/storage/app/public', 0755, true);
-            @symlink($root.'/storage/app/public', __DIR__.'/storage');
-        }
+        $log .= "> public/storage ready\n";
         $kernel->call('optimize:clear');
         // ما نخلي باسورد الأدمن مكتوب بملف .env بعد إنشاء الحساب
         file_put_contents($root.'/.env', setEnv(file_get_contents($root.'/.env'), 'ADMIN_PASSWORD', ''));
