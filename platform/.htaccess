@@ -1,13 +1,27 @@
-# لما يكون public_html هو مجلد المشروع نفسه (Hostinger)
-# الصفحة الرئيسية تروح مباشرة لـ index.php (بدون ما السيرفر يحول لـ /public/)
+# Hostinger: public_html = مجلد المشروع. بدون أي تحويل لـ /public/
+DirectoryIndex index.php
+Options -Indexes -MultiViews
+
 <IfModule mod_rewrite.c>
-    Options -MultiViews -Indexes
-    DirectorySlash Off
     RewriteEngine On
-    RewriteRule ^$ public/index.php [L]
-    RewriteRule ^((?!public/).*)$ public/$1 [L,NC]
+
+    # تمرير التوكن للـ API
+    RewriteCond %{HTTP:Authorization} .
+    RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
+
+    # 1) الملفات الثابتة (css, js, img, storage) تنخدم من public
+    RewriteCond %{DOCUMENT_ROOT}/public/$1 -f
+    RewriteRule ^(.+)$ public/$1 [L]
+
+    # 2) منع الوصول المباشر لملفات الكود والإعدادات
+    RewriteRule ^(app|bootstrap|config|database|lang|resources|routes|storage|tests|vendor|node_modules)(/|$) - [F,L]
+    RewriteRule ^\. - [F,L]
+
+    # 3) كل الباقي للمنصة
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteRule ^ index.php [L]
 </IfModule>
 
-<FilesMatch "^\.env|composer\.(json|lock)$|artisan$">
+<FilesMatch "^\.env|composer\.(json|lock)$|artisan$|\.(log|sqlite|md)$">
     Require all denied
 </FilesMatch>
