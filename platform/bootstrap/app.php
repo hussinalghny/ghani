@@ -31,6 +31,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->redirectUsersTo(fn () => route('account'));
     })
     ->withExceptions(function (Exceptions $exceptions) {
+        $exceptions->dontReport(\App\Exceptions\AcademyException::class);
         $exceptions->shouldRenderJsonWhen(fn (Request $r) => $r->is('api/*') || $r->expectsJson());
         $exceptions->render(function (AuthenticationException $e, Request $request) {
             if ($request->is('api/*')) {
