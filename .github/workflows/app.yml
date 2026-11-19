@@ -30,16 +30,16 @@ jobs:
       - run: flutter analyze --no-fatal-infos --no-fatal-warnings lib
       # توقيع ثابت: كل نسخة جديدة تتنصب فوق القديمة بدون حذف
       - run: mkdir -p ~/.android && cp tool/debug.keystore ~/.android/debug.keystore
-      - run: flutter build apk --release --build-number=${{ github.run_number }} --dart-define=API_BASE=$API_BASE
+      - run: flutter build apk --release --build-number=${{ github.run_number }} --dart-define=API_BASE=$API_BASE --dart-define=BUILD=${{ github.run_number }}
       - name: Verify icons font is bundled
         run: |
           unzip -l build/app/outputs/flutter-apk/app-release.apk | grep -E "CupertinoIcons|MaterialIcons" 
           unzip -l build/app/outputs/flutter-apk/app-release.apk | grep -q "CupertinoIcons" || { echo "CupertinoIcons font missing"; exit 1; }
-      - run: cp build/app/outputs/flutter-apk/app-release.apk ghani-academy.apk
+      - run: cp build/app/outputs/flutter-apk/app-release.apk ghani-academy.apk && cp ghani-academy.apk ghani-academy-v${{ github.run_number }}.apk
       - uses: actions/upload-artifact@v4
         with:
           name: ghani-academy-apk
-          path: app/ghani-academy.apk
+          path: app/ghani-academy*.apk
 
   ios:
     runs-on: macos-latest
@@ -53,16 +53,16 @@ jobs:
           channel: stable
           cache: true
       - run: bash tool/prepare.sh
-      - run: flutter build ios --release --no-codesign --build-number=${{ github.run_number }} --dart-define=API_BASE=$API_BASE
+      - run: flutter build ios --release --no-codesign --build-number=${{ github.run_number }} --dart-define=API_BASE=$API_BASE --dart-define=BUILD=${{ github.run_number }}
       - name: Package IPA (unsigned)
         run: |
           mkdir -p Payload
           cp -R build/ios/iphoneos/Runner.app Payload/
-          zip -qry ghani-academy.ipa Payload
+          zip -qry ghani-academy.ipa Payload && cp ghani-academy.ipa ghani-academy-v${{ github.run_number }}.ipa
       - uses: actions/upload-artifact@v4
         with:
           name: ghani-academy-ipa
-          path: app/ghani-academy.ipa
+          path: app/ghani-academy*.ipa
 
   release:
     needs: [android, ios]
@@ -83,5 +83,5 @@ jobs:
             iPhone (غير موقع، يتنصب عبر ESign/Sideloadly): ghani-academy.ipa
           make_latest: true
           files: |
-            ghani-academy.apk
-            ghani-academy.ipa
+            ghani-academy*.apk
+            ghani-academy*.ipa

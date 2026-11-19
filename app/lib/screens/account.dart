@@ -208,6 +208,7 @@ class AccountScreen extends StatelessWidget {
         _group([_darkTile()]),
         _label('الدعم'),
         _group([_supportTile(ctx), _waTile()]),
+        _version(),
       ]);
 
   Widget _member(BuildContext context) => Loader<List<dynamic>>(
@@ -281,8 +282,14 @@ class AccountScreen extends StatelessWidget {
               },
               child: const Text('تسجيل الخروج'),
             ),
+            _version(),
           ]);
         },
+      );
+
+  Widget _version() => Padding(
+        padding: const EdgeInsets.only(top: 18),
+        child: Text('الإصدار ${const String.fromEnvironment('BUILD', defaultValue: 'dev')}', textAlign: TextAlign.center, style: TextStyle(color: C.text3, fontSize: 12)),
       );
 
   Widget _label(String t) => Padding(padding: const EdgeInsets.fromLTRB(6, 22, 6, 8), child: Text(t, style: TextStyle(color: C.text3, fontWeight: FontWeight.w600, fontSize: 13)));
