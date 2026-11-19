@@ -8,7 +8,7 @@ on:
 
 env:
   # غير الدومين من Settings > Secrets and variables > Actions > Variables باسم API_BASE
-  API_BASE: ${{ vars.API_BASE || 'https://academy.ghanicode.com' }}
+  API_BASE: ${{ vars.API_BASE || 'https://poised-chocolate-shark-35.hostingersite.com' }}
 
 jobs:
   android:
@@ -56,3 +56,25 @@ jobs:
         with:
           name: ghani-academy-ipa
           path: app/ghani-academy.ipa
+
+  release:
+    needs: [android, ios]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          merge-multiple: true
+      - uses: softprops/action-gh-release@v2
+        with:
+          tag_name: app-v${{ github.run_number }}
+          name: تطبيق غني أكاديمي ${{ github.run_number }}
+          body: |
+            المنصة: ${{ env.API_BASE }}
+            Android: ghani-academy.apk
+            iPhone (غير موقع، يتنصب عبر ESign/Sideloadly): ghani-academy.ipa
+          make_latest: true
+          files: |
+            ghani-academy.apk
+            ghani-academy.ipa
