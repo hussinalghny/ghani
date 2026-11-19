@@ -16,8 +16,34 @@ class AppServiceProvider extends ServiceProvider
         $this->app->singleton(\App\Services\BunnyStream::class);
     }
 
+    /** آخر migration بالكود. لما يتغير بعد رفع تحديث، الجداول تتحدث تلقائيا (بدون SSH) */
+    public const SCHEMA = '2026_11_19_000002';
+
+    private function autoMigrate(): void
+    {
+        $flag = storage_path('app/schema.version');
+        if ($this->app->runningInConsole() || ! is_file(storage_path('installed.lock'))) {
+            return;
+        }
+        if (is_file($flag) && trim((string) file_get_contents($flag)) === self::SCHEMA) {
+            return;
+        }
+        $lock = fopen(storage_path('app/schema.lock'), 'c');
+        if ($lock && flock($lock, LOCK_EX | LOCK_NB)) {
+            try {
+                \Illuminate\Support\Facades\Artisan::call('migrate', ['--force' => true]);
+                file_put_contents($flag, self::SCHEMA);
+            } catch (\Throwable $e) {
+                report($e);
+            } finally {
+                flock($lock, LOCK_UN);
+            }
+        }
+    }
+
     public function boot(): void
     {
+        $this->autoMigrate();
         Schema::defaultStringLength(191);
         \Carbon\Carbon::setLocale(config('app.locale', 'ar'));
         Paginator::defaultView('vendor.pagination.apple');

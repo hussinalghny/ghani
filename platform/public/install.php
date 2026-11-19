@@ -198,6 +198,7 @@ if ($step === 'migrate') {
         // ما نخلي باسورد الأدمن مكتوب بملف .env بعد إنشاء الحساب
         file_put_contents($root.'/.env', setEnv(file_get_contents($root.'/.env'), 'ADMIN_PASSWORD', ''));
         file_put_contents($lock, date('c'));
+        file_put_contents($root.'/storage/app/schema.version', App\Providers\AppServiceProvider::SCHEMA);
         page('المنصة جاهزة', steps(4)
             .'<p>تم إنشاء الجداول والأدمن والكورسات التجريبية.</p>'
             .'<div class="alert" style="margin-bottom:16px">احذف ملف <span class="ltr">public/install.php</span> من File Manager للأمان. المعالج مقفل تلقائيا بكل الأحوال.</div>'
