@@ -1,9 +1,11 @@
-# لما يكون public_html هو مجلد المشروع نفسه (Hostinger): كل الطلبات تروح لمجلد public
-# الملفات خارج public ما توصلها أي طلبات، فـ .env والكود محميين
+# لما يكون public_html هو مجلد المشروع نفسه (Hostinger)
+# الصفحة الرئيسية تروح مباشرة لـ index.php (بدون ما السيرفر يحول لـ /public/)
 <IfModule mod_rewrite.c>
+    Options -MultiViews -Indexes
+    DirectorySlash Off
     RewriteEngine On
-    RewriteCond %{REQUEST_URI} !^/public/
-    RewriteRule ^(.*)$ public/$1 [L,QSA]
+    RewriteRule ^$ public/index.php [L]
+    RewriteRule ^((?!public/).*)$ public/$1 [L,NC]
 </IfModule>
 
 <FilesMatch "^\.env|composer\.(json|lock)$|artisan$">
