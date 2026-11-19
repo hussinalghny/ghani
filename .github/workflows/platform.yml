@@ -19,6 +19,36 @@ jobs:
           php-version: '8.2'
           extensions: mbstring, pdo_mysql, zip, fileinfo
       - run: composer install --no-dev --optimize-autoloader --no-interaction --no-scripts --prefer-dist
+      - name: Smoke test (sqlite)
+        run: |
+          cp .env.example .env
+          sed -i 's/^DB_CONNECTION=.*/DB_CONNECTION=sqlite/; s/^DB_DATABASE=.*/DB_DATABASE=/; s/^SESSION_SECURE_COOKIE=.*/SESSION_SECURE_COOKIE=false/; s/^APP_DEBUG=.*/APP_DEBUG=true/; s|^APP_URL=.*|APP_URL=http://127.0.0.1:8000|' .env
+          touch database/database.sqlite
+          php artisan key:generate --force
+          php artisan migrate --seed --force
+          php artisan route:list --except-vendor | tail -5
+          php artisan view:cache
+          php artisan serve --port=8000 > /tmp/serve.log 2>&1 &
+          sleep 3
+          fail=0
+          for u in / /courses /course/smart-defense /login /register /app /install.php /api/v1/config /api/v1/home /api/v1/courses /api/v1/courses/smart-defense; do
+            c=$(curl -s -o /tmp/out -w '%{http_code}' -H 'Accept: application/json' "http://127.0.0.1:8000$u"); echo "$c $u"
+            if [ "$c" -ge 500 ]; then fail=1; grep -o '"message":"[^"]*"' /tmp/out | head -2; head -c 600 /tmp/out; fi
+          done
+          T=$(curl -s -X POST -H 'Accept: application/json' -H 'Content-Type: application/json' http://127.0.0.1:8000/api/v1/auth/register \
+            -d '{"name":"طالب تجربة","phone":"07701234567","password":"12345678","device_id":"ci-device-1","platform":"android"}' | php -r 'echo json_decode(stream_get_contents(STDIN))->token ?? "";')
+          echo "token: ${T:0:6}..."
+          [ -n "$T" ] || fail=1
+          for u in /me /me/courses /wallet /me/devices; do
+            c=$(curl -s -o /tmp/out -w '%{http_code}' -H 'Accept: application/json' -H "Authorization: Bearer $T" "http://127.0.0.1:8000/api/v1$u"); echo "$c $u"
+            [ "$c" -lt 400 ] || { fail=1; head -c 600 /tmp/out; }
+          done
+          c=$(curl -s -o /tmp/out -w '%{http_code}' -X POST -H 'Accept: application/json' -H 'Content-Type: application/json' -H "Authorization: Bearer $T" -d '{"code":"AAAA-BBBB-CCCC"}' http://127.0.0.1:8000/api/v1/wallet/redeem); echo "$c redeem(invalid) $(cat /tmp/out)"
+          [ "$c" = "422" ] || fail=1
+          grep -i "error" storage/logs/*.log | head -20 || true
+          kill %1 || true
+          rm -f .env database/database.sqlite; rm -rf storage/logs/*.log bootstrap/cache/*.php storage/framework/views/*.php
+          exit $fail
       - run: zip -qr ../ghani-academy-ready.zip . -x ".env"
       - uses: actions/upload-artifact@v4
         with:
