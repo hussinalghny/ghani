@@ -3,7 +3,7 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-flutter create --org com.ghanicode --project-name ghani_academy --platforms android,ios . >/dev/null
+flutter create --org iq.ghaniacademy --project-name ghani_academy --platforms android,ios . >/dev/null
 rm -rf test
 flutter pub get
 
