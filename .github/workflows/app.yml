@@ -1,0 +1,58 @@
+name: App APK + IPA
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['app/**', '.github/workflows/app.yml']
+
+env:
+  # غير الدومين من Settings > Secrets and variables > Actions > Variables باسم API_BASE
+  API_BASE: ${{ vars.API_BASE || 'https://academy.ghanicode.com' }}
+
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: app
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: zulu
+          java-version: '17'
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - run: bash tool/prepare.sh
+      - run: flutter build apk --release --dart-define=API_BASE=$API_BASE
+      - run: cp build/app/outputs/flutter-apk/app-release.apk ghani-academy.apk
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ghani-academy-apk
+          path: app/ghani-academy.apk
+
+  ios:
+    runs-on: macos-latest
+    defaults:
+      run:
+        working-directory: app
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - run: bash tool/prepare.sh
+      - run: flutter build ios --release --no-codesign --dart-define=API_BASE=$API_BASE
+      - name: Package IPA (unsigned)
+        run: |
+          mkdir -p Payload
+          cp -R build/ios/iphoneos/Runner.app Payload/
+          zip -qry ghani-academy.ipa Payload
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ghani-academy-ipa
+          path: app/ghani-academy.ipa

@@ -1,0 +1,113 @@
+@extends('layouts.admin')
+@section('heading', $lesson->exists ? 'تعديل الدرس' : 'درس جديد')
+@section('sub', $course->title)
+
+@section('content')
+<form method="POST" enctype="multipart/form-data" action="{{ $lesson->exists ? route('admin.lessons.update', $lesson) : route('admin.lessons.store', $course) }}">
+    @csrf @if ($lesson->exists) @method('PUT') @endif
+    <div class="grid" style="grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);gap:16px;align-items:start">
+        <div class="stack">
+            <div class="panel">
+                <div class="form-grid">
+                    <div class="field full"><label for="title">عنوان الدرس</label><input class="input" id="title" name="title" value="{{ old('title', $lesson->title) }}" required></div>
+                    <div class="field"><label for="section_id">الفصل</label><select class="input" id="section_id" name="section_id">@foreach ($course->sections as $s)<option value="{{ $s->id }}" @selected(old('section_id', $lesson->section_id) == $s->id)>{{ $s->title }}</option>@endforeach</select></div>
+                    <div class="field"><label for="type">النوع</label><select class="input" id="type" name="type">@foreach (\App\Models\Lesson::TYPES as $k => $v)<option value="{{ $k }}" @selected(old('type', $lesson->type) === $k)>{{ $v }}</option>@endforeach</select></div>
+                </div>
+            </div>
+
+            <div class="panel" id="videoPanel">
+                <h2>الفيديو (Bunny Stream)</h2>
+                @if ($bunny)
+                    <div class="dropzone" id="drop">
+                        @include('partials.icon', ['n' => 'upload'])
+                        <p style="margin:8px 0 0"><strong>اسحب الفيديو هنا أو اضغط للاختيار</strong></p>
+                        <p class="tiny" style="margin:0">يترفع مباشرة إلى Bunny بدون ما يمر على السيرفر.</p>
+                        <input type="file" id="videoFile" accept="video/*" hidden>
+                    </div>
+                    <div class="upbar" id="upbar"><span></span></div>
+                    <p class="tiny" id="upmsg" style="margin:8px 0 0"></p>
+                @else
+                    <div class="alert warn" style="margin-bottom:14px">أضف بيانات Bunny في ملف <span class="ltr">.env</span> حتى يشتغل الرفع المباشر. تقدر تلصق رقم الفيديو يدويا الآن.</div>
+                @endif
+                <div class="form-grid" style="margin-top:14px">
+                    <div class="field"><label for="bunny_video_id">رقم الفيديو (Video ID)</label><input class="input mono" id="bunny_video_id" name="bunny_video_id" dir="ltr" value="{{ old('bunny_video_id', $lesson->bunny_video_id) }}" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"></div>
+                    <div class="field"><label for="duration_min">المدة بالدقائق</label><input class="input" id="duration_min" name="duration_min" type="number" step="0.5" min="0" dir="ltr" value="{{ old('duration_min', $lesson->duration ? round($lesson->duration / 60, 1) : '') }}"><span class="help">اتركه فارغا ويتجلب تلقائيا من Bunny.</span></div>
+                </div>
+            </div>
+
+            <div class="panel">
+                <h2>المحتوى النصي (اختياري)</h2>
+                <textarea class="input" name="body" rows="8" aria-label="المحتوى">{{ old('body', $lesson->body) }}</textarea>
+            </div>
+        </div>
+
+        <div class="stack">
+            <div class="panel">
+                <h2>ملف مرفق</h2>
+                @if ($lesson->attachment)
+                    <div class="list-row" style="padding-top:0">@include('partials.icon', ['n' => 'file']) <span style="flex:1">{{ $lesson->attachment_name }}</span></div>
+                    <label class="switch" style="margin-bottom:12px"><input type="checkbox" name="remove_attachment" value="1"> حذف الملف</label>
+                @endif
+                <input class="input" type="file" name="attachment">
+                <span class="help">PDF أو ZIP حتى <span class="ltr">50MB</span>. ينحفظ بمجلد محمي ويتحمل برابط مؤقت.</span>
+            </div>
+            <div class="panel">
+                <label class="switch"><input type="checkbox" name="is_free_preview" value="1" @checked(old('is_free_preview', $lesson->is_free_preview))> معاينة مجانية</label>
+                <p class="help" style="margin:8px 0 0">يقدر أي زائر يشوف هذا الدرس قبل الاشتراك.</p>
+            </div>
+            <button class="btn btn-primary btn-block" type="submit" id="saveBtn">حفظ الدرس</button>
+            <a class="btn btn-plain btn-block" href="{{ route('admin.courses.curriculum', $course) }}">رجوع</a>
+        </div>
+    </div>
+</form>
+@endsection
+
+@push('scripts')
+@if ($bunny)
+<script src="https://cdn.jsdelivr.net/npm/tus-js-client@4/dist/tus.min.js"></script>
+@endif
+<script>
+(function () {
+  var type = document.getElementById('type'), panel = document.getElementById('videoPanel');
+  var sync = function () { panel.style.display = type.value === 'video' ? '' : 'none'; };
+  type.addEventListener('change', sync); sync();
+
+  var drop = document.getElementById('drop'); if (!drop || !window.tus) return;
+  var input = document.getElementById('videoFile'), bar = document.getElementById('upbar'), msg = document.getElementById('upmsg');
+  var save = document.getElementById('saveBtn');
+  drop.addEventListener('click', function () { input.click(); });
+  drop.addEventListener('dragover', function (e) { e.preventDefault(); drop.classList.add('over'); });
+  drop.addEventListener('dragleave', function () { drop.classList.remove('over'); });
+  drop.addEventListener('drop', function (e) { e.preventDefault(); drop.classList.remove('over'); if (e.dataTransfer.files[0]) start(e.dataTransfer.files[0]); });
+  input.addEventListener('change', function () { if (input.files[0]) start(input.files[0]); });
+
+  function start(file) {
+    var title = document.getElementById('title').value || file.name;
+    msg.textContent = 'جاري التحضير...'; save.disabled = true;
+    fetch('{{ route('admin.bunny.prepare') }}', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name=csrf-token]').content },
+      body: JSON.stringify({ title: title })
+    }).then(function (r) { return r.json().then(function (j) { if (!r.ok) throw new Error(j.message || 'خطأ'); return j; }); })
+      .then(function (p) {
+        document.getElementById('bunny_video_id').value = p.video_id;
+        bar.style.display = 'block';
+        var up = new tus.Upload(file, {
+          endpoint: p.endpoint,
+          retryDelays: [0, 3000, 5000, 10000, 20000],
+          headers: { AuthorizationSignature: p.signature, AuthorizationExpire: p.expire, VideoId: p.video_id, LibraryId: p.library_id },
+          metadata: { filetype: file.type, title: title },
+          onError: function (err) { msg.textContent = 'فشل الرفع: ' + err; save.disabled = false; },
+          onProgress: function (sent, total) {
+            var pct = Math.round(sent / total * 100);
+            bar.firstElementChild.style.width = pct + '%';
+            msg.textContent = 'جاري الرفع ' + pct + '%';
+          },
+          onSuccess: function () { msg.textContent = 'تم الرفع. Bunny يعالج الفيديو الآن، احفظ الدرس.'; save.disabled = false; }
+        });
+        up.start();
+      }).catch(function (e) { msg.textContent = e.message; save.disabled = false; });
+  }
+})();
+</script>
+@endpush

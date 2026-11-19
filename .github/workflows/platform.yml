@@ -1,0 +1,26 @@
+name: Platform ready ZIP (with vendor)
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['platform/**', '.github/workflows/platform.yml']
+
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: platform
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          extensions: mbstring, pdo_mysql, zip, fileinfo
+      - run: composer install --no-dev --optimize-autoloader --no-interaction --no-scripts --prefer-dist
+      - run: zip -qr ../ghani-academy-ready.zip . -x ".env"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ghani-academy-ready
+          path: ghani-academy-ready.zip

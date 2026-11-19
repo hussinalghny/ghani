@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    <meta name="robots" content="noindex, nofollow">
+    <title>@yield('title', 'لوحة التحكم') · غني أكاديمي</title>
+    <link rel="icon" href="{{ asset('favicon.png') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Alexandria:wght@700;800&family=Readex+Pro:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ asset('css/app.css') }}?v=1">
+    <link rel="stylesheet" href="{{ asset('css/admin.css') }}?v=1">
+</head>
+<body>
+<div class="admin">
+    <aside class="side" id="side">
+        <a class="brand" href="{{ route('admin.dashboard') }}"><img src="{{ asset('img/logo-light.png') }}" alt="Ghani Academy"></a>
+        <a href="{{ route('admin.dashboard') }}" @class(['active' => request()->routeIs('admin.dashboard')])>@include('partials.icon', ['n' => 'dashboard']) الرئيسية</a>
+        <div class="grp">المحتوى</div>
+        <a href="{{ route('admin.courses.index') }}" @class(['active' => request()->routeIs('admin.courses.*', 'admin.lessons.*')])>@include('partials.icon', ['n' => 'play-circle']) الكورسات</a>
+        <a href="{{ route('admin.categories.index') }}" @class(['active' => request()->routeIs('admin.categories.*')])>@include('partials.icon', ['n' => 'grid']) الأقسام</a>
+        <a href="{{ route('admin.instructors.index') }}" @class(['active' => request()->routeIs('admin.instructors.*')])>@include('partials.icon', ['n' => 'mic']) المدربون</a>
+        <div class="grp">المبيعات</div>
+        <a href="{{ route('admin.vouchers.index') }}" @class(['active' => request()->routeIs('admin.vouchers.*')])>@include('partials.icon', ['n' => 'ticket']) القسائم</a>
+        <a href="{{ route('admin.students.index') }}" @class(['active' => request()->routeIs('admin.students.*') && request('role') !== 'reseller'])>@include('partials.icon', ['n' => 'users']) الطلاب</a>
+        <a href="{{ route('admin.students.index', ['role' => 'reseller']) }}" @class(['active' => request('role') === 'reseller'])>@include('partials.icon', ['n' => 'wallet']) الموزعون</a>
+        <div class="grp">النظام</div>
+        <a href="{{ route('admin.app') }}" @class(['active' => request()->routeIs('admin.app')])>@include('partials.icon', ['n' => 'phone']) تطبيق الموبايل</a>
+        <a href="{{ route('admin.settings') }}" @class(['active' => request()->routeIs('admin.settings')])>@include('partials.icon', ['n' => 'shield']) الحماية والإعدادات</a>
+        <div class="bottom">
+            <a href="{{ route('home') }}" target="_blank">@include('partials.icon', ['n' => 'external']) عرض المنصة</a>
+            <form method="POST" action="{{ route('logout') }}">@csrf<button class="btn btn-plain btn-sm btn-block" style="margin-top:8px" type="submit">تسجيل الخروج</button></form>
+        </div>
+    </aside>
+    <main class="admin-main">
+        <div class="admin-top">
+            <div class="row">
+                <button class="btn btn-plain btn-sm admin-burger" type="button" onclick="document.getElementById('side').classList.toggle('open')" aria-label="القائمة">@include('partials.icon', ['n' => 'menu'])</button>
+                <div>
+                    <h1>@yield('heading')<span class="dot">.</span></h1>
+                    @hasSection('sub')<div class="sub">@yield('sub')</div>@endif
+                </div>
+            </div>
+            <div class="row">@yield('actions')</div>
+        </div>
+        @include('partials.flash')
+        @yield('content')
+    </main>
+</div>
+<script src="{{ asset('js/app.js') }}?v=1" defer></script>
+@stack('scripts')
+</body>
+</html>
