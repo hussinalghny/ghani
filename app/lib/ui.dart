@@ -7,18 +7,30 @@ import 'api.dart';
 /// تبويب الشاشة الرئيسية (يتغير من أي مكان، مثلا رصيد غير كاف ← المحفظة)
 final tab = ValueNotifier<int>(0);
 
+/// الوضع الليلي
+final darkMode = ValueNotifier<bool>(false);
+
+/// ألوان غني أكاديمي (تتبدل حسب الوضع الليلي)
 class C {
+  static bool get dark => darkMode.value;
+
   static const violet = Color(0xFF5A35D6);
   static const deep = Color(0xFF3A1F9A);
   static const night = Color(0xFF1B1446);
   static const gold = Color(0xFFF5B83D);
-  static const mist = Color(0xFFF1EDFF);
   static const lavender = Color(0xFFD2C4FF);
-  static const bgAlt = Color(0xFFF7F5FC);
-  static const text2 = Color(0xFF5F5A7A);
-  static const text3 = Color(0xFF8C87A6);
-  static const line = Color(0xFFECE8F6);
   static const success = Color(0xFF12805C);
+  static const danger = Color(0xFFC2364A);
+
+  static Color get bg => dark ? const Color(0xFF0E0A24) : Colors.white;
+  static Color get card => dark ? const Color(0xFF1A1438) : Colors.white;
+  static Color get bgAlt => dark ? const Color(0xFF120C33) : const Color(0xFFF7F5FC);
+  static Color get text => dark ? const Color(0xFFF1EDFF) : night;
+  static Color get text2 => dark ? const Color(0xFFB3A8D9) : const Color(0xFF5F5A7A);
+  static Color get text3 => dark ? const Color(0xFF8C87A6) : const Color(0xFF8C87A6);
+  static Color get line => dark ? const Color(0xFF2A2350) : const Color(0xFFECE8F6);
+  static Color get mist => dark ? const Color(0xFF2A2060) : const Color(0xFFF1EDFF);
+  static Color get accent => dark ? lavender : violet;
 }
 
 TextStyle _font(String family, TextStyle base) {
@@ -29,14 +41,20 @@ TextStyle _font(String family, TextStyle base) {
   }
 }
 
-TextStyle head(double size, {Color color = C.night, FontWeight w = FontWeight.w700}) =>
-    _font('Alexandria', TextStyle(fontSize: size, fontWeight: w, color: color, height: 1.4, letterSpacing: 0));
+TextStyle head(double size, {Color? color, FontWeight w = FontWeight.w700}) =>
+    _font('Alexandria', TextStyle(fontSize: size, fontWeight: w, color: color ?? C.text, height: 1.4, letterSpacing: 0));
 
-ThemeData buildTheme() {
+ThemeData buildTheme(bool dark) {
   final base = ThemeData(
     useMaterial3: true,
-    colorScheme: ColorScheme.fromSeed(seedColor: C.violet, primary: C.violet, surface: Colors.white),
-    scaffoldBackgroundColor: Colors.white,
+    brightness: dark ? Brightness.dark : Brightness.light,
+    colorScheme: ColorScheme.fromSeed(
+      seedColor: C.violet,
+      brightness: dark ? Brightness.dark : Brightness.light,
+      primary: dark ? C.lavender : C.violet,
+      surface: C.bg,
+    ),
+    scaffoldBackgroundColor: C.bg,
     splashFactory: NoSplash.splashFactory,
     pageTransitionsTheme: const PageTransitionsTheme(builders: {
       TargetPlatform.android: CupertinoPageTransitionsBuilder(),
@@ -49,33 +67,40 @@ ThemeData buildTheme() {
   } catch (_) {
     tt = base.textTheme;
   }
+  final border = OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: dark ? const Color(0xFF3A3268) : const Color(0xFFE4DDFB)));
   return base.copyWith(
-    textTheme: tt.apply(bodyColor: C.night, displayColor: C.night),
+    textTheme: tt.apply(bodyColor: C.text, displayColor: C.text),
     appBarTheme: AppBarTheme(
-      backgroundColor: Colors.white.withValues(alpha: .94),
+      backgroundColor: C.bg.withValues(alpha: .94),
       surfaceTintColor: Colors.transparent,
       elevation: 0,
       scrolledUnderElevation: .5,
       centerTitle: true,
-      foregroundColor: C.night,
+      foregroundColor: C.text,
       titleTextStyle: head(17),
     ),
     inputDecorationTheme: InputDecorationTheme(
       filled: true,
-      fillColor: Colors.white,
+      fillColor: C.card,
+      hintStyle: TextStyle(color: C.text3),
       contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFE4DDFB))),
-      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFE4DDFB))),
+      border: border,
+      enabledBorder: border,
       focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: C.violet, width: 1.6)),
     ),
     filledButtonTheme: FilledButtonThemeData(
       style: FilledButton.styleFrom(
         backgroundColor: C.violet,
+        foregroundColor: Colors.white,
+        disabledBackgroundColor: C.line,
         minimumSize: const Size.fromHeight(50),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         textStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15.5),
       ),
     ),
+    snackBarTheme: const SnackBarThemeData(behavior: SnackBarBehavior.floating),
+    dividerColor: C.line,
+    listTileTheme: ListTileThemeData(iconColor: C.accent, textColor: C.text),
   );
 }
 
@@ -102,9 +127,8 @@ void toast(BuildContext ctx, String msg, {bool error = false}) {
         Icon(error ? CupertinoIcons.exclamationmark_circle : CupertinoIcons.check_mark_circled,
             color: error ? const Color(0xFFFF97A6) : const Color(0xFF6FE3B5), size: 20),
         const SizedBox(width: 10),
-        Expanded(child: Text(msg)),
+        Expanded(child: Text(msg, style: const TextStyle(color: Colors.white))),
       ]),
-      behavior: SnackBarBehavior.floating,
       backgroundColor: C.night.withValues(alpha: .96),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
       margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
@@ -117,10 +141,50 @@ class Title2 extends StatelessWidget {
   final double size;
   const Title2(this.text, {super.key, this.size = 28});
   @override
-  Widget build(BuildContext context) => Text.rich(TextSpan(children: [
-        TextSpan(text: text),
-        const TextSpan(text: '.', style: TextStyle(color: C.gold)),
-      ]), style: head(size, w: FontWeight.w800));
+  Widget build(BuildContext context) => Text.rich(
+        TextSpan(children: [TextSpan(text: text), const TextSpan(text: '.', style: TextStyle(color: C.gold))]),
+        style: head(size, w: FontWeight.w800),
+      );
+}
+
+/// حركة دخول خفيفة: ظهور تدريجي مع صعود بسيط، متتالية حسب الترتيب
+class FadeSlide extends StatelessWidget {
+  final Widget child;
+  final int index;
+  const FadeSlide({super.key, required this.child, this.index = 0});
+  @override
+  Widget build(BuildContext context) {
+    final ms = 380 + (index.clamp(0, 8) * 60);
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0, end: 1),
+      duration: Duration(milliseconds: ms),
+      curve: Curves.easeOutCubic,
+      builder: (_, t, c) => Opacity(opacity: t, child: Transform.translate(offset: Offset(0, 14 * (1 - t)), child: c)),
+      child: child,
+    );
+  }
+}
+
+/// ضغطة ناعمة تصغر العنصر قليلا (مثل iOS)
+class Pressable extends StatefulWidget {
+  final Widget child;
+  final VoidCallback? onTap;
+  const Pressable({super.key, required this.child, this.onTap});
+  @override
+  State<Pressable> createState() => _PressableState();
+}
+
+class _PressableState extends State<Pressable> {
+  bool down = false;
+  @override
+  Widget build(BuildContext context) => GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTapDown: (_) => setState(() => down = true),
+        onTapUp: (_) => setState(() => down = false),
+        onTapCancel: () => setState(() => down = false),
+        onTap: widget.onTap,
+        child: AnimatedScale(scale: down ? .97 : 1, duration: const Duration(milliseconds: 120), child: widget.child),
+      );
 }
 
 BoxDecoration patternBox({double radius = 0, List<Color>? colors}) => BoxDecoration(
@@ -131,6 +195,12 @@ BoxDecoration patternBox({double radius = 0, List<Color>? colors}) => BoxDecorat
         colors: colors ?? const [Color(0xFF6A45E6), C.violet, C.deep],
       ),
       image: const DecorationImage(image: AssetImage('assets/img/pattern.png'), repeat: ImageRepeat.repeat, scale: 1.6),
+    );
+
+BoxDecoration cardBox({double radius = 20}) => BoxDecoration(
+      color: C.card,
+      borderRadius: BorderRadius.circular(radius),
+      border: Border.all(color: C.line),
     );
 
 IconData catIcon(String? n) => switch (n) {
@@ -153,23 +223,23 @@ class Cover extends StatelessWidget {
   Widget build(BuildContext context) {
     final url = c['cover'] as String?;
     return ClipRRect(
-      borderRadius: BorderRadius.circular(radius),
-      child: Container(
-        decoration: patternBox(),
-        alignment: Alignment.center,
-        child: url != null
-            ? Image.network(url, fit: BoxFit.cover, width: double.infinity, height: double.infinity)
-            : Container(
-                width: 58,
-                height: 58,
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: .16),
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: Colors.white.withValues(alpha: .25)),
+        borderRadius: BorderRadius.circular(radius),
+        child: Container(
+          decoration: patternBox(),
+          alignment: Alignment.center,
+          child: url != null
+              ? Image.network(url, fit: BoxFit.cover, width: double.infinity, height: double.infinity)
+              : Container(
+                  width: 58,
+                  height: 58,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: .16),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: Colors.white.withValues(alpha: .25)),
+                  ),
+                  child: Icon(catIcon((c['category'] as Map?)?['icon'] as String?), color: Colors.white, size: 28),
                 ),
-                child: Icon(catIcon((c['category'] as Map?)?['icon'] as String?), color: Colors.white, size: 28),
-              ),
-      ),
+        ),
     );
   }
 }
@@ -187,7 +257,7 @@ class PriceText extends StatelessWidget {
       Text('${iqd(fp)} د.ع', style: head(size)),
       if (fp < p) ...[
         const SizedBox(width: 6),
-        Text(iqd(p), style: const TextStyle(color: C.text3, decoration: TextDecoration.lineThrough, fontSize: 13)),
+        Text(iqd(p), style: TextStyle(color: C.text3, decoration: TextDecoration.lineThrough, fontSize: 13)),
       ],
     ]);
   }
@@ -200,15 +270,12 @@ class CourseCard extends StatelessWidget {
   const CourseCard(this.c, {super.key, required this.onTap, this.width});
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
+    return Pressable(
       onTap: onTap,
       child: Container(
         width: width,
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: C.line),
-          boxShadow: [BoxShadow(color: C.night.withValues(alpha: .05), blurRadius: 18, offset: const Offset(0, 6))],
+        decoration: cardBox().copyWith(
+          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: C.dark ? .25 : .05), blurRadius: 18, offset: const Offset(0, 6))],
         ),
         clipBehavior: Clip.antiAlias,
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -216,17 +283,17 @@ class CourseCard extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text((c['category'] as Map?)?['name'] ?? '', style: const TextStyle(color: C.violet, fontSize: 12.5, fontWeight: FontWeight.w600)),
+              Text((c['category'] as Map?)?['name'] ?? '', style: TextStyle(color: C.accent, fontSize: 12.5, fontWeight: FontWeight.w600)),
               const SizedBox(height: 4),
               Text(c['title'] ?? '', style: head(17), maxLines: 1, overflow: TextOverflow.ellipsis),
               const SizedBox(height: 6),
               Row(children: [
-                const Icon(CupertinoIcons.play_circle, size: 15, color: C.text3),
+                Icon(CupertinoIcons.play_circle, size: 15, color: C.text3),
                 const SizedBox(width: 4),
-                Text('${c['lessons_count'] ?? 0} درس', style: const TextStyle(color: C.text3, fontSize: 13)),
+                Text('${c['lessons_count'] ?? 0} درس', style: TextStyle(color: C.text3, fontSize: 13)),
                 const SizedBox(width: 12),
                 if (c['duration_label'] != null)
-                  Flexible(child: Text(c['duration_label'], style: const TextStyle(color: C.text3, fontSize: 13), overflow: TextOverflow.ellipsis)),
+                  Flexible(child: Text(c['duration_label'], style: TextStyle(color: C.text3, fontSize: 13), overflow: TextOverflow.ellipsis)),
               ]),
               const SizedBox(height: 10),
               PriceText(c),
@@ -262,9 +329,19 @@ class _LoaderState<T> extends State<Loader<T>> {
     setState(() => error = null);
     try {
       final d = await widget.load();
-      if (mounted) setState(() { data = d; busy = false; });
+      if (mounted) {
+        setState(() {
+          data = d;
+          busy = false;
+        });
+      }
     } catch (e) {
-      if (mounted) setState(() { error = e.toString(); busy = false; });
+      if (mounted) {
+        setState(() {
+          error = e.toString();
+          busy = false;
+        });
+      }
     }
   }
 
@@ -276,17 +353,56 @@ class _LoaderState<T> extends State<Loader<T>> {
         child: Padding(
           padding: const EdgeInsets.all(32),
           child: Column(mainAxisSize: MainAxisSize.min, children: [
-            const Icon(CupertinoIcons.wifi_exclamationmark, size: 40, color: C.text3),
+            Icon(CupertinoIcons.wifi_exclamationmark, size: 40, color: C.text3),
             const SizedBox(height: 12),
-            Text(error!, textAlign: TextAlign.center, style: const TextStyle(color: C.text2)),
+            Text(error!, textAlign: TextAlign.center, style: TextStyle(color: C.text2)),
             const SizedBox(height: 16),
-            OutlinedButton(onPressed: () { setState(() => busy = true); reload(); }, child: const Text('أعد المحاولة')),
+            OutlinedButton(
+              onPressed: () {
+                setState(() => busy = true);
+                reload();
+              },
+              child: const Text('أعد المحاولة'),
+            ),
           ]),
         ),
       );
     }
-    return RefreshIndicator(color: C.violet, onRefresh: reload, child: widget.builder(context, data as T, reload));
+    return RefreshIndicator(
+      color: C.violet,
+      onRefresh: reload,
+      child: AnimatedSwitcher(duration: const Duration(milliseconds: 250), child: widget.builder(context, data as T, reload)),
+    );
   }
+}
+
+/// شاشة فارغة بأيقونة وعنوان وزر
+class EmptyState extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String text;
+  final Widget? action;
+  const EmptyState({super.key, required this.icon, required this.title, required this.text, this.action});
+  @override
+  Widget build(BuildContext context) => FadeSlide(
+        child: Container(
+          padding: const EdgeInsets.all(28),
+          decoration: cardBox(),
+          child: Column(children: [
+            Container(
+              width: 64,
+              height: 64,
+              decoration: BoxDecoration(color: C.mist, borderRadius: BorderRadius.circular(20)),
+              child: Icon(icon, size: 30, color: C.accent),
+            ),
+            const SizedBox(height: 14),
+            Text(title, style: head(18), textAlign: TextAlign.center),
+            const SizedBox(height: 6),
+            Text(text, textAlign: TextAlign.center, style: TextStyle(color: C.text2, height: 1.6)),
+            if (action != null) ...[const SizedBox(height: 18), action!],
+          ]),
+        ),
+      );
 }
 
 Map<String, dynamic> asMap(dynamic v) => Map<String, dynamic>.from((v ?? {}) as Map);
@@ -294,7 +410,7 @@ List<Map<String, dynamic>> asList(dynamic v) => ((v ?? []) as List).map((e) => a
 
 void go(BuildContext ctx, Widget page) => Navigator.of(ctx).push(CupertinoPageRoute(builder: (_) => page));
 
-/// فوق شريط التبويبات (للمشغل حتى يملأ الشاشة)
+/// فوق شريط التبويبات (للمشغل والمحادثة حتى تملأ الشاشة)
 Future<void> goRoot(BuildContext ctx, Widget page) =>
     Navigator.of(ctx, rootNavigator: true).push(CupertinoPageRoute(builder: (_) => page));
 

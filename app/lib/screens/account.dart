@@ -5,7 +5,8 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../api.dart';
 import '../ui.dart';
-import 'auth.dart' show whatsapp;
+import 'auth.dart';
+import 'chat.dart';
 import 'home.dart';
 
 class WalletScreen extends StatefulWidget {
@@ -62,7 +63,12 @@ class _WalletScreenState extends State<WalletScreen> {
                 ]),
                 const Spacer(),
                 Row(crossAxisAlignment: CrossAxisAlignment.baseline, textBaseline: TextBaseline.alphabetic, children: [
-                  Text(iqd(d['balance']), style: head(40, color: Colors.white, w: FontWeight.w800)),
+                  TweenAnimationBuilder<double>(
+                    tween: Tween(begin: 0, end: ((d['balance'] ?? 0) as num).toDouble()),
+                    duration: const Duration(milliseconds: 800),
+                    curve: Curves.easeOutCubic,
+                    builder: (_, v, __) => Text(iqd(v), style: head(40, color: Colors.white, w: FontWeight.w800)),
+                  ),
                   const SizedBox(width: 6),
                   const Text('د.ع', style: TextStyle(color: C.lavender, fontSize: 17)),
                 ]),
@@ -73,7 +79,7 @@ class _WalletScreenState extends State<WalletScreen> {
             const SizedBox(height: 18),
             Container(
               padding: const EdgeInsets.all(18),
-              decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20), border: Border.all(color: C.line)),
+              decoration: cardBox(),
               child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
                 Text('شحن بقسيمة', style: head(18)),
                 const SizedBox(height: 12),
@@ -89,7 +95,7 @@ class _WalletScreenState extends State<WalletScreen> {
                   onSubmitted: (_) => redeem(),
                 ),
                 const SizedBox(height: 6),
-                const Text('القسيمة إما تضيف رصيدا أو تفتح كورسا مباشرة.', style: TextStyle(color: C.text3, fontSize: 12.5)),
+                Text('القسيمة إما تضيف رصيدا أو تفتح كورسا مباشرة.', style: TextStyle(color: C.text3, fontSize: 12.5)),
                 const SizedBox(height: 14),
                 FilledButton(onPressed: redeem, child: const Text('تفعيل القسيمة')),
               ]),
@@ -105,15 +111,15 @@ class _WalletScreenState extends State<WalletScreen> {
                   height: 42,
                   decoration: BoxDecoration(color: (t['amount'] as num) > 0 ? C.mist : C.bgAlt, borderRadius: BorderRadius.circular(12)),
                   child: Icon(t['type'] == 'voucher' ? CupertinoIcons.ticket : ((t['amount'] as num) > 0 ? CupertinoIcons.plus : CupertinoIcons.play_circle),
-                      color: (t['amount'] as num) > 0 ? C.violet : C.text2, size: 20),
+                      color: (t['amount'] as num) > 0 ? C.accent : C.text2, size: 20),
                 ),
                 title: Text(t['type_label'] ?? '', style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15)),
-                subtitle: Text(t['note'] ?? '', maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 12.5, color: C.text3)),
+                subtitle: Text(t['note'] ?? '', maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 12.5, color: C.text3)),
                 trailing: Text('${(t['amount'] as num) > 0 ? '+' : ''}${iqd(t['amount'])}',
                     textDirection: TextDirection.ltr,
-                    style: TextStyle(fontWeight: FontWeight.w600, color: (t['amount'] as num) > 0 ? C.success : C.night)),
+                    style: TextStyle(fontWeight: FontWeight.w600, color: (t['amount'] as num) > 0 ? C.success : C.text)),
               ),
-            if (asList(d['transactions']).isEmpty) const Text('لا توجد عمليات بعد.', style: TextStyle(color: C.text3)),
+            if (asList(d['transactions']).isEmpty) Text('لا توجد عمليات بعد.', style: TextStyle(color: C.text3)),
           ]),
         ),
       ),
@@ -138,92 +144,151 @@ class VoucherFormatter extends TextInputFormatter {
 
 class AccountScreen extends StatelessWidget {
   const AccountScreen({super.key});
+
+  Widget _darkTile() => ValueListenableBuilder<bool>(
+        valueListenable: darkMode,
+        builder: (_, v, __) => ListTile(
+          leading: Icon(v ? CupertinoIcons.moon_fill : CupertinoIcons.sun_max, color: C.accent),
+          title: const Text('الوضع الليلي'),
+          trailing: CupertinoSwitch(value: v, activeTrackColor: C.violet, onChanged: (x) => darkMode.value = x),
+          onTap: () => darkMode.value = !v,
+        ),
+      );
+
+  Widget _supportTile(BuildContext ctx) => ListTile(
+        leading: Icon(CupertinoIcons.headphones, color: C.accent),
+        title: const Text('محادثة الدعم'),
+        subtitle: Text('نرد عليك داخل التطبيق', style: TextStyle(color: C.text3, fontSize: 12.5)),
+        trailing: Icon(CupertinoIcons.chevron_left, size: 16, color: C.text3),
+        onTap: () async {
+          if (!await ensureLogin(ctx)) return;
+          if (!ctx.mounted) return;
+          try {
+            dynamic r;
+            await withBusy(ctx, () async => r = await Api.i.req('POST', '/chats/support'));
+            if (!ctx.mounted) return;
+            final c = asMap(r['data']);
+            goRoot(ctx, ChatScreen(id: c['id'] as int, title: c['title'] ?? 'الدعم', subtitle: c['subtitle']));
+          } catch (e) {
+            if (ctx.mounted) toast(ctx, err(e), error: true);
+          }
+        },
+      );
+
+  Widget _waTile() => ListTile(
+        leading: const Icon(CupertinoIcons.chat_bubble_2, color: C.success),
+        title: const Text('واتساب الأكاديمية'),
+        subtitle: Text('0776 663 7444', textDirection: TextDirection.ltr, textAlign: TextAlign.end, style: TextStyle(color: C.text3)),
+        onTap: () => launchUrl(Uri.parse('https://wa.me/$whatsapp'), mode: LaunchMode.externalApplication),
+      );
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: C.bgAlt,
       body: SafeArea(
-        child: Loader<List<dynamic>>(
-          load: () => Future.wait<dynamic>([
-            Api.i.me(),
-            Api.i.req('GET', '/me/devices'),
-            Api.i.req('GET', '/me/certificates'),
-          ]),
-          builder: (ctx, r, _) {
-            final u = asMap(r[0]);
-            final devices = asList((r[1] as Map)['data']);
-            final certs = asList((r[2] as Map)['data']);
-            return ListView(padding: const EdgeInsets.fromLTRB(20, 20, 20, 24), children: [
-              const Title2('حسابي', size: 30),
-              const SizedBox(height: 16),
-              _group([
-                ListTile(
-                  leading: CircleAvatar(backgroundColor: C.violet, child: Text((u['name'] ?? ' ').toString().substring(0, 1), style: const TextStyle(color: Colors.white))),
-                  title: Text(u['name'] ?? '', style: const TextStyle(fontWeight: FontWeight.w600)),
-                  subtitle: Text(u['phone'] ?? '', textDirection: TextDirection.ltr, textAlign: TextAlign.end),
-                ),
-              ]),
-              _label('الشهادات'),
-              _group([
-                if (certs.isEmpty) const ListTile(title: Text('أكمل أي كورس وتصدر شهادتك هنا.', style: TextStyle(color: C.text3, fontSize: 14))),
-                for (final c in certs)
-                  ListTile(
-                    leading: const Icon(CupertinoIcons.rosette, color: C.gold),
-                    title: Text(c['course'] ?? ''),
-                    subtitle: Text(c['code'] ?? '', textDirection: TextDirection.ltr, textAlign: TextAlign.end),
-                    trailing: const Icon(CupertinoIcons.chevron_left, size: 16),
-                    onTap: () => launchUrl(Uri.parse(c['url']), mode: LaunchMode.externalApplication),
-                  ),
-              ]),
-              _label('الأجهزة المربوطة (${devices.length}/${(r[1] as Map)['max_devices']})'),
-              _group([
-                for (final d in devices)
-                  ListTile(
-                    leading: Icon(d['platform'] == 'web' ? CupertinoIcons.desktopcomputer : CupertinoIcons.device_phone_portrait, color: C.violet),
-                    title: Text(d['name'] ?? d['platform'] ?? ''),
-                    trailing: d['is_current'] == true
-                        ? Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                            decoration: BoxDecoration(color: C.mist, borderRadius: BorderRadius.circular(99)),
-                            child: const Text('هذا الجهاز', style: TextStyle(color: C.violet, fontSize: 11.5)),
-                          )
-                        : null,
-                  ),
-              ]),
-              const Padding(
-                padding: EdgeInsets.fromLTRB(6, 8, 6, 0),
-                child: Text('إذا تغير جهازك راسل الدعم حتى نعيد تعيين الأجهزة.', style: TextStyle(color: C.text3, fontSize: 12.5)),
-              ),
-              _label('الدعم'),
-              _group([
-                ListTile(
-                  leading: const Icon(CupertinoIcons.chat_bubble_2, color: C.success),
-                  title: const Text('واتساب الأكاديمية'),
-                  subtitle: const Text('0776 663 7444', textDirection: TextDirection.ltr, textAlign: TextAlign.end),
-                  onTap: () => launchUrl(Uri.parse('https://wa.me/$whatsapp'), mode: LaunchMode.externalApplication),
-                ),
-              ]),
-              const SizedBox(height: 22),
-              TextButton(
-                style: TextButton.styleFrom(foregroundColor: const Color(0xFFC2364A), minimumSize: const Size.fromHeight(50), backgroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14))),
-                onPressed: () async {
-                  tab.value = 0;
-                  await Api.i.logout();
-                },
-                child: const Text('تسجيل الخروج'),
-              ),
-            ]);
-          },
+        child: ValueListenableBuilder<bool>(
+          valueListenable: Api.i.loggedIn,
+          builder: (ctx, inApp, _) => inApp ? _member(ctx) : _guest(ctx),
         ),
       ),
     );
   }
 
-  Widget _label(String t) => Padding(padding: const EdgeInsets.fromLTRB(6, 22, 6, 8), child: Text(t, style: const TextStyle(color: C.text3, fontWeight: FontWeight.w600, fontSize: 13)));
+  Widget _guest(BuildContext ctx) => ListView(padding: const EdgeInsets.fromLTRB(20, 20, 20, 24), children: [
+        const Title2('حسابي', size: 30),
+        const SizedBox(height: 16),
+        EmptyState(
+          icon: CupertinoIcons.person_crop_circle,
+          title: 'أهلا بيك بغني أكاديمي',
+          text: 'تصفح الكورسات بحرية. سجل دخولك لما تريد تشترك أو تتعلم.',
+          action: FilledButton(onPressed: () => ensureLogin(ctx), child: const Text('دخول أو حساب جديد')),
+        ),
+        _label('الإعدادات'),
+        _group([_darkTile()]),
+        _label('الدعم'),
+        _group([_supportTile(ctx), _waTile()]),
+      ]);
+
+  Widget _member(BuildContext context) => Loader<List<dynamic>>(
+        load: () => Future.wait<dynamic>([
+          Api.i.me(),
+          Api.i.req('GET', '/me/devices'),
+          Api.i.req('GET', '/me/certificates'),
+        ]),
+        builder: (ctx, r, _) {
+          final u = asMap(r[0]);
+          final devices = asList((r[1] as Map)['data']);
+          final certs = asList((r[2] as Map)['data']);
+          return ListView(padding: const EdgeInsets.fromLTRB(20, 20, 20, 24), children: [
+            const Title2('حسابي', size: 30),
+            const SizedBox(height: 16),
+            FadeSlide(
+              child: _group([
+                ListTile(
+                  leading: CircleAvatar(backgroundColor: C.violet, child: Text((u['name'] ?? ' ').toString().substring(0, 1), style: const TextStyle(color: Colors.white))),
+                  title: Text(u['name'] ?? '', style: const TextStyle(fontWeight: FontWeight.w600)),
+                  subtitle: Text(u['phone'] ?? '', textDirection: TextDirection.ltr, textAlign: TextAlign.end, style: TextStyle(color: C.text3)),
+                ),
+              ]),
+            ),
+            _label('الإعدادات'),
+            _group([_darkTile()]),
+            _label('الشهادات'),
+            _group([
+              if (certs.isEmpty) ListTile(title: Text('أكمل أي كورس وتصدر شهادتك هنا.', style: TextStyle(color: C.text3, fontSize: 14))),
+              for (final c in certs)
+                ListTile(
+                  leading: const Icon(CupertinoIcons.rosette, color: C.gold),
+                  title: Text(c['course'] ?? ''),
+                  subtitle: Text(c['code'] ?? '', textDirection: TextDirection.ltr, textAlign: TextAlign.end, style: TextStyle(color: C.text3)),
+                  trailing: Icon(CupertinoIcons.chevron_left, size: 16, color: C.text3),
+                  onTap: () => launchUrl(Uri.parse(c['url']), mode: LaunchMode.externalApplication),
+                ),
+            ]),
+            _label('الأجهزة المربوطة (${devices.length}/${(r[1] as Map)['max_devices']})'),
+            _group([
+              for (final d in devices)
+                ListTile(
+                  leading: Icon(d['platform'] == 'web' ? CupertinoIcons.desktopcomputer : CupertinoIcons.device_phone_portrait, color: C.accent),
+                  title: Text(d['name'] ?? d['platform'] ?? ''),
+                  trailing: d['is_current'] == true
+                      ? Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                          decoration: BoxDecoration(color: C.mist, borderRadius: BorderRadius.circular(99)),
+                          child: Text('هذا الجهاز', style: TextStyle(color: C.accent, fontSize: 11.5)),
+                        )
+                      : null,
+                ),
+            ]),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(6, 8, 6, 0),
+              child: Text('إذا تغير جهازك راسل الدعم حتى نعيد تعيين الأجهزة.', style: TextStyle(color: C.text3, fontSize: 12.5)),
+            ),
+            _label('الدعم'),
+            _group([_supportTile(ctx), _waTile()]),
+            const SizedBox(height: 22),
+            TextButton(
+              style: TextButton.styleFrom(
+                foregroundColor: C.danger,
+                minimumSize: const Size.fromHeight(50),
+                backgroundColor: C.card,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+              ),
+              onPressed: () async {
+                tab.value = 0;
+                await Api.i.logout();
+              },
+              child: const Text('تسجيل الخروج'),
+            ),
+          ]);
+        },
+      );
+
+  Widget _label(String t) => Padding(padding: const EdgeInsets.fromLTRB(6, 22, 6, 8), child: Text(t, style: TextStyle(color: C.text3, fontWeight: FontWeight.w600, fontSize: 13)));
 
   Widget _group(List<Widget> children) => Container(
-        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16)),
+        decoration: BoxDecoration(color: C.card, borderRadius: BorderRadius.circular(16)),
         clipBehavior: Clip.antiAlias,
         child: Column(children: children),
       );

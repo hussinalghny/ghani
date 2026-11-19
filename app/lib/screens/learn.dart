@@ -6,6 +6,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:video_player/video_player.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
 import '../api.dart';
@@ -23,20 +24,13 @@ class MyCoursesScreen extends StatelessWidget {
             const Title2('كورساتي', size: 30),
             const SizedBox(height: 16),
             if (list.isEmpty)
-              Container(
-                padding: const EdgeInsets.all(32),
-                decoration: BoxDecoration(borderRadius: BorderRadius.circular(20), border: Border.all(color: const Color(0xFFE4DDFB))),
-                child: Column(children: [
-                  const Icon(CupertinoIcons.play_circle, size: 44, color: C.violet),
-                  const SizedBox(height: 10),
-                  Text('ما عندك كورسات بعد', style: head(18)),
-                  const SizedBox(height: 6),
-                  const Text('اختر كورسك الأول أو فعل قسيمة كورس من المحفظة.', textAlign: TextAlign.center, style: TextStyle(color: C.text2)),
-                  const SizedBox(height: 16),
-                  FilledButton(onPressed: () => tab.value = 0, child: const Text('تصفح الكورسات')),
-                ]),
+              EmptyState(
+                icon: CupertinoIcons.play_circle,
+                title: 'ما عندك كورسات بعد',
+                text: 'اختر كورسك الأول أو فعل قسيمة كورس من المحفظة.',
+                action: FilledButton(onPressed: () => tab.value = 0, child: const Text('تصفح الكورسات')),
               ),
-            for (final e in list) _item(ctx, e),
+            for (var i = 0; i < list.length; i++) FadeSlide(index: i, child: _item(ctx, list[i])),
           ]),
         ),
       ),
@@ -46,11 +40,11 @@ class MyCoursesScreen extends StatelessWidget {
   Widget _item(BuildContext ctx, Map<String, dynamic> e) {
     final c = asMap(e['course']);
     final p = (e['progress'] ?? 0) as num;
-    return GestureDetector(
+    return Pressable(
       onTap: () => go(ctx, CurriculumScreen(slug: c['slug'], title: c['title'] ?? '')),
       child: Container(
         margin: const EdgeInsets.only(bottom: 14),
-        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20), border: Border.all(color: C.line)),
+        decoration: cardBox(),
         clipBehavior: Clip.antiAlias,
         child: Row(children: [
           SizedBox(width: 110, height: 110, child: Cover(c)),
@@ -66,10 +60,10 @@ class MyCoursesScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 8),
                 Row(children: [
-                  Text('$p%', style: const TextStyle(color: C.text3, fontSize: 13)),
+                  Text('$p%', style: TextStyle(color: C.text3, fontSize: 13)),
                   const Spacer(),
                   Text(p >= 100 ? 'مكتمل' : (p > 0 ? 'أكمل' : 'ابدأ'),
-                      style: TextStyle(color: p >= 100 ? C.success : C.violet, fontWeight: FontWeight.w600, fontSize: 13.5)),
+                      style: TextStyle(color: p >= 100 ? C.success : C.accent, fontWeight: FontWeight.w600, fontSize: 13.5)),
                 ]),
               ]),
             ),
@@ -103,17 +97,17 @@ class _CurriculumScreenState extends State<CurriculumScreen> {
           return ListView(padding: const EdgeInsets.all(16), children: [
             Container(
               padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(18), border: Border.all(color: C.line)),
+              decoration: cardBox(radius: 18),
               child: Column(children: [
                 Row(children: [const Text('تقدمك', style: TextStyle(fontWeight: FontWeight.w600)), const Spacer(), Text('$p%')]),
                 const SizedBox(height: 10),
-                ClipRRect(borderRadius: BorderRadius.circular(99), child: LinearProgressIndicator(value: p / 100, minHeight: 8, backgroundColor: C.mist, color: C.violet)),
+                ClipRRect(borderRadius: BorderRadius.circular(99), child: TweenAnimationBuilder<double>(tween: Tween(begin: 0, end: p / 100), duration: const Duration(milliseconds: 700), curve: Curves.easeOutCubic, builder: (_, v, __) => LinearProgressIndicator(value: v, minHeight: 8, backgroundColor: C.mist, color: C.violet))),
               ]),
             ),
             for (final s in asList(d['sections'])) ...[
-              Padding(padding: const EdgeInsets.fromLTRB(4, 20, 4, 8), child: Text(s['title'] ?? '', style: const TextStyle(color: C.text3, fontWeight: FontWeight.w600, fontSize: 13))),
+              Padding(padding: const EdgeInsets.fromLTRB(4, 20, 4, 8), child: Text(s['title'] ?? '', style: TextStyle(color: C.text3, fontWeight: FontWeight.w600, fontSize: 13))),
               Container(
-                decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(18), border: Border.all(color: C.line)),
+                decoration: cardBox(radius: 18),
                 clipBehavior: Clip.antiAlias,
                 child: Column(children: [
                   for (final l in asList(s['lessons']))
@@ -124,13 +118,13 @@ class _CurriculumScreenState extends State<CurriculumScreen> {
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
                           color: l['completed'] == true ? C.success : Colors.transparent,
-                          border: Border.all(color: l['completed'] == true ? C.success : const Color(0xFFE4DDFB), width: 1.5),
+                          border: Border.all(color: l['completed'] == true ? C.success : C.line, width: 1.5),
                         ),
                         child: l['completed'] == true ? const Icon(Icons.check, size: 15, color: Colors.white) : null,
                       ),
                       title: Text(l['title'] ?? '', style: const TextStyle(fontSize: 15)),
-                      subtitle: Text(mmss(l['duration']), style: const TextStyle(color: C.text3, fontSize: 12.5)),
-                      trailing: const Icon(CupertinoIcons.chevron_left, size: 16, color: C.text3),
+                      subtitle: Text(mmss(l['duration']), style: TextStyle(color: C.text3, fontSize: 12.5)),
+                      trailing: Icon(CupertinoIcons.chevron_left, size: 16, color: C.text3),
                       onTap: () async {
                         await goRoot(ctx, PlayerScreen(lessonId: l['id'] as int, title: l['title'] ?? ''));
                         if (mounted) setState(() => k = UniqueKey());
@@ -159,6 +153,9 @@ class _PlayerScreenState extends State<PlayerScreen> {
   Map<String, dynamic>? lesson;
   String? error;
   WebViewController? web;
+  VideoPlayerController? vp;
+  bool showCtl = true;
+  Timer? hideT;
   bool full = false;
   bool done = false;
   int lastSent = 0;
@@ -172,6 +169,9 @@ class _PlayerScreenState extends State<PlayerScreen> {
 
   @override
   void dispose() {
+    vp?.removeListener(_onTick);
+    vp?.dispose();
+    hideT?.cancel();
     SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
     super.dispose();
@@ -182,7 +182,16 @@ class _PlayerScreenState extends State<PlayerScreen> {
       final d = asMap((await Api.i.req('GET', '/lessons/${widget.lessonId}'))['data']);
       final pb = asMap(d['playback']);
       final embed = pb['embed_url'] as String?;
-      if (embed != null) {
+      final local = pb['video_url'] as String?;
+      if (local != null) {
+        // المشغل المجاني: فيديو من سيرفر المنصة برابط موقع مؤقت
+        final c = VideoPlayerController.networkUrl(Uri.parse(local));
+        await c.initialize();
+        final start = (d['position'] ?? 0) as int;
+        if (start > 10 && start < c.value.duration.inSeconds - 5) await c.seekTo(Duration(seconds: start - 3));
+        c.addListener(_onTick);
+        vp = c;
+      } else if (embed != null) {
         final c = WebViewController()
           ..setJavaScriptMode(JavaScriptMode.unrestricted)
           ..setBackgroundColor(Colors.black)
@@ -219,6 +228,115 @@ p.on('ready',function(){ if($start>10)p.setCurrentTime(${start - 3});
  p.on('ended',function(){Ghani.postMessage(JSON.stringify({ended:true}))});
 });}catch(e){}
 </script></body></html>''';
+
+  void _onTick() {
+    final v = vp?.value;
+    if (v == null || !v.isInitialized) return;
+    final t = v.position.inSeconds;
+    if ((t - lastSent).abs() >= 15) {
+      lastSent = t;
+      Api.i.req('POST', '/lessons/${widget.lessonId}/progress', body: {'position': t}).catchError((_) => null);
+    }
+    if (v.duration.inSeconds > 0 && v.position >= v.duration - const Duration(milliseconds: 600) && !v.isPlaying) markDone();
+    if (mounted) setState(() {});
+  }
+
+  void _togglePlay() {
+    final c = vp;
+    if (c == null) return;
+    c.value.isPlaying ? c.pause() : c.play();
+    _poke();
+  }
+
+  void _poke() {
+    setState(() => showCtl = true);
+    hideT?.cancel();
+    hideT = Timer(const Duration(seconds: 3), () {
+      if (mounted && (vp?.value.isPlaying ?? false)) setState(() => showCtl = false);
+    });
+  }
+
+  Widget _localPlayer() {
+    final c = vp!;
+    final v = c.value;
+    final dur = v.duration.inMilliseconds.toDouble();
+    final pos = v.position.inMilliseconds.toDouble().clamp(0, dur > 0 ? dur : 1).toDouble();
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: _poke,
+      onDoubleTapDown: (d) {
+        final w = context.size?.width ?? 400;
+        final fwd = d.localPosition.dx < w / 2; // RTL: اليسار تقديم
+        c.seekTo(v.position + Duration(seconds: fwd ? 10 : -10));
+        _poke();
+      },
+      child: Stack(children: [
+        Center(child: AspectRatio(aspectRatio: v.aspectRatio, child: VideoPlayer(c))),
+        AnimatedOpacity(
+          opacity: showCtl || !v.isPlaying ? 1 : 0,
+          duration: const Duration(milliseconds: 250),
+          child: IgnorePointer(
+            ignoring: !(showCtl || !v.isPlaying),
+            child: Container(
+              decoration: const BoxDecoration(gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [Colors.transparent, Color(0x99000000)], stops: [.55, 1])),
+              child: Stack(children: [
+                Center(
+                  child: GestureDetector(
+                    onTap: _togglePlay,
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 200),
+                      width: 64,
+                      height: 64,
+                      decoration: BoxDecoration(color: Colors.white.withValues(alpha: .92), shape: BoxShape.circle),
+                      child: Icon(v.isPlaying ? CupertinoIcons.pause_fill : CupertinoIcons.play_fill, color: C.violet, size: 28),
+                    ),
+                  ),
+                ),
+                Positioned(
+                  left: 8,
+                  right: 8,
+                  bottom: 4,
+                  child: Directionality(
+                    textDirection: TextDirection.ltr,
+                    child: Row(children: [
+                      Text('${mmss(v.position.inSeconds)} / ${mmss(v.duration.inSeconds)}', style: const TextStyle(color: Colors.white, fontSize: 12)),
+                      Expanded(
+                        child: SliderTheme(
+                          data: SliderTheme.of(context).copyWith(trackHeight: 3, thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6), overlayShape: SliderComponentShape.noOverlay),
+                          child: Slider(
+                            value: pos,
+                            max: dur > 0 ? dur : 1,
+                            activeColor: C.gold,
+                            inactiveColor: Colors.white30,
+                            onChanged: (x) {
+                              c.seekTo(Duration(milliseconds: x.round()));
+                              _poke();
+                            },
+                          ),
+                        ),
+                      ),
+                      PopupMenuButton<double>(
+                        tooltip: 'السرعة',
+                        initialValue: v.playbackSpeed,
+                        onSelected: (x) => c.setPlaybackSpeed(x),
+                        itemBuilder: (_) => [for (final x in [0.75, 1.0, 1.25, 1.5, 2.0]) PopupMenuItem(value: x, child: Text('${x}x'))],
+                        child: Padding(padding: const EdgeInsets.symmetric(horizontal: 6), child: Text('${v.playbackSpeed}x', style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600))),
+                      ),
+                      IconButton(
+                        onPressed: toggleFull,
+                        icon: Icon(full ? CupertinoIcons.fullscreen_exit : CupertinoIcons.fullscreen, color: Colors.white, size: 20),
+                      ),
+                    ]),
+                  ),
+                ),
+              ]),
+            ),
+          ),
+        ),
+        if (v.isBuffering) const Center(child: CupertinoActivityIndicator(color: Colors.white, radius: 14)),
+      ]),
+    );
+  }
 
   void onPlayer(String msg) {
     try {
@@ -263,12 +381,14 @@ p.on('ready',function(){ if($start>10)p.setCurrentTime(${start - 3});
       key: playerKey,
       color: Colors.black,
       child: Stack(children: [
-        if (web != null)
+        if (vp != null)
+          Positioned.fill(child: _localPlayer())
+        else if (web != null)
           Positioned.fill(child: WebViewWidget(controller: web!))
         else
           const Positioned.fill(child: Center(child: Text('الفيديو قيد التجهيز', style: TextStyle(color: C.lavender)))),
         if (wm != null) Positioned.fill(child: IgnorePointer(child: Watermark(text: wm))),
-        Positioned(
+        if (vp == null) Positioned(
           top: 8,
           left: 8,
           child: Material(
@@ -317,17 +437,17 @@ p.on('ready',function(){ if($start>10)p.setCurrentTime(${start - 3});
                 width: double.infinity,
                 padding: const EdgeInsets.all(18),
                 margin: const EdgeInsets.only(bottom: 14),
-                decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(18), border: Border.all(color: C.line)),
+                decoration: cardBox(radius: 18),
                 child: Text(l['body'], style: const TextStyle(height: 1.9, fontSize: 15.5)),
               ),
             if (att != null)
               ListTile(
-                tileColor: Colors.white,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14), side: const BorderSide(color: C.line)),
-                leading: const Icon(CupertinoIcons.doc_text, color: C.violet),
+                tileColor: C.card,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14), side: BorderSide(color: C.line)),
+                leading: Icon(CupertinoIcons.doc_text, color: C.accent),
                 title: Text(att['name'] ?? 'ملف الدرس'),
                 subtitle: const Text('الرابط صالح لمدة 10 دقائق', style: TextStyle(fontSize: 12)),
-                trailing: const Icon(CupertinoIcons.arrow_down_circle, color: C.violet),
+                trailing: Icon(CupertinoIcons.arrow_down_circle, color: C.accent),
                 onTap: () => launchUrl(Uri.parse(att['url']), mode: LaunchMode.externalApplication),
               ),
             const SizedBox(height: 18),
@@ -337,9 +457,9 @@ p.on('ready',function(){ if($start>10)p.setCurrentTime(${start - 3});
               label: Text(done ? 'مكتمل' : 'أكملت الدرس'),
             ),
             const SizedBox(height: 10),
-            const Row(children: [
+            Row(children: [
               Icon(CupertinoIcons.lock_shield, size: 16, color: C.text3),
-              SizedBox(width: 6),
+              const SizedBox(width: 6),
               Expanded(child: Text('المحتوى محمي. التصوير غير مسموح والفيديو معلم برقم حسابك.', style: TextStyle(color: C.text3, fontSize: 12.5))),
             ]),
           ]),

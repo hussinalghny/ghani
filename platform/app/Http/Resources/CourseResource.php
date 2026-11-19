@@ -30,6 +30,7 @@ class CourseResource extends JsonResource
                 'title' => $this->instructor->title,
                 'photo' => $this->instructor->photoUrl(),
                 'bio' => $this->instructor->bio,
+                'can_chat' => (bool) $this->instructor->user_id,
             ] : null),
         ];
     }
