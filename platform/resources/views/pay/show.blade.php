@@ -31,7 +31,7 @@
                 <label class="small muted">حول هذا المبلغ بالضبط</label>
                 <div class="row-between" style="gap:12px;margin-top:6px">
                     <strong class="ltr" style="font-family:var(--font-head);font-size:clamp(34px,8vw,46px);line-height:1.2" id="amt">{{ number_format($order->amount) }}</strong>
-                    <button class="btn btn-plain btn-sm" type="button" data-copy="{{ $order->amount }}">نسخ</button>
+                    <button class="btn btn-primary copy-btn" type="button" data-copy="{{ $order->amount }}">@include('partials.icon', ['n' => 'copy', 'class' => 'icon icon-sm']) نسخ المبلغ</button>
                 </div>
                 <p class="tiny" style="margin:6px 0 0">دينار عراقي. الدنانير الأخيرة <span class="ltr">({{ $order->amount - $order->base_amount }})</span> هي رمز طلبك، تنضاف لرصيدك. لا تقربه ولا تقسمه.</p>
             </div>
@@ -40,7 +40,7 @@
                 <label class="small muted">إلى رقم المحفظة</label>
                 <div class="row-between" style="gap:12px;margin-top:6px">
                     <strong class="ltr" style="font-size:24px">{{ $method['number'] }}</strong>
-                    <button class="btn btn-plain btn-sm" type="button" data-copy="{{ $method['number'] }}">نسخ</button>
+                    <button class="btn btn-primary copy-btn" type="button" data-copy="{{ preg_replace('/\s+/', '', $method['number']) }}">@include('partials.icon', ['n' => 'copy', 'class' => 'icon icon-sm']) نسخ الرقم</button>
                 </div>
                 @if ($method['name'])<p class="tiny" style="margin:6px 0 0">باسم: {{ $method['name'] }}</p>@endif
             </div>
@@ -61,6 +61,8 @@
 
 @push('head')
 <style>
+.copy-btn{min-height:46px;padding:0 18px;white-space:nowrap;gap:8px}
+.copy-btn.done{background:var(--success,#1E9E6A);color:#fff}
 .spinner{width:20px;height:20px;border-radius:50%;border:2.5px solid var(--line-2);border-top-color:var(--violet);animation:spin 1s linear infinite;flex:none}
 @keyframes spin{to{transform:rotate(360deg)}}
 </style>
@@ -71,8 +73,10 @@
 (function () {
   document.querySelectorAll('[data-copy]').forEach(function (b) {
     b.addEventListener('click', function () {
-      navigator.clipboard && navigator.clipboard.writeText(b.dataset.copy);
-      var t = b.textContent; b.textContent = 'تم النسخ'; setTimeout(function () { b.textContent = t; }, 1500);
+      var v = b.dataset.copy, html = b.innerHTML;
+      function done() { b.classList.add('done'); b.textContent = 'تم النسخ'; setTimeout(function () { b.classList.remove('done'); b.innerHTML = html; }, 1600); }
+      function fallback() { var t = document.createElement('textarea'); t.value = v; t.style.position = 'fixed'; t.style.opacity = '0'; document.body.appendChild(t); t.select(); try { document.execCommand('copy'); } catch (e) {} t.remove(); done(); }
+      if (navigator.clipboard && window.isSecureContext) navigator.clipboard.writeText(v).then(done, fallback); else fallback();
     });
   });
   var box = document.getElementById('payBox');
@@ -80,10 +84,10 @@
   function poll() {
     fetch(box.dataset.status, { headers: { Accept: 'application/json' }, credentials: 'same-origin' })
       .then(function (r) { return r.json(); })
-      .then(function (d) { if (d.redirect) location.href = d.redirect; else if (d.status === 'pending') setTimeout(poll, 5000); else location.reload(); })
+      .then(function (d) { if (d.redirect) location.href = d.redirect; else if (d.status === 'pending') setTimeout(poll, 2000); else location.reload(); })
       .catch(function () { setTimeout(poll, 10000); });
   }
-  setTimeout(poll, 5000);
+  setTimeout(poll, 2000);
 })();
 </script>
 @endpush

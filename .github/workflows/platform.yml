@@ -120,6 +120,16 @@ jobs:
           R=$(php artisan tinker --execute='$o=App\Models\PaymentOrder::find('$OID'); echo $o->status."|".$o->paid_by."|".$o->user->balance;' | tail -1); echo "order after: $R (balance before $B0)"
           [ "$R" = "paid|auto|$((B0 + AMT))" ] || fail=1
           for u in /admin/payments "/admin/payments?status=paid" /wallet /course/smart-defense; do c=$(curl -s -o /tmp/out -w '%{http_code}' -c $J -b $J "http://127.0.0.1:8000$u"); echo "$c $u"; [ "$c" = "200" ] || { fail=1; grep -o 'class="exception-message[^<]*<[^<]*' /tmp/out | head -2; }; done
+          # لوحة غني باي: الطلبات والتأكيد اليدوي بنفس التوقيع
+          sreq() { local m="$1" p="$2" body="${3:-}" ts=$(date +%s); local sig=$(printf '%s' "$ts.$body" | openssl dgst -sha256 -hmac ci-secret-123 | sed 's/.*= //'); curl -s -o /tmp/con -w '%{http_code}' -X "$m" -H 'Accept: application/json' -H 'Content-Type: application/json' -H "X-Ghani-Time: $ts" -H "X-Ghani-Sign: $sig" ${body:+--data "$body"} "http://127.0.0.1:8000$p"; }
+          X=$(curl -s -c $J -b $J http://127.0.0.1:8000/wallet | grep -o 'name="csrf-token" content="[^"]*"' | sed 's/.*content="//;s/"//')
+          curl -s -o /dev/null -c $J -b $J -X POST -d "_token=$X&method=qi&amount=25000" http://127.0.0.1:8000/pay
+          O3=$(php artisan tinker --execute='echo App\Models\PaymentOrder::latest("id")->value("id");' | tail -1)
+          c=$(curl -s -o /tmp/out -w '%{http_code}' -c $J -b $J http://127.0.0.1:8000/pay/$O3); echo "$c pay page copy buttons"; grep -q 'نسخ المبلغ' /tmp/out && grep -q 'نسخ الرقم' /tmp/out || fail=1
+          c=$(sreq GET /api/v1/payments/console/feed); echo "$c console feed $(head -c 160 /tmp/con)"; [ "$c" = "200" ] && grep -q '"pending"' /tmp/con || fail=1
+          c=$(curl -s -o /dev/null -w '%{http_code}' -H 'Accept: application/json' http://127.0.0.1:8000/api/v1/payments/console/feed); echo "$c console unsigned"; [ "$c" = "401" ] || fail=1
+          c=$(sreq POST /api/v1/payments/console/orders/$O3/approve '{}'); echo "$c console approve"
+          R=$(php artisan tinker --execute='echo App\Models\PaymentOrder::find('$O3')->status."|".App\Models\PaymentOrder::find('$O3')->paid_by;' | tail -1); echo "approved: $R"; [ "$R" = "paid|admin" ] || fail=1
           # حذف الحساب من التطبيق
           c=$(curl -s -o /tmp/out -w '%{http_code}' -X DELETE -H 'Accept: application/json' -H 'Content-Type: application/json' -H "Authorization: Bearer $T" -d '{"password":"12345678"}' http://127.0.0.1:8000/api/v1/me); echo "$c delete account"; [ "$c" = "200" ] || { fail=1; cat /tmp/out; }
           grep -i "error" storage/logs/*.log | head -20 || true
