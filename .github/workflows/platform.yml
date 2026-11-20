@@ -77,7 +77,7 @@ jobs:
             if [ "$c" -ge 400 ]; then fail=1; grep -o '<title>[^<]*' /tmp/out | head -1; grep -o 'class="exception-message[^<]*<[^<]*' /tmp/out | head -2; fi
           done
           # لوحة المدرب: يشوف كورساته فقط ويعدلها بدون السعر
-          php artisan tinker --execute='$u=App\Models\User::create(["name"=>"مدرب","phone"=>"07700000009","password"=>Illuminate\Support\Facades\Hash::make("Teach@2026"),"role"=>"instructor"]); App\Models\Instructor::first()->update(["user_id"=>$u->id,"commission_percent"=>40]); $c=App\Models\Course::first()->replicate(); $c->slug="not-mine"; $c->instructor_id=null; $c->save();'
+          php artisan tinker --execute='$u=new App\Models\User; $u->forceFill(["name"=>"مدرب","phone"=>"07700000009","password"=>Illuminate\Support\Facades\Hash::make("Teach@2026"),"role"=>"instructor"])->save(); App\Models\Instructor::first()->update(["user_id"=>$u->id,"commission_percent"=>40]); $c=App\Models\Course::first()->replicate(); $c->slug="not-mine"; $c->instructor_id=null; $c->save();'
           I=/tmp/teach.jar
           TOK=$(curl -s -c $I -b $I http://127.0.0.1:8000/login | grep -o 'name="_token" value="[^"]*"' | head -1 | sed 's/.*value="//;s/"//')
           curl -s -o /dev/null -c $I -b $I -X POST -d "_token=$TOK&phone=07700000009&password=Teach@2026" http://127.0.0.1:8000/login
