@@ -22,7 +22,8 @@ class AppServiceProvider extends ServiceProvider
     private function autoMigrate(): void
     {
         $flag = storage_path('app/schema.version');
-        if ($this->app->runningInConsole() || ! is_file(storage_path('installed.lock'))) {
+        // ما نشغلها قبل التنصيب (بدون مفتاح أو قاعدة بيانات)
+        if ($this->app->runningInConsole() || ! config('app.key') || ! is_file(base_path('.env'))) {
             return;
         }
         if (is_file($flag) && trim((string) file_get_contents($flag)) === self::SCHEMA) {
