@@ -47,7 +47,13 @@
                                 <button class="btn btn-gold btn-block" type="submit">{{ $course->isFree() ? 'سجل مجانا' : 'اشترك الآن' }}</button>
                             </form>
                         @else
-                            <a href="{{ route('wallet') }}" class="btn btn-gold btn-block">اشحن رصيدك للاشتراك</a>
+                            @if (\App\Services\PaymentService::enabled())
+                                @include('partials.pay-methods', ['course' => $course])
+                                <p class="tiny" style="margin:10px 0 0;text-align:center">تحويل مباشر، والكورس ينفتح تلقائيا أول ما يوصل. أو</p>
+                                <a href="{{ route('wallet') }}" class="btn btn-plain btn-block" style="margin-top:6px">عندي قسيمة</a>
+                            @else
+                                <a href="{{ route('wallet') }}" class="btn btn-gold btn-block">اشحن رصيدك للاشتراك</a>
+                            @endif
                             <p class="tiny" style="margin:10px 0 0;text-align:center">تحتاج <span class="ltr">{{ iqd($course->finalPrice() - auth()->user()->balance, false) }}</span> د.ع إضافية. عندك قسيمة؟ اكتبها بالمحفظة.</p>
                         @endif
                     @else

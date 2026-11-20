@@ -10,6 +10,7 @@ class WalletTransaction extends Model
     protected $guarded = ['id'];
 
     public const TYPES = [
+        'payment' => 'دفع إلكتروني',
         'voucher' => 'شحن بقسيمة',
         'purchase' => 'شراء كورس',
         'admin_credit' => 'إضافة من الإدارة',

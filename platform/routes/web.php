@@ -58,6 +58,10 @@ Route::middleware('auth')->group(function () {
     Route::put('/account/password', [AccountController::class, 'password'])->name('account.password');
 
     Route::get('/wallet', [WalletController::class, 'index'])->name('wallet');
+    Route::post('/pay', [App\Http\Controllers\PaymentController::class, 'store'])->name('pay.store')->middleware('throttle:10,1');
+    Route::get('/pay/{order}', [App\Http\Controllers\PaymentController::class, 'show'])->name('pay.show');
+    Route::get('/pay/{order}/status', [App\Http\Controllers\PaymentController::class, 'status'])->name('pay.status');
+    Route::post('/pay/{order}/cancel', [App\Http\Controllers\PaymentController::class, 'cancel'])->name('pay.cancel');
     Route::post('/wallet/redeem', [WalletController::class, 'redeem'])->name('wallet.redeem')->middleware('throttle:redeem');
 
     Route::get('/certificates', [CertificateController::class, 'index'])->name('certificates.index');
@@ -105,6 +109,11 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
     Route::resource('instructors', Admin\InstructorController::class)->except('show');
     Route::resource('courses', Admin\CourseController::class)->except(['show', 'edit', 'update']);
 
+    Route::get('payments', [Admin\PaymentController::class, 'index'])->name('payments');
+    Route::post('payments/settings', [Admin\PaymentController::class, 'settings'])->name('payments.settings');
+    Route::post('payments/{order}/approve', [Admin\PaymentController::class, 'approve'])->name('payments.approve');
+    Route::post('payments/notifications/{notification}/attach', [Admin\PaymentController::class, 'attach'])->name('payments.attach');
+    Route::post('payments/notifications/{notification}/ignore', [Admin\PaymentController::class, 'ignore'])->name('payments.ignore');
     Route::get('vouchers', [Admin\VoucherController::class, 'index'])->name('vouchers.index');
     Route::get('vouchers/create', [Admin\VoucherController::class, 'create'])->name('vouchers.create');
     Route::post('vouchers', [Admin\VoucherController::class, 'store'])->name('vouchers.store');

@@ -31,6 +31,14 @@
             </form>
         </div>
 
+        @if (\App\Services\PaymentService::enabled())
+        <div class="panel">
+            <h2>شحن مباشر</h2>
+            <p class="small muted">حول من محفظتك الإلكترونية، والرصيد ينضاف تلقائيا أول ما يوصل التحويل.</p>
+            @include('partials.pay-methods', ['amountField' => true])
+        </div>
+        @endif
+
         <div class="panel">
             <h2>سجل العمليات</h2>
             @forelse ($transactions as $t)

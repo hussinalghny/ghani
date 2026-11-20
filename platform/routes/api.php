@@ -16,6 +16,8 @@ Route::prefix('v1')->middleware('throttle:api')->group(function () {
     Route::get('verify/{certificate}', [Api\CatalogController::class, 'verifyCertificate']);
     // فيديو تطبيق الدسكتوب: رابط موقع مربوط بتوكن الجهاز (مشغل ويندوز ما يرسل هيدرات)
     Route::get('lessons/{lesson}/desktop', [App\Http\Controllers\VideoController::class, 'desktop'])->name('video.desktop')->middleware(['signed', 'throttle:600,1']);
+    // إشعارات الاستلام من تطبيق غني باي (موقعة بمفتاح سري)
+    Route::post('payments/hook', App\Http\Controllers\Api\PaymentHookController::class)->name('payments.hook')->withoutMiddleware('throttle:api')->middleware('throttle:120,1');
     Route::get('pages', fn () => response()->json(['privacy' => route('privacy'), 'terms' => route('terms')]));
 
     Route::post('auth/register', [Api\AuthController::class, 'register'])->middleware('throttle:login');
