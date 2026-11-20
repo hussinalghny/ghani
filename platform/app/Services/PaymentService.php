@@ -119,7 +119,7 @@ class PaymentService
 
             return PaymentOrder::create([
                 'user_id' => $user->id, 'course_id' => $course?->id, 'method' => $method,
-                'base_amount' => $base, 'amount' => $amount, 'status' => 'pending', 'expires_at' => now()->addHours(self::HOURS),
+                'base_amount' => $base, 'amount' => $amount, 'expires_at' => now()->addHours(self::HOURS),
             ]);
         });
     }
