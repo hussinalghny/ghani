@@ -10,6 +10,7 @@ import 'package:video_player/video_player.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
 import '../api.dart';
+import '../desktop_guard.dart';
 import '../ui.dart';
 
 class MyCoursesScreen extends StatelessWidget {
@@ -160,11 +161,21 @@ class _PlayerScreenState extends State<PlayerScreen> {
   bool done = false;
   int lastSent = 0;
   final playerKey = GlobalKey();
+  Timer? guardT;
+  String? recorder;
 
   @override
   void initState() {
     super.initState();
     load();
+    if (DesktopGuard.isDesktop) {
+      guardT = Timer.periodic(const Duration(seconds: 3), (_) async {
+        final r = await DesktopGuard.recorder();
+        if (!mounted) return;
+        if (r != null) vp?.pause();
+        if (r != recorder) setState(() => recorder = r);
+      });
+    }
   }
 
   @override
@@ -172,6 +183,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
     vp?.removeListener(_onTick);
     vp?.dispose();
     hideT?.cancel();
+    guardT?.cancel();
     SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
     super.dispose();
@@ -233,6 +245,7 @@ p.on('ready',function(){ if($start>10)p.setCurrentTime(${start - 3});
   void _onTick() {
     final v = vp?.value;
     if (v == null || !v.isInitialized) return;
+    if (recorder != null && v.isPlaying) vp?.pause();
     final t = v.position.inSeconds;
     if ((t - lastSent).abs() >= 15) {
       lastSent = t;
@@ -389,6 +402,15 @@ p.on('ready',function(){ if($start>10)p.setCurrentTime(${start - 3});
         else
           const Positioned.fill(child: Center(child: Text('الفيديو قيد التجهيز', style: TextStyle(color: C.lavender)))),
         if (wm != null) Positioned.fill(child: IgnorePointer(child: Watermark(text: wm))),
+        if (recorder != null)
+          Positioned.fill(
+            child: Container(
+              color: Colors.black,
+              alignment: Alignment.center,
+              padding: const EdgeInsets.all(24),
+              child: Text('أغلق برنامج تسجيل الشاشة ($recorder) حتى يكمل الفيديو.', textAlign: TextAlign.center, style: const TextStyle(color: Colors.white, fontSize: 15, height: 1.7)),
+            ),
+          ),
         if (vp == null) Positioned(
           top: 8,
           left: 8,

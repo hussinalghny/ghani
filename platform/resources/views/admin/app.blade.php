@@ -10,6 +10,7 @@
         <div class="kpi"><span>الإصدار الحالي</span><strong class="ltr">{{ $release['version'] }}</strong><em style="color:var(--text-3)">{{ $release['updated'] ?? '—' }}</em></div>
         <div class="kpi"><span>تنزيلات Android</span><strong class="ltr">{{ number_format($release['android']['downloads']) }}</strong></div>
         <div class="kpi"><span>تنزيلات iPhone</span><strong class="ltr">{{ number_format($release['ios']['downloads']) }}</strong></div>
+        <div class="kpi"><span>تنزيلات Windows</span><strong class="ltr">{{ number_format($release['windows']['downloads']) }}</strong></div>
     </div>
 
     <div class="panel">
@@ -20,7 +21,7 @@
     </div>
 
     <div class="grid grid-2">
-        @foreach (['android' => ['Android', 'apk'], 'ios' => ['iPhone', 'ipa']] as $p => [$label, $ext])
+        @foreach (['android' => ['Android', 'apk'], 'ios' => ['iPhone', 'ipa'], 'windows' => ['Windows (كمبيوتر)', 'exe']] as $p => [$label, $ext])
             <div class="panel">
                 <div class="row-between"><h2 style="margin:0">{{ $label }}</h2>
                     @if ($release[$p]['available'])<span class="badge badge-green">منشور@if ($release[$p]['size']) · <span class="ltr">{{ $release[$p]['size'] }} MB</span>@endif</span>@else<span class="badge badge-gray">غير متوفر</span>@endif

@@ -58,7 +58,12 @@ class LessonAccess
             // المشغل المجاني: ملف على سيرفرنا برابط موقع مؤقت
             $data['provider'] = 'local';
             // الموقع: الرابط ما ينحط بالصفحة، يتجلب بعدين ومربوط بالجلسة. التطبيق: يحتاج التوكن بالهيدر
-            $data['video_url'] = $channel === 'app' ? route('api.video', $lesson) : null;
+            $data['video_url'] = match ($channel) {
+                'app' => route('api.video', $lesson),
+                // الدسكتوب: رابط موقع مؤقت مربوط بتوكن الجهاز (ينلغي فورا إذا انحظر الجهاز أو طلع)
+                'desktop' => $user ? \App\Http\Controllers\VideoController::desktopUrl($lesson, $user) : null,
+                default => null,
+            };
             $data['requires_auth_header'] = $channel === 'app';
         } elseif ($lesson->type === 'video' && $lesson->bunny_video_id) {
             $data['provider'] = 'bunny';

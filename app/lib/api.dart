@@ -44,6 +44,10 @@ class Api {
         id = await const AndroidId().getId();
         final a = await DeviceInfoPlugin().androidInfo;
         name = '${a.manufacturer} ${a.model}';
+      } else if (Platform.isWindows) {
+        final w = await DeviceInfoPlugin().windowsInfo;
+        id = 'win-${w.deviceId}';
+        name = w.computerName;
       } else if (Platform.isIOS) {
         final s = await DeviceInfoPlugin().iosInfo;
         id = s.identifierForVendor;
@@ -53,7 +57,7 @@ class Api {
     id ??= await _store.read(key: 'device_id');
     id ??= 'gen-${DateTime.now().microsecondsSinceEpoch}';
     await _store.write(key: 'device_id', value: id);
-    return {'device_id': id, 'device_name': name, 'platform': Platform.isIOS ? 'ios' : 'android'};
+    return {'device_id': id, 'device_name': name, 'platform': Platform.isIOS ? 'ios' : (Platform.isWindows ? 'windows' : 'android')};
   }
 
   Future<dynamic> req(String method, String path, {Map<String, dynamic>? body}) async {
@@ -62,6 +66,7 @@ class Api {
       'Accept': 'application/json',
       'Content-Type': 'application/json',
       if (token != null) 'Authorization': 'Bearer $token',
+      if (Platform.isWindows || Platform.isMacOS) 'X-Client': 'desktop',
     };
     http.Response r;
     try {

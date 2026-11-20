@@ -11,7 +11,7 @@ class AppDownloadController extends Controller
     public static function release(): array
     {
         $r = [];
-        foreach (['android', 'ios'] as $p) {
+        foreach (['android', 'ios', 'windows'] as $p) {
             $file = setting("app_{$p}_file");
             $url = setting("app_{$p}_url");
             $r[$p] = [
@@ -34,19 +34,19 @@ class AppDownloadController extends Controller
 
     public function download(string $platform)
     {
-        abort_unless(in_array($platform, ['android', 'ios'], true), 404);
+        abort_unless(in_array($platform, ['android', 'ios', 'windows'], true), 404);
         $file = setting("app_{$platform}_file");
         $url = setting("app_{$platform}_url");
 
         if (! $file && ! $url) {
-            return redirect()->route('app')->with('error', 'نسخة '.($platform === 'ios' ? 'iPhone' : 'Android').' غير متوفرة حاليا.');
+            return redirect()->route('app')->with('error', 'نسخة '.['ios' => 'iPhone', 'windows' => 'Windows'][$platform] ?? 'Android'.' غير متوفرة حاليا.');
         }
 
         Setting::put(["app_{$platform}_downloads" => (int) setting("app_{$platform}_downloads", 0) + 1]);
 
         if ($file && Storage::disk('public')->exists($file)) {
-            $ext = $platform === 'ios' ? 'ipa' : 'apk';
-            $type = $platform === 'ios' ? 'application/octet-stream' : 'application/vnd.android.package-archive';
+            $ext = ['ios' => 'ipa', 'windows' => 'exe'][$platform] ?? 'apk';
+            $type = $platform === 'android' ? 'application/vnd.android.package-archive' : 'application/octet-stream';
 
             return Storage::disk('public')->download($file, 'ghani-academy-'.(setting('app_version') ?: '1.0.0').'.'.$ext, ['Content-Type' => $type]);
         }

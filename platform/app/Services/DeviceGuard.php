@@ -39,7 +39,7 @@ class DeviceGuard
 
         $device ??= new Device(['user_id' => $user->id, 'device_id' => $deviceId]);
         $device->fill([
-            'platform' => in_array($platform, ['web', 'android', 'ios'], true) ? $platform : 'web',
+            'platform' => in_array($platform, ['web', 'android', 'ios', 'windows', 'macos'], true) ? $platform : 'web',
             'name' => $name ? mb_substr($name, 0, 120) : $device->name,
             'last_ip' => $ip,
             'last_seen_at' => now(),

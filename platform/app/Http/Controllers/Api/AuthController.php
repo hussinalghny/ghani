@@ -18,7 +18,7 @@ class AuthController extends Controller
         return [
             'device_id' => ['required', 'string', 'min:6', 'max:100'],
             'device_name' => ['nullable', 'string', 'max:120'],
-            'platform' => ['required', 'in:android,ios'],
+            'platform' => ['required', 'in:android,ios,windows,macos'],
         ];
     }
 

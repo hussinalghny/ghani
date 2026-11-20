@@ -14,7 +14,7 @@
 <section class="section" style="padding-top:8px">
     <div class="container" style="max-width:900px">
         <div class="grid grid-2">
-            @foreach (['android' => ['Android', 'phone', 'ملف APK'], 'ios' => ['iPhone', 'phone', 'ملف IPA']] as $p => [$label, $icon, $kind])
+            @foreach (['android' => ['Android', 'phone', 'ملف APK'], 'ios' => ['iPhone', 'phone', 'ملف IPA'], 'windows' => ['Windows', 'dashboard', 'برنامج للكمبيوتر']] as $p => [$label, $icon, $kind])
                 @php($r = $release[$p])
                 <div class="panel app-card" data-platform="{{ $p }}" style="padding:28px;text-align:center">
                     <span class="cat-icon" style="margin:0 auto 14px;width:60px;height:60px;border-radius:18px">@include('partials.icon', ['n' => $icon])</span>
@@ -22,8 +22,8 @@
                     <p class="small muted" style="margin-bottom:18px">{{ $kind }}@if ($r['size']) · <span class="ltr">{{ $r['size'] }} MB</span>@endif</p>
                     @if ($r['available'])
                         <a class="btn btn-primary btn-block" href="{{ route('app.download', $p) }}">@include('partials.icon', ['n' => 'download']) تنزيل لـ {{ $label }}</a>
-                        <img class="qr hide-sm" src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&margin=6&color=1B1446&data={{ urlencode(route('app.download', $p)) }}" alt="امسح الرمز بكاميرا الموبايل" width="150" height="150" style="margin:20px auto 6px;border-radius:12px;border:1px solid var(--line)">
-                        <p class="tiny hide-sm">امسح الرمز بكاميرا الموبايل</p>
+                        @if ($p !== 'windows')<img class="qr hide-sm" src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&margin=6&color=1B1446&data={{ urlencode(route('app.download', $p)) }}" alt="امسح الرمز بكاميرا الموبايل" width="150" height="150" style="margin:20px auto 6px;border-radius:12px;border:1px solid var(--line)">
+                        <p class="tiny hide-sm">امسح الرمز بكاميرا الموبايل</p>@else<p class="tiny" style="margin-top:12px">Windows 10 و 11 · الفيديو محمي من تسجيل الشاشة</p>@endif
                     @else
                         <button class="btn btn-plain btn-block" disabled>قريبا</button>
                     @endif
@@ -65,7 +65,7 @@
 <script>
 (function () {
   // نبرز نسخة جهاز الزائر
-  var ua = navigator.userAgent, p = /iPhone|iPad|iPod/.test(ua) ? 'ios' : (/Android/.test(ua) ? 'android' : null);
+  var ua = navigator.userAgent, p = /iPhone|iPad|iPod/.test(ua) ? 'ios' : (/Android/.test(ua) ? 'android' : (/Windows/.test(ua) ? 'windows' : null));
   if (!p) return;
   var card = document.querySelector('.app-card[data-platform="' + p + '"]');
   if (card) { card.style.borderColor = 'var(--violet)'; card.style.boxShadow = '0 0 0 4px rgba(90,53,214,.10)'; card.parentElement.prepend(card); }

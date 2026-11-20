@@ -14,6 +14,8 @@ Route::prefix('v1')->middleware('throttle:api')->group(function () {
     Route::get('courses', [Api\CatalogController::class, 'courses']);
     Route::get('courses/{course}', [Api\CatalogController::class, 'course']);
     Route::get('verify/{certificate}', [Api\CatalogController::class, 'verifyCertificate']);
+    // فيديو تطبيق الدسكتوب: رابط موقع مربوط بتوكن الجهاز (مشغل ويندوز ما يرسل هيدرات)
+    Route::get('lessons/{lesson}/desktop', [App\Http\Controllers\VideoController::class, 'desktop'])->name('video.desktop')->middleware(['signed', 'throttle:600,1']);
     Route::get('pages', fn () => response()->json(['privacy' => route('privacy'), 'terms' => route('terms')]));
 
     Route::post('auth/register', [Api\AuthController::class, 'register'])->middleware('throttle:login');

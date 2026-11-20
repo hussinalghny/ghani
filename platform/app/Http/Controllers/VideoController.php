@@ -37,6 +37,31 @@ class VideoController extends Controller
         return $this->stream($request, $lesson, $access);
     }
 
+    /** رابط تطبيق الدسكتوب: موقع ومؤقت ومربوط بتوكن الجهاز */
+    public static function desktopUrl(Lesson $lesson, User $user): ?string
+    {
+        $token = $user->currentAccessToken();
+        if (! $token || ! method_exists($token, 'getKey')) {
+            return null;
+        }
+
+        return \Illuminate\Support\Facades\URL::temporarySignedRoute('video.desktop', now()->addHours(3), ['lesson' => $lesson->id, 't' => $token->getKey()]);
+    }
+
+    public function desktop(Request $request, Lesson $lesson, LessonAccess $access)
+    {
+        // المتصفحات ترسل Sec-Fetch-*، مشغل ويندوز ما يرسلها: الرابط ما يفتح بمتصفح
+        abort_if($request->hasHeader('Sec-Fetch-Dest') || $request->hasHeader('Sec-Fetch-Mode'), 403);
+        $token = \Laravel\Sanctum\PersonalAccessToken::find($request->query('t'));
+        $user = $token?->tokenable;
+        abort_unless($user instanceof User && $user->is_active, 403);
+        $device = \App\Models\Device::where('user_id', $user->id)->where('device_id', $token->name)->first();
+        abort_if(! $device || $device->is_blocked, 403);
+        $request->setUserResolver(fn () => $user);
+
+        return $this->stream($request, $lesson, $access);
+    }
+
     /** للتطبيق: Authorization: Bearer (الرابط وحده ما يشتغل) */
     public function stream(Request $request, Lesson $lesson, LessonAccess $access)
     {

@@ -20,6 +20,7 @@ class Push {
   static bool ready = false;
 
   static Future<void> init() async {
+    if (!Platform.isAndroid && !Platform.isIOS) return;
     final options = firebaseOptionsFor(Platform.isIOS);
     if (options == null) return;
     try {

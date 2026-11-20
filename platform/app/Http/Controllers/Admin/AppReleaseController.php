@@ -24,16 +24,19 @@ class AppReleaseController extends Controller
             'ios' => ['nullable', 'file', 'max:204800'],
             'android_url' => ['nullable', 'url', 'max:500'],
             'ios_url' => ['nullable', 'url', 'max:500'],
-        ], [], ['android' => 'ملف APK', 'ios' => 'ملف IPA']);
+            'windows' => ['nullable', 'file', 'max:204800'],
+            'windows_url' => ['nullable', 'url', 'max:500'],
+        ], [], ['android' => 'ملف APK', 'ios' => 'ملف IPA', 'windows' => 'ملف EXE']);
 
         $values = [
             'app_version' => $request->input('version'),
             'app_notes' => (string) $request->input('notes'),
             'app_android_url' => (string) $request->input('android_url'),
             'app_ios_url' => (string) $request->input('ios_url'),
+            'app_windows_url' => (string) $request->input('windows_url'),
         ];
 
-        foreach (['android' => 'apk', 'ios' => 'ipa'] as $p => $ext) {
+        foreach (['android' => 'apk', 'ios' => 'ipa', 'windows' => 'exe'] as $p => $ext) {
             if ($request->hasFile($p)) {
                 $f = $request->file($p);
                 if (strtolower($f->getClientOriginalExtension()) !== $ext) {

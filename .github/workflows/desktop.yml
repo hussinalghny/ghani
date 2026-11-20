@@ -1,0 +1,57 @@
+name: Desktop (Windows EXE)
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['app/**', '.github/workflows/desktop.yml']
+
+env:
+  API_BASE: ${{ vars.API_BASE || 'https://ghaniacademy.online' }}
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    permissions:
+      contents: write
+    defaults:
+      run:
+        working-directory: app
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - run: python -m pip install --quiet pillow
+      - run: bash tool/prepare_windows.sh
+      - run: flutter analyze --no-fatal-infos --no-fatal-warnings lib
+      - run: flutter build windows --release --build-number=${{ github.run_number }} --dart-define=API_BASE=$API_BASE --dart-define=BUILD=${{ github.run_number }}
+      - name: Bundle VC++ runtime (يشتغل على أي ويندوز بدون تنصيب إضافي)
+        run: |
+          R=build/windows/x64/runner/Release
+          for f in msvcp140.dll vcruntime140.dll vcruntime140_1.dll; do cp "/c/Windows/System32/$f" "$R/" || true; done
+          ls "$R"
+      - name: Installer (Inno Setup)
+        shell: pwsh
+        run: |
+          if (-not (Test-Path "C:\Program Files (x86)\Inno Setup 6\ISCC.exe")) { choco install innosetup -y --no-progress | Out-Null }
+          $env:APP_VER = "1.0.${{ github.run_number }}"
+          & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" /Q tool\windows\installer.iss
+          Copy-Item dist\GhaniAcademy-Setup.exe "dist\GhaniAcademy-Setup-v${{ github.run_number }}.exe"
+          Compress-Archive -Path build\windows\x64\runner\Release\* -DestinationPath "dist\GhaniAcademy-Portable-v${{ github.run_number }}.zip"
+          Get-ChildItem dist
+      - uses: softprops/action-gh-release@v2
+        with:
+          tag_name: desktop-v${{ github.run_number }}
+          name: غني أكاديمي للكمبيوتر ${{ github.run_number }}
+          body: |
+            Windows 10 (2004+) و 11 — 64-bit
+            GhaniAcademy-Setup.exe: المثبت (بدون صلاحيات مدير)
+            Portable.zip: نسخة تشتغل بدون تنصيب
+            الفيديو محمي: النافذة تطلع سودة بأي تسجيل شاشة أو سكرين شوت.
+          make_latest: false
+          files: |
+            app/dist/GhaniAcademy-Setup*.exe
+            app/dist/GhaniAcademy-Portable*.zip

@@ -80,7 +80,7 @@ class LearnController extends Controller
             'body' => $lesson->body,
             'position' => (int) $progress?->position,
             'completed' => (bool) $progress?->completed_at,
-            'playback' => $this->access->playback($lesson, $user, 'app'),
+            'playback' => $this->access->playback($lesson, $user, $request->header('X-Client') === 'desktop' ? 'desktop' : 'app'),
             'attachment' => $lesson->attachment ? [
                 'name' => $lesson->attachment_name,
                 'url' => URL::temporarySignedRoute('learn.file', now()->addMinutes(10), ['lesson' => $lesson->id, 'u' => $user->id]),

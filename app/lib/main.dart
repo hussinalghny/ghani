@@ -7,6 +7,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 import 'api.dart';
+import 'desktop_guard.dart';
 import 'push.dart';
 import 'screens/account.dart';
 import 'screens/auth.dart';
@@ -52,6 +53,10 @@ class GhaniApp extends StatelessWidget {
             GlobalCupertinoLocalizations.delegate,
           ],
           home: const Shell(),
+          // الكمبيوتر: نفس تصميم التطبيق بعرض مريح بنص النافذة
+          builder: (ctx, child) => DesktopGuard.isDesktop
+              ? ColoredBox(color: C.bg, child: Center(child: ConstrainedBox(constraints: const BoxConstraints(maxWidth: 760), child: child)))
+              : child!,
         );
       },
     );
