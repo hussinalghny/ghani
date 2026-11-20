@@ -2,7 +2,7 @@
 @section('heading', 'الحماية والإعدادات')
 
 @section('content')
-<form method="POST" action="{{ route('admin.settings.update') }}" style="max-width:820px" class="stack">
+<form method="POST" action="{{ route('admin.settings.update') }}" style="max-width:820px" class="stack" enctype="multipart/form-data">
     @csrf @method('PUT')
     <div class="panel">
         <h2>الحماية من التسريب ومشاركة الحسابات</h2>
@@ -39,6 +39,16 @@
     <div class="panel">
         <h2>شريط إعلان أعلى المنصة</h2>
         <input class="input" name="announcement" value="{{ setting('announcement') }}" placeholder="مثال: خصم 20% على كورس الدفاع الذكي حتى نهاية الشهر" aria-label="الإعلان">
+    </div>
+
+    <div class="panel">
+        <h2>واجهة الرئيسية</h2>
+        <div class="form-grid">
+            <div class="field full"><label for="home_badge">النص فوق العنوان</label><input class="input" id="home_badge" name="home_badge" value="{{ setting('home_badge') }}" placeholder="التسجيل مفتوح · كورسات تقنية عملية"></div>
+            <div class="field full"><label for="home_hero_image">الصورة الكبيرة بالرئيسية</label>
+                @if (setting('home_hero_image'))<img src="{{ asset('storage/'.setting('home_hero_image')) }}" alt="" style="width:180px;border-radius:14px;margin-bottom:10px;aspect-ratio:4/5;object-fit:cover">@endif
+                <input class="input" type="file" id="home_hero_image" name="home_hero_image" accept="image/*"><span class="help">مقاس مقترح 1200×1500 (طولية). بدونها تطلع صورة أول كورس مميز.</span></div>
+        </div>
     </div>
 
     <button class="btn btn-primary" type="submit" style="align-self:flex-start">حفظ الإعدادات</button>
