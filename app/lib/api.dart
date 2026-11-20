@@ -9,7 +9,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
 
 /// دومين المنصة. يتغير وقت البناء: --dart-define=API_BASE=https://...
-const apiBase = String.fromEnvironment('API_BASE', defaultValue: 'https://academy.ghanicode.com');
+const apiBase = String.fromEnvironment('API_BASE', defaultValue: 'https://ghaniacademy.online');
 
 class ApiException implements Exception {
   final String message;
@@ -66,7 +66,9 @@ class Api {
     http.Response r;
     try {
       final Future<http.Response> f;
-      if (method == 'POST') {
+      if (method == 'DELETE') {
+        f = http.delete(uri, headers: headers, body: jsonEncode(body ?? {}));
+      } else if (method == 'POST') {
         f = http.post(uri, headers: headers, body: jsonEncode(body ?? {}));
       } else if (method == 'PUT') {
         f = http.put(uri, headers: headers, body: jsonEncode(body ?? {}));
@@ -120,12 +122,28 @@ class Api {
     return user!;
   }
 
+  /// نسخة المتاجر (Apple/Google): بدون شراء أو محفظة داخل التطبيق
+  static const storeBuild = bool.fromEnvironment('STORE_BUILD');
+
+  String? pushToken;
+
   Future<void> logout() async {
+    try {
+      if (pushToken != null) await req('DELETE', '/me/push-token', body: {'token': pushToken});
+    } catch (_) {}
     try {
       await req('POST', '/auth/logout');
     } catch (_) {}
     await _clear();
   }
+
+  /// حذف الحساب نهائيا
+  Future<void> deleteAccount(String password) async {
+    await req('DELETE', '/me', body: {'password': password});
+    await _clear();
+  }
+
+  Map<String, String> get authHeaders => {if (token != null) 'Authorization': 'Bearer $token'};
 
   Future<void> _clear() async {
     token = null;

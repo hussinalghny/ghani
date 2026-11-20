@@ -22,15 +22,22 @@ class C {
   static const success = Color(0xFF12805C);
   static const danger = Color(0xFFC2364A);
 
-  static Color get bg => dark ? const Color(0xFF0E0A24) : Colors.white;
-  static Color get card => dark ? const Color(0xFF1A1438) : Colors.white;
-  static Color get bgAlt => dark ? const Color(0xFF120C33) : const Color(0xFFF7F5FC);
-  static Color get text => dark ? const Color(0xFFF1EDFF) : night;
-  static Color get text2 => dark ? const Color(0xFFB3A8D9) : const Color(0xFF5F5A7A);
-  static Color get text3 => dark ? const Color(0xFF8C87A6) : const Color(0xFF8C87A6);
-  static Color get line => dark ? const Color(0xFF2A2350) : const Color(0xFFECE8F6);
-  static Color get mist => dark ? const Color(0xFF2A2060) : const Color(0xFFF1EDFF);
-  static Color get accent => dark ? lavender : violet;
+  // الليلي: أسود فاخر وذهب شمبانيا — النهاري: أبيض وبنفسجي الأكاديمية
+  static const champagne = Color(0xFFD4AF6A);
+  static Color get bg => dark ? const Color(0xFF0B0A10) : Colors.white;
+  static Color get card => dark ? const Color(0xFF15131D) : Colors.white;
+  static Color get bgAlt => dark ? const Color(0xFF111018) : const Color(0xFFF7F5FC);
+  static Color get text => dark ? const Color(0xFFF5F1E8) : night;
+  static Color get text2 => dark ? const Color(0xFFA9A3B8) : const Color(0xFF5F5A7A);
+  static Color get text3 => dark ? const Color(0xFF6E6880) : const Color(0xFF8C87A6);
+  static Color get line => dark ? const Color(0x14FFFFFF) : const Color(0xFFECE8F6);
+  static Color get mist => dark ? const Color(0xFF1F1C2B) : const Color(0xFFF1EDFF);
+  static Color get accent => dark ? champagne : violet;
+  static Color get primary => dark ? champagne : violet;
+  static Color get onPrimary => dark ? const Color(0xFF1A1206) : Colors.white;
+  static List<Color> get heroColors => dark
+      ? const [Color(0xFF5B4A2A), Color(0xFF2A2316), Color(0xFF0B0A10)]
+      : const [Color(0xFF6A45E6), violet, deep];
 }
 
 TextStyle _font(String family, TextStyle base) {
@@ -51,7 +58,8 @@ ThemeData buildTheme(bool dark) {
     colorScheme: ColorScheme.fromSeed(
       seedColor: C.violet,
       brightness: dark ? Brightness.dark : Brightness.light,
-      primary: dark ? C.lavender : C.violet,
+      primary: C.primary,
+      onPrimary: C.onPrimary,
       surface: C.bg,
     ),
     scaffoldBackgroundColor: C.bg,
@@ -86,12 +94,12 @@ ThemeData buildTheme(bool dark) {
       contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
       border: border,
       enabledBorder: border,
-      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: C.violet, width: 1.6)),
+      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: C.primary, width: 1.6)),
     ),
     filledButtonTheme: FilledButtonThemeData(
       style: FilledButton.styleFrom(
-        backgroundColor: C.violet,
-        foregroundColor: Colors.white,
+        backgroundColor: C.primary,
+        foregroundColor: C.onPrimary,
         disabledBackgroundColor: C.line,
         minimumSize: const Size.fromHeight(50),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -192,7 +200,7 @@ BoxDecoration patternBox({double radius = 0, List<Color>? colors}) => BoxDecorat
       gradient: LinearGradient(
         begin: Alignment.topRight,
         end: Alignment.bottomLeft,
-        colors: colors ?? const [Color(0xFF6A45E6), C.violet, C.deep],
+        colors: colors ?? C.heroColors,
       ),
       image: const DecorationImage(image: AssetImage('assets/img/pattern.png'), repeat: ImageRepeat.repeat, scale: 1.6),
     );
@@ -252,6 +260,7 @@ class PriceText extends StatelessWidget {
   Widget build(BuildContext context) {
     final fp = (c['final_price'] ?? 0) as num;
     final p = (c['price'] ?? 0) as num;
+    if (Api.storeBuild) return Text('${c['lessons_count'] ?? ''} درس', style: head(size * .85, color: C.text2));
     if (fp == 0) return Text('مجاني', style: head(size, color: C.success));
     return Row(mainAxisSize: MainAxisSize.min, children: [
       Text('${iqd(fp)} د.ع', style: head(size)),
@@ -369,7 +378,7 @@ class _LoaderState<T> extends State<Loader<T>> {
       );
     }
     return RefreshIndicator(
-      color: C.violet,
+      color: C.primary,
       onRefresh: reload,
       child: AnimatedSwitcher(duration: const Duration(milliseconds: 250), child: widget.builder(context, data as T, reload)),
     );

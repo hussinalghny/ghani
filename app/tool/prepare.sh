@@ -6,6 +6,7 @@ cd "$(dirname "$0")/.."
 flutter create --org iq.ghaniacademy --project-name ghani_academy --platforms android,ios . >/dev/null
 rm -rf test
 flutter pub get
+python3 tool/firebase_config.py
 
 # ---------- Android ----------
 MANIFEST=android/app/src/main/AndroidManifest.xml
@@ -31,13 +32,36 @@ class MainActivity : FlutterActivity() {
 }
 KOTLIN
 
+# Firebase يحتاج Android 7 (API 24) كحد أدنى
+for f in android/app/build.gradle.kts android/app/build.gradle; do
+  [ -f "$f" ] && perl -pi -e 's/minSdk\s*=\s*flutter\.minSdkVersion/minSdk = 24/; s/minSdkVersion\s+flutter\.minSdkVersion/minSdkVersion 24/' "$f"
+done
+
 # ---------- iOS ----------
 PLIST=ios/Runner/Info.plist
 if command -v /usr/libexec/PlistBuddy >/dev/null; then
   /usr/libexec/PlistBuddy -c "Set :CFBundleDisplayName غني أكاديمي" "$PLIST" || \
   /usr/libexec/PlistBuddy -c "Add :CFBundleDisplayName string غني أكاديمي" "$PLIST"
   /usr/libexec/PlistBuddy -c "Delete :UISupportedInterfaceOrientations~ipad" "$PLIST" 2>/dev/null || true
+  # متطلبات App Store: بدون تشفير خاص (إعفاء التصدير)
+  /usr/libexec/PlistBuddy -c "Add :ITSAppUsesNonExemptEncryption bool false" "$PLIST" 2>/dev/null || true
+  # الإشعارات: وضع الخلفية + صلاحية Push عند وجود ملف Firebase
+  if [ -f firebase/GoogleService-Info.plist ]; then
+    /usr/libexec/PlistBuddy -c "Add :UIBackgroundModes array" "$PLIST" 2>/dev/null || true
+    /usr/libexec/PlistBuddy -c "Add :UIBackgroundModes:0 string remote-notification" "$PLIST" 2>/dev/null || true
+    cat > ios/Runner/Runner.entitlements <<'ENT'
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0"><dict><key>aps-environment</key><string>production</string></dict></plist>
+ENT
+    grep -q "CODE_SIGN_ENTITLEMENTS" ios/Runner.xcodeproj/project.pbxproj || \
+      perl -pi -e 's/(\s*)(PRODUCT_BUNDLE_IDENTIFIER = iq\.ghaniacademy\.ghaniAcademy;)/$1CODE_SIGN_ENTITLEMENTS = Runner\/Runner.entitlements;$1$2/' ios/Runner.xcodeproj/project.pbxproj
+  fi
 fi
+# Firebase iOS يحتاج iOS 15
+[ -f ios/Podfile ] || cp tool/Podfile ios/Podfile
+[ -f ios/Podfile ] && perl -pi -e "s/^#?\s*platform :ios, '[0-9.]+'/platform :ios, '15.0'/" ios/Podfile
+[ -f ios/Runner.xcodeproj/project.pbxproj ] && perl -pi -e 's/IPHONEOS_DEPLOYMENT_TARGET = 1[0-4]\.0;/IPHONEOS_DEPLOYMENT_TARGET = 15.0;/g' ios/Runner.xcodeproj/project.pbxproj
 
 # منع السكرين شوت وتسجيل الشاشة على iOS: نخلي نافذة التطبيق داخل طبقة حقل سري
 APPDEL=ios/Runner/AppDelegate.swift

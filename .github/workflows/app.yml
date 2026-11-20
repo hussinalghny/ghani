@@ -8,7 +8,7 @@ on:
 
 env:
   # غير الدومين من Settings > Secrets and variables > Actions > Variables باسم API_BASE
-  API_BASE: ${{ vars.API_BASE || 'https://poised-chocolate-shark-35.hostingersite.com' }}
+  API_BASE: ${{ vars.API_BASE || 'https://ghaniacademy.online' }}
 
 jobs:
   android:
@@ -31,6 +31,9 @@ jobs:
       # توقيع ثابت: كل نسخة جديدة تتنصب فوق القديمة بدون حذف
       - run: mkdir -p ~/.android && cp tool/debug.keystore ~/.android/debug.keystore
       - run: flutter build apk --release --build-number=${{ github.run_number }} --dart-define=API_BASE=$API_BASE --dart-define=BUILD=${{ github.run_number }}
+      # نسخة Google Play (AAB): بدون شراء داخل التطبيق
+      - run: flutter build appbundle --release --build-number=${{ github.run_number }} --dart-define=API_BASE=$API_BASE --dart-define=BUILD=${{ github.run_number }} --dart-define=STORE_BUILD=true
+      - run: cp build/app/outputs/bundle/release/app-release.aab ghani-academy-v${{ github.run_number }}.aab
       - name: Verify icons font is bundled
         run: |
           unzip -l build/app/outputs/flutter-apk/app-release.apk | grep -E "CupertinoIcons|MaterialIcons" 
@@ -39,7 +42,9 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: ghani-academy-apk
-          path: app/ghani-academy*.apk
+          path: |
+            app/ghani-academy*.apk
+            app/ghani-academy*.aab
 
   ios:
     runs-on: macos-latest
@@ -53,7 +58,7 @@ jobs:
           channel: stable
           cache: true
       - run: bash tool/prepare.sh
-      - run: flutter build ios --release --no-codesign --build-number=${{ github.run_number }} --dart-define=API_BASE=$API_BASE --dart-define=BUILD=${{ github.run_number }}
+      - run: flutter build ios --release --no-codesign --build-number=${{ github.run_number }} --dart-define=API_BASE=$API_BASE --dart-define=BUILD=${{ github.run_number }} --dart-define=STORE_BUILD=true
       - name: Package IPA (unsigned)
         run: |
           mkdir -p Payload
@@ -84,4 +89,5 @@ jobs:
           make_latest: true
           files: |
             ghani-academy*.apk
+            ghani-academy*.aab
             ghani-academy*.ipa

@@ -52,7 +52,7 @@ class _WalletScreenState extends State<WalletScreen> {
             Container(
               height: 190,
               padding: const EdgeInsets.all(22),
-              decoration: patternBox(radius: 26, colors: const [Color(0xFF6A45E6), Color(0xFF2E1A86), C.night]).copyWith(
+              decoration: patternBox(radius: 26, colors: C.dark ? const [Color(0xFF3A2F1A), Color(0xFF15131D), Color(0xFF0B0A10)] : const [Color(0xFF6A45E6), Color(0xFF2E1A86), C.night]).copyWith(
                 boxShadow: [BoxShadow(color: C.deep.withValues(alpha: .35), blurRadius: 30, offset: const Offset(0, 14))],
               ),
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -150,7 +150,7 @@ class AccountScreen extends StatelessWidget {
         builder: (_, v, __) => ListTile(
           leading: Icon(v ? CupertinoIcons.moon_fill : CupertinoIcons.sun_max, color: C.accent),
           title: const Text('الوضع الليلي'),
-          trailing: CupertinoSwitch(value: v, activeTrackColor: C.violet, onChanged: (x) => darkMode.value = x),
+          trailing: CupertinoSwitch(value: v, activeTrackColor: C.primary, onChanged: (x) => darkMode.value = x),
           onTap: () => darkMode.value = !v,
         ),
       );
@@ -174,6 +174,49 @@ class AccountScreen extends StatelessWidget {
           }
         },
       );
+
+  Widget _pagesTiles() => Column(children: [
+        ListTile(
+          leading: Icon(CupertinoIcons.lock_shield, color: C.accent),
+          title: const Text('سياسة الخصوصية'),
+          trailing: Icon(CupertinoIcons.chevron_left, size: 16, color: C.text3),
+          onTap: () => launchUrl(Uri.parse('$apiBase/privacy'), mode: LaunchMode.inAppBrowserView),
+        ),
+        ListTile(
+          leading: Icon(CupertinoIcons.doc_text, color: C.accent),
+          title: const Text('شروط الاستخدام'),
+          trailing: Icon(CupertinoIcons.chevron_left, size: 16, color: C.text3),
+          onTap: () => launchUrl(Uri.parse('$apiBase/terms'), mode: LaunchMode.inAppBrowserView),
+        ),
+      ]);
+
+  Future<void> _deleteAccount(BuildContext ctx) async {
+    final pw = TextEditingController();
+    final ok = await showCupertinoDialog<bool>(
+      context: ctx,
+      builder: (d) => CupertinoAlertDialog(
+        title: const Text('حذف الحساب نهائيا'),
+        content: Column(children: [
+          const SizedBox(height: 8),
+          const Text('يمسح كورساتك ورصيدك وشهاداتك ومحادثاتك. ما يمكن التراجع.'),
+          const SizedBox(height: 12),
+          CupertinoTextField(controller: pw, obscureText: true, placeholder: 'كلمة المرور للتأكيد', textDirection: TextDirection.ltr),
+        ]),
+        actions: [
+          CupertinoDialogAction(onPressed: () => Navigator.pop(d, false), child: const Text('إلغاء')),
+          CupertinoDialogAction(isDestructiveAction: true, onPressed: () => Navigator.pop(d, true), child: const Text('احذف')),
+        ],
+      ),
+    );
+    if (ok != true || !ctx.mounted) return;
+    try {
+      await withBusy(ctx, () => Api.i.deleteAccount(pw.text));
+      tab.value = 0;
+      if (ctx.mounted) toast(ctx, 'تم حذف حسابك وكل بياناتك.');
+    } catch (e) {
+      if (ctx.mounted) toast(ctx, err(e), error: true);
+    }
+  }
 
   Widget _waTile() => ListTile(
         leading: const Icon(CupertinoIcons.chat_bubble_2, color: C.success),
@@ -208,6 +251,8 @@ class AccountScreen extends StatelessWidget {
         _group([_darkTile()]),
         _label('الدعم'),
         _group([_supportTile(ctx), _waTile()]),
+        _label('قانوني'),
+        _group([_pagesTiles()]),
         _version(),
       ]);
 
@@ -227,7 +272,7 @@ class AccountScreen extends StatelessWidget {
             FadeSlide(
               child: _group([
                 ListTile(
-                  leading: CircleAvatar(backgroundColor: C.violet, child: Text((u['name'] ?? ' ').toString().substring(0, 1), style: const TextStyle(color: Colors.white))),
+                  leading: CircleAvatar(backgroundColor: C.primary, child: Text((u['name'] ?? ' ').toString().substring(0, 1), style: TextStyle(color: C.onPrimary))),
                   title: Text(u['name'] ?? '', style: const TextStyle(fontWeight: FontWeight.w600)),
                   subtitle: Text(u['phone'] ?? '', textDirection: TextDirection.ltr, textAlign: TextAlign.end, style: TextStyle(color: C.text3)),
                 ),
@@ -268,6 +313,8 @@ class AccountScreen extends StatelessWidget {
             ),
             _label('الدعم'),
             _group([_supportTile(ctx), _waTile()]),
+            _label('قانوني'),
+            _group([_pagesTiles()]),
             const SizedBox(height: 22),
             TextButton(
               style: TextButton.styleFrom(
@@ -282,6 +329,8 @@ class AccountScreen extends StatelessWidget {
               },
               child: const Text('تسجيل الخروج'),
             ),
+            const SizedBox(height: 8),
+            TextButton(onPressed: () => _deleteAccount(ctx), child: Text('حذف الحساب نهائيا', style: TextStyle(color: C.text3, fontSize: 13))),
             _version(),
           ]);
         },

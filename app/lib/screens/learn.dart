@@ -27,7 +27,7 @@ class MyCoursesScreen extends StatelessWidget {
               EmptyState(
                 icon: CupertinoIcons.play_circle,
                 title: 'ما عندك كورسات بعد',
-                text: 'اختر كورسك الأول أو فعل قسيمة كورس من المحفظة.',
+                text: Api.storeBuild ? 'كورساتك المفعلة على حسابك تظهر هنا.' : 'اختر كورسك الأول أو فعل قسيمة كورس من المحفظة.',
                 action: FilledButton(onPressed: () => tab.value = 0, child: const Text('تصفح الكورسات')),
               ),
             for (var i = 0; i < list.length; i++) FadeSlide(index: i, child: _item(ctx, list[i])),
@@ -56,7 +56,7 @@ class MyCoursesScreen extends StatelessWidget {
                 const SizedBox(height: 10),
                 ClipRRect(
                   borderRadius: BorderRadius.circular(99),
-                  child: LinearProgressIndicator(value: p / 100, minHeight: 7, backgroundColor: C.mist, color: C.violet),
+                  child: LinearProgressIndicator(value: p / 100, minHeight: 7, backgroundColor: C.mist, color: C.primary),
                 ),
                 const SizedBox(height: 8),
                 Row(children: [
@@ -101,7 +101,7 @@ class _CurriculumScreenState extends State<CurriculumScreen> {
               child: Column(children: [
                 Row(children: [const Text('تقدمك', style: TextStyle(fontWeight: FontWeight.w600)), const Spacer(), Text('$p%')]),
                 const SizedBox(height: 10),
-                ClipRRect(borderRadius: BorderRadius.circular(99), child: TweenAnimationBuilder<double>(tween: Tween(begin: 0, end: p / 100), duration: const Duration(milliseconds: 700), curve: Curves.easeOutCubic, builder: (_, v, __) => LinearProgressIndicator(value: v, minHeight: 8, backgroundColor: C.mist, color: C.violet))),
+                ClipRRect(borderRadius: BorderRadius.circular(99), child: TweenAnimationBuilder<double>(tween: Tween(begin: 0, end: p / 100), duration: const Duration(milliseconds: 700), curve: Curves.easeOutCubic, builder: (_, v, __) => LinearProgressIndicator(value: v, minHeight: 8, backgroundColor: C.mist, color: C.primary))),
               ]),
             ),
             for (final s in asList(d['sections'])) ...[
@@ -185,7 +185,8 @@ class _PlayerScreenState extends State<PlayerScreen> {
       final local = pb['video_url'] as String?;
       if (local != null) {
         // المشغل المجاني: فيديو من سيرفر المنصة برابط موقع مؤقت
-        final c = VideoPlayerController.networkUrl(Uri.parse(local));
+        // الرابط ما يشتغل بدون توكن الطالب بالهيدر، فنسخه ما يفيد
+        final c = VideoPlayerController.networkUrl(Uri.parse(local), httpHeaders: Api.i.authHeaders, videoPlayerOptions: VideoPlayerOptions(allowBackgroundPlayback: false));
         await c.initialize();
         final start = (d['position'] ?? 0) as int;
         if (start > 10 && start < c.value.duration.inSeconds - 5) await c.seekTo(Duration(seconds: start - 3));
@@ -288,7 +289,7 @@ p.on('ready',function(){ if($start>10)p.setCurrentTime(${start - 3});
                       width: 64,
                       height: 64,
                       decoration: BoxDecoration(color: Colors.white.withValues(alpha: .92), shape: BoxShape.circle),
-                      child: Icon(v.isPlaying ? CupertinoIcons.pause_fill : CupertinoIcons.play_fill, color: C.violet, size: 28),
+                      child: Icon(v.isPlaying ? CupertinoIcons.pause_fill : CupertinoIcons.play_fill, color: C.primary, size: 28),
                     ),
                   ),
                 ),

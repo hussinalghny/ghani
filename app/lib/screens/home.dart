@@ -34,14 +34,13 @@ class HomeScreen extends StatelessWidget {
                   ),
                 ]),
               ),
-              FadeSlide(child: Padding(padding: const EdgeInsets.fromLTRB(20, 18, 20, 4), child: Title2(_greeting(), size: 30))),
               FadeSlide(
-                index: 1,
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
-                  child: Text('كورسات تقنية بمدربين ممارسين، تطلع منها بمشروع حقيقي وشهادة.', style: TextStyle(color: C.text2, height: 1.7)),
+                  padding: const EdgeInsets.fromLTRB(20, 14, 20, 16),
+                  child: Text(_greeting(), style: head(26, w: FontWeight.w800)),
                 ),
               ),
+              if (featured.isNotEmpty) FadeSlide(index: 1, child: _Hero(c: featured.first, onTap: () => go(ctx, CourseScreen(slug: featured.first['slug'])))),
               if (cats.isNotEmpty) ...[
                 const SizedBox(height: 18),
                 SizedBox(
@@ -69,18 +68,18 @@ class HomeScreen extends StatelessWidget {
                   ),
                 ),
               ],
-              if (featured.isNotEmpty) ...[
-                Padding(padding: const EdgeInsets.fromLTRB(20, 26, 20, 12), child: const Title2('كورسات مميزة', size: 22)),
+              if (featured.length > 1) ...[
+                const Padding(padding: EdgeInsets.fromLTRB(20, 26, 20, 12), child: Title2('مختارات للنخبة', size: 22)),
                 SizedBox(
                   height: 316,
                   child: ListView.separated(
                     padding: const EdgeInsets.symmetric(horizontal: 20),
                     scrollDirection: Axis.horizontal,
-                    itemCount: featured.length,
+                    itemCount: featured.length - 1,
                     separatorBuilder: (_, __) => const SizedBox(width: 14),
                     itemBuilder: (_, i) => FadeSlide(
                       index: i + 2,
-                      child: CourseCard(featured[i], width: 280, onTap: () => go(ctx, CourseScreen(slug: featured[i]['slug']))),
+                      child: CourseCard(featured[i + 1], width: 260, onTap: () => go(ctx, CourseScreen(slug: featured[i + 1]['slug']))),
                     ),
                   ),
                 ),
@@ -103,6 +102,90 @@ class HomeScreen extends StatelessWidget {
   String _greeting() {
     final n = (Api.i.user?['name'] as String?)?.split(' ').first;
     return n != null && n.isNotEmpty ? 'أهلا $n' : 'تعلم. طبق. اشتغل';
+  }
+}
+
+/// بطاقة البطل الكبيرة (مثل البروتوتايب): أسود وذهب ليلا، بنفسجي نهارا
+class _Hero extends StatelessWidget {
+  final Map c;
+  final VoidCallback onTap;
+  const _Hero({required this.c, required this.onTap});
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: Pressable(
+        onTap: onTap,
+        child: Container(
+          height: 400,
+          clipBehavior: Clip.antiAlias,
+          decoration: patternBox(radius: 30).copyWith(
+            border: Border.all(color: C.dark ? C.champagne.withValues(alpha: .28) : Colors.transparent),
+            boxShadow: [BoxShadow(color: (C.dark ? Colors.black : C.deep).withValues(alpha: .35), blurRadius: 40, offset: const Offset(0, 18))],
+          ),
+          child: Stack(children: [
+            if (c['cover'] != null) Positioned.fill(child: Image.network(c['cover'], fit: BoxFit.cover)),
+            Align(
+              alignment: const Alignment(0, -.35),
+              child: Icon(catIcon((c['category'] as Map?)?['icon']), size: 110, color: (C.dark ? C.champagne : Colors.white).withValues(alpha: .85)),
+            ),
+            const Positioned.fill(
+              child: DecoratedBox(
+                decoration: BoxDecoration(gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [Colors.transparent, Color(0xB8000000)], stops: [.35, 1])),
+              ),
+            ),
+            Positioned(
+              left: 20,
+              right: 20,
+              bottom: 20,
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 5),
+                  decoration: BoxDecoration(color: Colors.white.withValues(alpha: .16), borderRadius: BorderRadius.circular(99), border: Border.all(color: Colors.white.withValues(alpha: .22))),
+                  child: const Row(mainAxisSize: MainAxisSize.min, children: [
+                    Icon(CupertinoIcons.star_fill, size: 12, color: C.gold),
+                    SizedBox(width: 6),
+                    Text('مختار هذا الشهر', style: TextStyle(color: Colors.white, fontSize: 12)),
+                  ]),
+                ),
+                const SizedBox(height: 12),
+                Text.rich(TextSpan(children: [TextSpan(text: c['title'] ?? ''), const TextSpan(text: '.', style: TextStyle(color: C.gold))]),
+                    style: head(30, color: Colors.white, w: FontWeight.w800)),
+                if (c['subtitle'] != null)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 6),
+                    child: Text(c['subtitle'], maxLines: 2, overflow: TextOverflow.ellipsis, style: TextStyle(color: Colors.white.withValues(alpha: .82), height: 1.6)),
+                  ),
+                const SizedBox(height: 16),
+                Row(children: [
+                  Container(
+                    height: 48,
+                    padding: const EdgeInsets.symmetric(horizontal: 22),
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(colors: [Color(0xFFF1D79C), Color(0xFFC9A04F)]),
+                      borderRadius: BorderRadius.circular(16),
+                      boxShadow: [BoxShadow(color: C.champagne.withValues(alpha: .3), blurRadius: 20, offset: const Offset(0, 8))],
+                    ),
+                    child: const Text('ابدأ الآن', style: TextStyle(color: Color(0xFF1A1206), fontWeight: FontWeight.w600)),
+                  ),
+                  if (!Api.storeBuild && (c['final_price'] ?? 0) > 0) ...[
+                    const SizedBox(width: 10),
+                    Container(
+                      height: 48,
+                      padding: const EdgeInsets.symmetric(horizontal: 18),
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(color: Colors.white.withValues(alpha: .14), borderRadius: BorderRadius.circular(16), border: Border.all(color: Colors.white.withValues(alpha: .24))),
+                      child: Text('${iqd(c['final_price'])} د.ع', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
+                    ),
+                  ],
+                ]),
+              ]),
+            ),
+          ]),
+        ),
+      ),
+    );
   }
 }
 
@@ -326,12 +409,16 @@ class _CourseScreenState extends State<CourseScreen> {
                 decoration: BoxDecoration(color: C.bg.withValues(alpha: .96), border: Border(top: BorderSide(color: C.line))),
                 child: enrolled
                     ? FilledButton(onPressed: () => go(ctx, CurriculumScreen(slug: widget.slug, title: c['title'] ?? '')), child: const Text('أكمل التعلم'))
-                    : Row(children: [
+                    : Api.storeBuild
+                        ? (Api.i.loggedIn.value
+                            ? Text('هذا الكورس غير مفعل لحسابك حاليا.', textAlign: TextAlign.center, style: TextStyle(color: C.text2))
+                            : FilledButton(onPressed: () async { if (await ensureLogin(ctx)) setState(() => k = UniqueKey()); }, child: const Text('سجل دخولك')))
+                        : Row(children: [
                         Expanded(child: PriceText(c, size: 20)),
                         SizedBox(
                           width: 170,
                           child: FilledButton(
-                            style: FilledButton.styleFrom(backgroundColor: C.gold, foregroundColor: C.night),
+                            style: FilledButton.styleFrom(backgroundColor: C.dark ? C.champagne : C.gold, foregroundColor: C.night),
                             onPressed: () => enroll(c),
                             child: const Text('اشترك الآن'),
                           ),

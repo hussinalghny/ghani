@@ -227,7 +227,7 @@ class _ChatScreenState extends State<ChatScreen> {
                   contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(24), borderSide: BorderSide(color: C.line)),
                   enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(24), borderSide: BorderSide(color: C.line)),
-                  focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(24), borderSide: const BorderSide(color: C.violet)),
+                  focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(24), borderSide: BorderSide(color: C.primary)),
                 ),
               ),
             ),
@@ -236,11 +236,11 @@ class _ChatScreenState extends State<ChatScreen> {
               scale: sending ? .9 : 1,
               duration: const Duration(milliseconds: 150),
               child: Material(
-                color: C.violet,
+                color: C.primary,
                 shape: const CircleBorder(),
                 child: IconButton(
                   onPressed: send,
-                  icon: const Icon(CupertinoIcons.arrow_up, color: Colors.white),
+                  icon: Icon(CupertinoIcons.arrow_up, color: C.onPrimary),
                 ),
               ),
             ),
@@ -268,7 +268,7 @@ class _ChatScreenState extends State<ChatScreen> {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
               decoration: BoxDecoration(
-                color: mine ? C.violet : C.bgAlt,
+                color: mine ? C.primary : C.mist,
                 borderRadius: BorderRadiusDirectional.only(
                   topStart: const Radius.circular(18),
                   topEnd: const Radius.circular(18),
@@ -276,7 +276,7 @@ class _ChatScreenState extends State<ChatScreen> {
                   bottomEnd: Radius.circular(mine ? 18 : 6),
                 ),
               ),
-              child: Text(m['body'] ?? '', style: TextStyle(color: mine ? Colors.white : C.text, height: 1.55, fontSize: 15)),
+              child: Text(m['body'] ?? '', style: TextStyle(color: mine ? C.onPrimary : C.text, height: 1.55, fontSize: 15)),
             ),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
