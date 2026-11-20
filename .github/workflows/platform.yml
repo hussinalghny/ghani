@@ -59,6 +59,11 @@ jobs:
           echo "video url: $V"; [ -n "$V" ] || fail=1
           c=$(curl -s -o /dev/null -w '%{http_code}' -H 'Range: bytes=0-1023' -H "Authorization: Bearer $T" -H 'Accept: application/json' "$V"); echo "$c app video range (with token)"; [ "$c" = "206" ] || fail=1
           c=$(curl -s -o /dev/null -w '%{http_code}' -H 'Accept: application/json' "$V"); echo "$c app video without token"; [ "$c" = "401" ] || fail=1
+          D=$(curl -s -H 'Accept: application/json' -H 'X-Client: desktop' -H "Authorization: Bearer $T" http://127.0.0.1:8000/api/v1/lessons/$L | php -r '$d=json_decode(stream_get_contents(STDIN)); echo $d->data->playback->video_url ?? "";')
+          echo "desktop url: ${D:0:80}"
+          c=$(curl -s -o /dev/null -w '%{http_code}' -H 'Range: bytes=0-1023' "$D"); echo "$c desktop video (no headers)"; [ "$c" = "206" ] || fail=1
+          c=$(curl -s -o /dev/null -w '%{http_code}' -H 'Sec-Fetch-Dest: document' -H 'Sec-Fetch-Mode: navigate' "$D"); echo "$c desktop video in browser"; [ "$c" = "403" ] || fail=1
+          c=$(curl -s -o /dev/null -w '%{http_code}' "${D%&signature=*}&signature=x"); echo "$c desktop video tampered"; [ "$c" = "403" ] || fail=1
           c=$(curl -s -o /dev/null -w '%{http_code}' -X POST -H 'Accept: application/json' -H 'Content-Type: application/json' -H "Authorization: Bearer $T" -d '{"token":"ci-fcm-token","platform":"android"}' http://127.0.0.1:8000/api/v1/me/push-token); echo "$c push token"; [ "$c" = "200" ] || fail=1
           c=$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8000/privacy); echo "$c privacy"; [ "$c" = "200" ] || fail=1
           # صفحات الويب بعد تسجيل الدخول كأدمن
