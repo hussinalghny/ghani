@@ -20,6 +20,7 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware) {
         $middleware->alias([
             'role' => EnsureRole::class,
+            'course.owner' => \App\Http\Middleware\EnsureCourseOwner::class,
             'device' => EnsureActiveDevice::class,
         ]);
         $middleware->web(append: [

@@ -47,6 +47,7 @@
                                 <a href="{{ route('admin.dashboard') }}">@include('partials.icon', ['n' => 'dashboard']) لوحة التحكم</a>
                             @endif
                             @if ($user->isStaff())
+                                <a href="{{ route('teach') }}">@include('partials.icon', ['n' => 'dashboard']) لوحة المدرب</a>
                                 <a href="{{ route('inbox') }}">@include('partials.icon', ['n' => 'whatsapp']) صندوق المحادثات</a>
                             @endif
                             <a href="{{ route('chat.index') }}">@include('partials.icon', ['n' => 'whatsapp']) الرسائل والدعم</a>

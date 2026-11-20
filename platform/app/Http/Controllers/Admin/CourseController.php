@@ -13,6 +13,9 @@ use Illuminate\Validation\Rule;
 
 class CourseController extends Controller
 {
+    /** حقول ما يغيرها المدرب */
+    public const ADMIN_ONLY = ['category_id', 'instructor_id', 'price', 'sale_price', 'access_days', 'sort'];
+
     public function index(Request $request)
     {
         $courses = Course::with(['category', 'instructor'])->withCount(['lessons', 'enrollments'])
@@ -41,9 +44,19 @@ class CourseController extends Controller
 
     public function update(Request $request, Course $course)
     {
+        $admin = $request->user()->isAdmin();
+        if (! $admin) {
+            // المدرب يعدل المحتوى والنشر، والسعر والقسم والترتيب بيد الإدارة
+            $request->merge($course->only(self::ADMIN_ONLY) + [
+                'is_featured' => $course->is_featured ? '1' : null,
+                'slug' => $course->slug,
+            ]);
+        }
         $course->update($this->validated($request, $course));
 
-        return redirect()->route('admin.courses.index')->with('success', 'تم حفظ الكورس.');
+        return $admin
+            ? redirect()->route('admin.courses.index')->with('success', 'تم حفظ الكورس.')
+            : redirect()->route('teach')->with('success', 'تم حفظ الكورس.');
     }
 
     public function destroy(Course $course)

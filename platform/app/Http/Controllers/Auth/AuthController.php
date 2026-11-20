@@ -84,7 +84,7 @@ class AuthController extends Controller
 
         $home = match (true) {
             $user->isAdmin() => route('admin.dashboard'),
-            $user->isInstructor() => route('inbox'),
+            $user->isInstructor() => route('teach'),
             $user->isReseller() => route('reseller.index'),
             default => route('account'),
         };

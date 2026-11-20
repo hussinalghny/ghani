@@ -8,7 +8,7 @@
         <div class="panel">
             <div class="instructor" style="border:0;padding:0">
                 @if ($i->photoUrl())<img class="ph" src="{{ $i->photoUrl() }}" alt="">@else<span class="ph">{{ mb_substr($i->name, 0, 1) }}</span>@endif
-                <div><strong>{{ $i->name }}</strong><div class="tiny">{{ $i->title }}</div><div class="tiny"><span class="ltr">{{ $i->courses_count }}</span> كورس</div></div>
+                <div><strong>{{ $i->name }}</strong><div class="tiny">{{ $i->title }}</div><div class="tiny"><span class="ltr">{{ $i->courses_count }}</span> كورس · نسبته <span class="ltr">{{ $i->commission_percent ?? 50 }}%</span> · <a href="{{ route('teach', ['instructor' => $i->id]) }}">الإحصائيات</a></div></div>
             </div>
             <div class="actions" style="margin-top:14px;justify-content:flex-start">
                 <a class="btn btn-plain btn-sm" href="{{ route('admin.instructors.edit', $i) }}">تعديل</a>

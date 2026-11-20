@@ -76,15 +76,11 @@ Route::middleware(['auth', 'role:reseller'])->prefix('reseller')->name('reseller
 // ---------- صندوق المحادثات (الأدمن والمدربين) ----------
 Route::middleware(['auth', 'role:admin,instructor'])->get('/inbox', [App\Http\Controllers\ChatController::class, 'inbox'])->name('inbox');
 
-// ---------- لوحة التحكم ----------
-Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->group(function () {
-    Route::get('/', [Admin\DashboardController::class, 'index'])->name('dashboard');
-
-    Route::resource('categories', Admin\CategoryController::class)->except('show');
-    Route::resource('instructors', Admin\InstructorController::class)->except('show');
-    Route::resource('courses', Admin\CourseController::class)->except('show');
+// ---------- إدارة محتوى الكورس (الأدمن، والمدرب على كورساته فقط) ----------
+Route::middleware(['auth', 'role:admin,instructor', 'course.owner'])->prefix('admin')->name('admin.')->group(function () {
+    Route::get('courses/{course}/edit', [Admin\CourseController::class, 'edit'])->name('courses.edit');
+    Route::put('courses/{course}', [Admin\CourseController::class, 'update'])->name('courses.update');
     Route::get('courses/{course}/curriculum', [Admin\CourseController::class, 'curriculum'])->name('courses.curriculum');
-
     Route::post('courses/{course}/sections', [Admin\CurriculumController::class, 'storeSection'])->name('sections.store');
     Route::put('sections/{section}', [Admin\CurriculumController::class, 'updateSection'])->name('sections.update');
     Route::delete('sections/{section}', [Admin\CurriculumController::class, 'destroySection'])->name('sections.destroy');
@@ -96,6 +92,18 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
     Route::post('courses/{course}/reorder', [Admin\CurriculumController::class, 'reorder'])->name('curriculum.reorder');
     Route::post('bunny/prepare', [Admin\CurriculumController::class, 'bunnyPrepare'])->name('bunny.prepare');
     Route::post('videos/chunk', [App\Http\Controllers\VideoController::class, 'chunk'])->name('videos.chunk');
+});
+
+// ---------- لوحة المدرب ----------
+Route::middleware(['auth', 'role:admin,instructor'])->get('/teach', [App\Http\Controllers\TeachController::class, 'index'])->name('teach');
+
+// ---------- لوحة التحكم ----------
+Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->group(function () {
+    Route::get('/', [Admin\DashboardController::class, 'index'])->name('dashboard');
+
+    Route::resource('categories', Admin\CategoryController::class)->except('show');
+    Route::resource('instructors', Admin\InstructorController::class)->except('show');
+    Route::resource('courses', Admin\CourseController::class)->except(['show', 'edit', 'update']);
 
     Route::get('vouchers', [Admin\VoucherController::class, 'index'])->name('vouchers.index');
     Route::get('vouchers/create', [Admin\VoucherController::class, 'create'])->name('vouchers.create');

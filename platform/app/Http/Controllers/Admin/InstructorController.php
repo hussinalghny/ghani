@@ -63,7 +63,8 @@ class InstructorController extends Controller
             'bio' => ['nullable', 'string', 'max:2000'],
             'photo' => ['nullable', 'image', 'max:2048'],
             'user_id' => ['nullable', 'exists:users,id'],
-        ]);
+            'commission_percent' => ['required', 'integer', 'min:0', 'max:100'],
+        ], [], ['commission_percent' => 'نسبة المدرب']);
         $data['user_id'] = $data['user_id'] ?? null;
         if ($data['user_id']) {
             \App\Models\User::whereKey($data['user_id'])->where('role', 'student')->update(['role' => 'instructor']);

@@ -12,6 +12,8 @@
             <select class="input" id="user_id" name="user_id"><option value="">بدون حساب — المحادثة تروح للدعم</option>@foreach ($accounts as $a)<option value="{{ $a->id }}" @selected(old('user_id', $instructor->user_id) == $a->id)>{{ $a->name }} · {{ $a->phone }}</option>@endforeach</select>
             <span class="help">أنشئ حسابا من «الطلاب ← حساب جديد» بنوع «مدرب»، واختره هنا. المدرب يدخل بالرقم والباسورد ويرد من صندوق المحادثات.</span>
         </div>
+        <div class="field"><label for="commission_percent">نسبة المدرب من الإيراد (%)</label><input class="input" id="commission_percent" name="commission_percent" type="number" min="0" max="100" dir="ltr" value="{{ old('commission_percent', $instructor->commission_percent ?? 50) }}" required><span class="help">تظهر للمدرب بلوحته مع الحاسبة.</span></div>
+        @if ($instructor->exists)<div class="field"><label>لوحة المدرب</label><a class="btn btn-plain" href="{{ route('teach', ['instructor' => $instructor->id]) }}">عرض إحصائياته</a></div>@endif
         <div class="field full"><label for="photo">الصورة</label><input class="input" id="photo" name="photo" type="file" accept="image/*"></div>
     </div>
     <div class="row"><button class="btn btn-primary" type="submit">حفظ</button><a class="btn btn-plain" href="{{ route('admin.instructors.index') }}">إلغاء</a></div>

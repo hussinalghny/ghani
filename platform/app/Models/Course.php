@@ -102,4 +102,10 @@ class Course extends Model
             ->select('lessons.*')
             ->get();
     }
+
+    /** الكورسات التي يدرسها هذا الحساب */
+    public function scopeOwnedBy($query, User $user)
+    {
+        return $query->whereIn('instructor_id', Instructor::where('user_id', $user->id)->select('id'));
+    }
 }
