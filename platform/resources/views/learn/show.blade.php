@@ -12,7 +12,7 @@
         @if ($lesson->type === 'video')
             <div class="player-shell paused" id="player" data-progress-url="{{ route('learn.progress', $lesson) }}" data-enrolled="{{ $enrolled ? 1 : 0 }}" data-start="{{ (int) optional($done->get($lesson->id))->position }}">
                 @if ($playback['provider'] === 'local')
-                    <video id="vid" src="{{ $playback['video_url'] }}" playsinline preload="metadata" controlslist="nodownload noremoteplayback" disablepictureinpicture disableremoteplayback oncontextmenu="return false"></video>
+                    <video id="vid" data-source="{{ route('learn.source', $lesson) }}" playsinline preload="metadata" controlslist="nodownload noremoteplayback" disablepictureinpicture disableremoteplayback oncontextmenu="return false"></video>
                     <button class="vbig" type="button" id="vBig" aria-label="تشغيل">@include('partials.icon', ['n' => 'play'])</button>
                     <div class="vctl" id="vCtl">
                         <button type="button" id="vPlay" aria-label="تشغيل/إيقاف">@include('partials.icon', ['n' => 'play'])</button>

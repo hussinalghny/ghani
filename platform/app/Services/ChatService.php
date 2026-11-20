@@ -75,6 +75,10 @@ class ChatService
             $c->forceFill(['last_message_at' => now()])->save();
             $c->increment($student ? 'staff_unread' : 'student_unread');
 
+            if (! $student) {
+                rescue(fn () => app(FcmService::class)->toUsers([$c->user_id], $c->title(), $body, ['type' => 'chat', 'id' => $c->id]), report: false);
+            }
+
             return $m;
         });
     }

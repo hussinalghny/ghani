@@ -17,7 +17,7 @@ class AppServiceProvider extends ServiceProvider
     }
 
     /** آخر migration بالكود. لما يتغير بعد رفع تحديث، الجداول تتحدث تلقائيا (بدون SSH) */
-    public const SCHEMA = '2026_11_19_000002';
+    public const SCHEMA = '2026_11_20_000001';
 
     private function autoMigrate(): void
     {

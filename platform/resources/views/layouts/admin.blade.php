@@ -29,6 +29,7 @@
         <a href="{{ route('admin.students.index') }}" @class(['active' => request()->routeIs('admin.students.*') && request('role') !== 'reseller'])>@include('partials.icon', ['n' => 'users']) الطلاب</a>
         <a href="{{ route('admin.students.index', ['role' => 'reseller']) }}" @class(['active' => request('role') === 'reseller'])>@include('partials.icon', ['n' => 'wallet']) الموزعون</a>
         <div class="grp">النظام</div>
+        <a href="{{ route('admin.notifications') }}" @class(['active' => request()->routeIs('admin.notifications')])>@include('partials.icon', ['n' => 'info']) الإشعارات</a>
         <a href="{{ route('admin.app') }}" @class(['active' => request()->routeIs('admin.app')])>@include('partials.icon', ['n' => 'phone']) تطبيق الموبايل</a>
         <a href="{{ route('admin.settings') }}" @class(['active' => request()->routeIs('admin.settings')])>@include('partials.icon', ['n' => 'shield']) الحماية والإعدادات</a>
         @endif

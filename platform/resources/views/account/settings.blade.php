@@ -51,7 +51,19 @@
             </form>
         </div>
 
-        <form method="POST" action="{{ route('logout') }}">@csrf<button class="btn btn-danger btn-block" type="submit">تسجيل الخروج</button></form>
+        <form method="POST" action="{{ route('logout') }}">@csrf<button class="btn btn-plain btn-block" type="submit">تسجيل الخروج</button></form>
+
+        @unless ($user->isAdmin())
+        <details class="panel">
+            <summary style="cursor:pointer;color:var(--danger);font-weight:600">حذف الحساب نهائيا</summary>
+            <form method="POST" action="{{ route('account.destroy') }}" data-confirm="حذف الحساب نهائي ويمسح كورساتك ورصيدك وشهاداتك. متأكد؟" style="margin-top:14px">
+                @csrf @method('DELETE')
+                <p class="small muted">يمسح كل بياناتك: الكورسات والرصيد والشهادات والمحادثات. ما يمكن التراجع.</p>
+                <div class="field"><label for="del_pw">كلمة المرور للتأكيد</label><input class="input" id="del_pw" name="password" type="password" dir="ltr" required></div>
+                <button class="btn btn-danger btn-block" type="submit">احذف حسابي</button>
+            </form>
+        </details>
+        @endunless
     </div>
     <div style="height:64px"></div>
 </div>

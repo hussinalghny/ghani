@@ -55,6 +55,16 @@ class LearnController extends Controller
         return view('learn.show', compact('course', 'lesson', 'lessons', 'done', 'playback', 'fileUrl', 'prev', 'next', 'enrolled', 'progress'));
     }
 
+    /** مصدر الفيديو يتجلب بطلب منفصل حتى ما يظهر بكود الصفحة */
+    public function source(Request $request, Lesson $lesson)
+    {
+        $this->access->authorize($request->user(), $lesson);
+        abort_unless($lesson->video_path, 404);
+
+        return response()->json(['src' => \App\Http\Controllers\VideoController::webUrl($lesson)])
+            ->header('Cache-Control', 'no-store');
+    }
+
     public function progress(Request $request, Lesson $lesson)
     {
         $user = $request->user();

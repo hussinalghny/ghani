@@ -100,6 +100,12 @@
 
   // ---- المشغل المجاني (فيديو على سيرفرنا) بأزرار خاصة ----
   var vid = document.getElementById('vid');
+  if (vid && vid.dataset.source) {
+    // الرابط ما موجود بالصفحة: نجيبه بطلب منفصل، وهو مربوط بجلسة هذا المتصفح فقط
+    fetch(vid.dataset.source, { method: 'POST', headers: { 'X-CSRF-TOKEN': csrf, Accept: 'application/json' }, credentials: 'same-origin' })
+      .then(function (r) { return r.json(); })
+      .then(function (d) { if (d.src) { vid.src = d.src; vid.removeAttribute('data-source'); } });
+  }
   if (vid && shell) {
     var fmt = function (t) { t = Math.floor(t || 0); return Math.floor(t / 60) + ':' + ('0' + t % 60).slice(-2); };
     var seek = document.getElementById('vSeek'), time = document.getElementById('vTime');

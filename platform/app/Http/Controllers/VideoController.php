@@ -18,10 +18,30 @@ class VideoController extends Controller
 {
     public const EXT = ['mp4', 'm4v', 'webm', 'mov'];
 
+    /** رابط الموقع: موقّع، وينتهي، ومربوط بجلسة المتصفح نفسها (نسخه لمتصفح ثاني ما يشتغل) */
+    public static function webUrl(Lesson $lesson): string
+    {
+        return \Illuminate\Support\Facades\URL::temporarySignedRoute('video.web', now()->addHours(4), [
+            'lesson' => $lesson->id,
+            's' => substr(hash_hmac('sha256', session()->getId(), config('app.key')), 0, 24),
+        ]);
+    }
+
+    public function web(Request $request, Lesson $lesson, LessonAccess $access)
+    {
+        $expected = substr(hash_hmac('sha256', $request->session()->getId(), config('app.key')), 0, 24);
+        abort_unless(hash_equals($expected, (string) $request->query('s')), 403);
+        // المتصفح يطلب الفيديو كعنصر video فقط، مو كصفحة أو تنزيل
+        abort_if($request->header('Sec-Fetch-Dest') === 'document', 403);
+
+        return $this->stream($request, $lesson, $access);
+    }
+
+    /** للتطبيق: Authorization: Bearer (الرابط وحده ما يشتغل) */
     public function stream(Request $request, Lesson $lesson, LessonAccess $access)
     {
-        $user = $request->query('u') ? User::find($request->query('u')) : null;
-        abort_if($user && ! $user->is_active, 403);
+        $user = $request->user();
+        abort_if(! $user || ! $user->is_active, 403);
         $access->authorize($user, $lesson);
 
         $path = storage_path('app/private/'.$lesson->video_path);

@@ -14,6 +14,7 @@ Route::prefix('v1')->middleware('throttle:api')->group(function () {
     Route::get('courses', [Api\CatalogController::class, 'courses']);
     Route::get('courses/{course}', [Api\CatalogController::class, 'course']);
     Route::get('verify/{certificate}', [Api\CatalogController::class, 'verifyCertificate']);
+    Route::get('pages', fn () => response()->json(['privacy' => route('privacy'), 'terms' => route('terms')]));
 
     Route::post('auth/register', [Api\AuthController::class, 'register'])->middleware('throttle:login');
     Route::post('auth/login', [Api\AuthController::class, 'login'])->middleware('throttle:login');
@@ -30,6 +31,10 @@ Route::prefix('v1')->middleware('throttle:api')->group(function () {
         Route::post('courses/{course}/enroll', [Api\LearnController::class, 'enroll']);
         Route::get('courses/{course}/curriculum', [Api\LearnController::class, 'curriculum']);
         Route::get('lessons/{lesson}', [Api\LearnController::class, 'lesson']);
+        Route::get('lessons/{lesson}/stream', [App\Http\Controllers\VideoController::class, 'stream'])->name('api.video')->middleware('throttle:600,1');
+        Route::post('me/push-token', [Api\DeviceController::class, 'storeToken']);
+        Route::delete('me/push-token', [Api\DeviceController::class, 'deleteToken']);
+        Route::delete('me', [Api\DeviceController::class, 'destroyAccount']);
         Route::post('lessons/{lesson}/progress', [Api\LearnController::class, 'progress']);
 
         Route::get('chats', [Api\ChatController::class, 'index']);

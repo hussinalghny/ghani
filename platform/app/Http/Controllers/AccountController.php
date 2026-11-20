@@ -55,4 +55,18 @@ class AccountController extends Controller
 
         return back()->with('success', 'تم تغيير كلمة المرور.');
     }
+
+    public function destroy(Request $request)
+    {
+        $request->validate(['password' => ['required', 'current_password']], ['password.current_password' => 'كلمة المرور غير صحيحة.']);
+        $user = $request->user();
+        abort_if($user->isAdmin(), 403);
+        \Illuminate\Support\Facades\Auth::guard('web')->logout();
+        $user->tokens()->delete();
+        $user->delete();
+        $request->session()->invalidate();
+        $request->session()->regenerateToken();
+
+        return redirect()->route('home')->with('success', 'تم حذف حسابك وكل بياناتك.');
+    }
 }

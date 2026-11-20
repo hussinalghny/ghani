@@ -89,6 +89,8 @@
                     <a href="{{ route('wallet') }}">شحن الرصيد بقسيمة</a>
                     <a href="{{ route('certificates.index') }}">الشهادات</a>
                     <a href="{{ route('app') }}">تنزيل التطبيق</a>
+                    <a href="{{ route('privacy') }}">سياسة الخصوصية</a>
+                    <a href="{{ route('terms') }}">شروط الاستخدام</a>
                 </div>
                 <div>
                     <h4>تواصل</h4>

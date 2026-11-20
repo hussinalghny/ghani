@@ -43,7 +43,7 @@ class LessonAccess
         LessonView::create(['user_id' => $user->id, 'lesson_id' => $lesson->id, 'device_id' => $deviceId, 'ip' => $ip]);
     }
 
-    public function playback(Lesson $lesson, ?User $user): array
+    public function playback(Lesson $lesson, ?User $user, string $channel = 'web'): array
     {
         $data = [
             'type' => $lesson->type,
@@ -57,9 +57,9 @@ class LessonAccess
         if ($lesson->type === 'video' && $lesson->video_path) {
             // المشغل المجاني: ملف على سيرفرنا برابط موقع مؤقت
             $data['provider'] = 'local';
-            $data['video_url'] = \Illuminate\Support\Facades\URL::temporarySignedRoute(
-                'video.stream', now()->addMinutes((int) config('academy.bunny.token_ttl')), ['lesson' => $lesson->id, 'u' => $user?->id ?? 0]
-            );
+            // الموقع: الرابط ما ينحط بالصفحة، يتجلب بعدين ومربوط بالجلسة. التطبيق: يحتاج التوكن بالهيدر
+            $data['video_url'] = $channel === 'app' ? route('api.video', $lesson) : null;
+            $data['requires_auth_header'] = $channel === 'app';
         } elseif ($lesson->type === 'video' && $lesson->bunny_video_id) {
             $data['provider'] = 'bunny';
             $data['embed_url'] = $this->bunny->embedUrl($lesson->bunny_video_id);

@@ -32,7 +32,8 @@ Route::middleware('guest')->group(function () {
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout')->middleware('auth');
 
 // فيديو الدرس: رابط موقع مؤقت (للموقع والتطبيق)
-Route::get('/video/{lesson}', [App\Http\Controllers\VideoController::class, 'stream'])->name('video.stream')->middleware(['signed', 'throttle:120,1']);
+Route::get('/privacy', fn () => view('site.privacy'))->name('privacy');
+Route::get('/terms', fn () => view('site.terms'))->name('terms');
 
 // ---------- الطالب ----------
 Route::middleware('auth')->group(function () {
@@ -50,6 +51,9 @@ Route::middleware('auth')->group(function () {
 
     Route::get('/account', [AccountController::class, 'index'])->name('account');
     Route::get('/account/settings', [AccountController::class, 'settings'])->name('account.settings');
+    Route::delete('/account', [AccountController::class, 'destroy'])->name('account.destroy');
+    Route::post('/learn/lesson/{lesson}/source', [LearnController::class, 'source'])->name('learn.source')->middleware('throttle:60,1');
+    Route::get('/learn/lesson/{lesson}/stream', [App\Http\Controllers\VideoController::class, 'web'])->name('video.web')->middleware(['signed', 'throttle:300,1']);
     Route::put('/account/settings', [AccountController::class, 'update'])->name('account.update');
     Route::put('/account/password', [AccountController::class, 'password'])->name('account.password');
 
@@ -116,6 +120,10 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
 
     Route::get('app', [Admin\AppReleaseController::class, 'edit'])->name('app');
     Route::post('app', [Admin\AppReleaseController::class, 'update'])->name('app.update');
+
+    Route::get('notifications', [Admin\NotificationController::class, 'create'])->name('notifications');
+    Route::post('notifications', [Admin\NotificationController::class, 'send'])->name('notifications.send');
+    Route::post('notifications/credentials', [Admin\NotificationController::class, 'credentials'])->name('notifications.credentials');
 
     Route::get('settings', [Admin\SettingsController::class, 'edit'])->name('settings');
     Route::put('settings', [Admin\SettingsController::class, 'update'])->name('settings.update');

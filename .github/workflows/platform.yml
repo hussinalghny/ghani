@@ -56,17 +56,28 @@ jobs:
           php artisan tinker --execute='App\Models\Lesson::where("is_free_preview",1)->first()->update(["video_path"=>"videos/2026-11/test.mp4"]);'
           L=$(php artisan tinker --execute='echo App\Models\Lesson::where("is_free_preview",1)->first()->id;' | tail -1)
           V=$(curl -s -H 'Accept: application/json' -H "Authorization: Bearer $T" http://127.0.0.1:8000/api/v1/lessons/$L | php -r '$d=json_decode(stream_get_contents(STDIN)); echo $d->data->playback->video_url ?? "";')
-          echo "video url: ${V:0:60}..."; [ -n "$V" ] || fail=1
-          c=$(curl -s -o /dev/null -w '%{http_code}' -H 'Range: bytes=0-1023' "$V"); echo "$c video range"; [ "$c" = "206" ] || fail=1
-          c=$(curl -s -o /dev/null -w '%{http_code}' "${V%%&signature=*}&signature=bad"); echo "$c video tampered"; [ "$c" = "403" ] || fail=1
+          echo "video url: $V"; [ -n "$V" ] || fail=1
+          c=$(curl -s -o /dev/null -w '%{http_code}' -H 'Range: bytes=0-1023' -H "Authorization: Bearer $T" -H 'Accept: application/json' "$V"); echo "$c app video range (with token)"; [ "$c" = "206" ] || fail=1
+          c=$(curl -s -o /dev/null -w '%{http_code}' -H 'Accept: application/json' "$V"); echo "$c app video without token"; [ "$c" = "401" ] || fail=1
+          c=$(curl -s -o /dev/null -w '%{http_code}' -X POST -H 'Accept: application/json' -H 'Content-Type: application/json' -H "Authorization: Bearer $T" -d '{"token":"ci-fcm-token","platform":"android"}' http://127.0.0.1:8000/api/v1/me/push-token); echo "$c push token"; [ "$c" = "200" ] || fail=1
+          c=$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8000/privacy); echo "$c privacy"; [ "$c" = "200" ] || fail=1
           # صفحات الويب بعد تسجيل الدخول كأدمن
           J=/tmp/jar; rm -f $J
           TOK=$(curl -s -c $J -b $J http://127.0.0.1:8000/login | grep -o 'name="_token" value="[^"]*"' | head -1 | sed 's/.*value="//;s/"//')
           curl -s -o /dev/null -c $J -b $J -X POST -d "_token=$TOK&phone=07766637444&password=ChangeMe@2026" http://127.0.0.1:8000/login
-          for u in /admin /admin/courses /admin/courses/smart-defense/curriculum /admin/courses/smart-defense/lessons/create /admin/lessons/1/edit /admin/categories /admin/instructors /admin/instructors/1/edit /admin/vouchers /admin/vouchers/create /admin/students /admin/settings /admin/app /inbox /messages /messages/support /account /wallet /learn/smart-defense /certificates /account/settings; do
+          # فيديو الموقع: الرابط من طلب منفصل ومربوط بالجلسة
+          SRC=$(curl -s -c $J -b $J http://127.0.0.1:8000/learn/smart-defense > /tmp/learn.html; X=$(grep -o 'name="csrf-token" content="[^"]*"' /tmp/learn.html | sed 's/.*content="//;s/"//'); curl -s -c $J -b $J -X POST -H "X-CSRF-TOKEN: $X" -H 'Accept: application/json' http://127.0.0.1:8000/learn/lesson/$L/source | php -r 'echo json_decode(stream_get_contents(STDIN))->src ?? "";')
+          echo "web src: ${SRC:0:70}..."; [ -n "$SRC" ] || fail=1
+          grep -q "videos/2026-11" /tmp/learn.html && { echo "video path leaked in HTML"; fail=1; }
+          c=$(curl -s -o /dev/null -w '%{http_code}' -c $J -b $J -H 'Range: bytes=0-100' -H 'Sec-Fetch-Dest: video' "$SRC"); echo "$c web video same session"; [ "$c" = "206" ] || fail=1
+          c=$(curl -s -o /dev/null -w '%{http_code}' -H 'Range: bytes=0-100' "$SRC"); echo "$c web video other browser"; [ "$c" -ge 300 ] || fail=1
+          c=$(curl -s -o /dev/null -w '%{http_code}' -c $J -b $J -H 'Sec-Fetch-Dest: document' "$SRC"); echo "$c web video opened as page"; [ "$c" = "403" ] || fail=1
+          for u in /admin/notifications /admin /admin/courses /admin/courses/smart-defense/curriculum /admin/courses/smart-defense/lessons/create /admin/lessons/1/edit /admin/categories /admin/instructors /admin/instructors/1/edit /admin/vouchers /admin/vouchers/create /admin/students /admin/settings /admin/app /inbox /messages /messages/support /account /wallet /learn/smart-defense /certificates /account/settings; do
             c=$(curl -s -o /tmp/out -L -w '%{http_code}' -c $J -b $J "http://127.0.0.1:8000$u"); echo "$c $u"
             if [ "$c" -ge 400 ]; then fail=1; grep -o '<title>[^<]*' /tmp/out | head -1; grep -o 'class="exception-message[^<]*<[^<]*' /tmp/out | head -2; fi
           done
+          # حذف الحساب من التطبيق
+          c=$(curl -s -o /tmp/out -w '%{http_code}' -X DELETE -H 'Accept: application/json' -H 'Content-Type: application/json' -H "Authorization: Bearer $T" -d '{"password":"12345678"}' http://127.0.0.1:8000/api/v1/me); echo "$c delete account"; [ "$c" = "200" ] || { fail=1; cat /tmp/out; }
           grep -i "error" storage/logs/*.log | head -20 || true
           kill %1 || true
           rm -f .env database/database.sqlite; rm -rf storage/logs/*.log bootstrap/cache/*.php storage/framework/views/*.php
