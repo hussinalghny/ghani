@@ -1,10 +1,11 @@
 <!DOCTYPE html>
-<html lang="ar" dir="rtl">
+<html lang="ar" dir="rtl" class="dark">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <meta name="theme-color" content="#FFFFFF">
+    <meta name="theme-color" content="#0B0A10">
+    <script>try{if(localStorage.getItem('ga-theme')==='light')document.documentElement.classList.remove('dark')}catch(e){}</script>
     <title>@hasSection('title')@yield('title') · @endif غني أكاديمي</title>
     <meta name="description" content="@yield('description', 'غني أكاديمي: كورسات تقنية عملية في الأمن السيبراني وبرمجة المواقع والتطبيقات. تعلم. طبق. اشتغل.')">
     <link rel="icon" href="{{ asset('favicon.png') }}">
@@ -12,7 +13,8 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Alexandria:wght@700;800&family=Readex+Pro:wght@400;500;600&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="{{ asset('css/app.css') }}?v=1">
+    <link rel="stylesheet" href="{{ asset('css/app.css') }}?v=2">
+    <link rel="stylesheet" href="{{ asset('css/theme.css') }}?v=1">
     @stack('head')
 </head>
 @php($user = auth()->user())
@@ -24,7 +26,8 @@
     <header class="nav">
         <div class="container">
             <a href="{{ route('home') }}" class="nav-logo" aria-label="غني أكاديمي - الرئيسية">
-                <img src="{{ asset('img/logo-light.png') }}" alt="Ghani Academy" width="120" height="40">
+                <img class="logo-on-light" src="{{ asset('img/logo-light.png') }}" alt="Ghani Academy" width="120" height="40">
+                <img class="logo-on-dark" src="{{ asset('img/logo-dark.png') }}" alt="Ghani Academy" width="120" height="40">
             </a>
             <nav class="nav-links" aria-label="القائمة الرئيسية">
                 <a href="{{ route('home') }}" @class(['active' => request()->routeIs('home')])>الرئيسية</a>
@@ -37,6 +40,10 @@
                 @endauth
             </nav>
             <div class="nav-actions">
+                <button class="theme-btn" type="button" id="themeBtn" aria-label="تبديل الوضع الليلي والنهاري">
+                    <svg class="moon" width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M21 12.8A9 9 0 1111.2 3a7 7 0 009.8 9.8z"/></svg>
+                    <svg class="sun" width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+                </button>
                 @auth
                     <a href="{{ route('wallet') }}" class="nav-balance">@include('partials.icon', ['n' => 'wallet', 'class' => 'icon icon-sm']) <span class="ltr">{{ iqd($user->balance, false) }}</span> د.ع</a>
                     <div class="menu" data-menu>
@@ -80,7 +87,8 @@
         <div class="container">
             <div class="footer-grid">
                 <div>
-                    <img class="logo" src="{{ asset('img/logo-light.png') }}" alt="Ghani Academy">
+                    <img class="logo logo-on-light" src="{{ asset('img/logo-light.png') }}" alt="Ghani Academy">
+                    <img class="logo logo-on-dark" src="{{ asset('img/logo-dark.png') }}" alt="Ghani Academy">
                     <p>منصة تعليمية تقنية تابعة لغني كود. نحول المتعلم إلى شخص يشتغل خلال شهر.</p>
                     <p class="tiny">تعلم. طبق. اشتغل.</p>
                 </div>
@@ -118,6 +126,13 @@
     </nav>
     @endauth
 
+    <script>
+    document.getElementById('themeBtn').addEventListener('click', function () {
+        var dark = document.documentElement.classList.toggle('dark');
+        try { localStorage.setItem('ga-theme', dark ? 'dark' : 'light'); } catch (e) {}
+        document.querySelector('meta[name=theme-color]').content = dark ? '#0B0A10' : '#FFFFFF';
+    });
+    </script>
     <script src="{{ asset('js/app.js') }}?v=1" defer></script>
     @stack('scripts')
 </body>
