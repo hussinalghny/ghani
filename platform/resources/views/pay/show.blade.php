@@ -45,15 +45,6 @@
                 @if ($method['name'])<p class="tiny" style="margin:6px 0 0">باسم: {{ $method['name'] }}</p>@endif
             </div>
 
-            @if ($canClaim)
-                <form method="POST" action="{{ route('pay.claim', $order) }}">
-                    @csrf
-                    <button class="btn btn-primary btn-block btn-lg" type="submit">حولت المبلغ، افتح الكورس الآن</button>
-                    <p class="tiny" style="margin:8px 0 0;text-align:center">الكورس ينفتح فورا، ويتثبت أول ما يوصل تحويلك. إذا ما وصل خلال <span class="ltr">{{ \App\Services\PaymentService::instantMinutes() }}</span> دقيقة يتوقف.</p>
-                </form>
-            @elseif ($order->claimed_at)
-                <a class="btn btn-primary btn-block btn-lg" href="{{ route('learn.show', $order->course) }}">ادخل للكورس</a>
-            @endif
             <div class="alert" id="waiting" style="display:flex;gap:12px;align-items:center">
                 <span class="spinner" aria-hidden="true"></span>
                 <span>بانتظار التحويل. أول ما يوصل يتفعل طلبك تلقائيا خلال ثواني، خليك بهاي الصفحة أو ارجع لها بعدين.</span>
@@ -89,10 +80,10 @@
   function poll() {
     fetch(box.dataset.status, { headers: { Accept: 'application/json' }, credentials: 'same-origin' })
       .then(function (r) { return r.json(); })
-      .then(function (d) { if (d.redirect) location.href = d.redirect; else if (d.status === 'pending') setTimeout(poll, 3000); else location.reload(); })
+      .then(function (d) { if (d.redirect) location.href = d.redirect; else if (d.status === 'pending') setTimeout(poll, 5000); else location.reload(); })
       .catch(function () { setTimeout(poll, 10000); });
   }
-  setTimeout(poll, 3000);
+  setTimeout(poll, 5000);
 })();
 </script>
 @endpush

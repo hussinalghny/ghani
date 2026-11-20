@@ -9,7 +9,7 @@ class PaymentOrder extends Model
 {
     protected $guarded = ['id'];
 
-    protected $casts = ['expires_at' => 'datetime', 'paid_at' => 'datetime', 'claimed_at' => 'datetime', 'claim_failed' => 'boolean'];
+    protected $casts = ['expires_at' => 'datetime', 'paid_at' => 'datetime'];
 
     public const STATUSES = ['pending' => 'بانتظار التحويل', 'paid' => 'مدفوع', 'expired' => 'منتهي', 'cancelled' => 'ملغي'];
 

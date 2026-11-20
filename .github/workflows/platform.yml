@@ -120,13 +120,6 @@ jobs:
           R=$(php artisan tinker --execute='$o=App\Models\PaymentOrder::find('$OID'); echo $o->status."|".$o->paid_by."|".$o->user->balance;' | tail -1); echo "order after: $R (balance before $B0)"
           [ "$R" = "paid|auto|$((B0 + AMT))" ] || fail=1
           for u in /admin/payments "/admin/payments?status=paid" /wallet /course/smart-defense; do c=$(curl -s -o /tmp/out -w '%{http_code}' -c $J -b $J "http://127.0.0.1:8000$u"); echo "$c $u"; [ "$c" = "200" ] || { fail=1; grep -o 'class="exception-message[^<]*<[^<]*' /tmp/out | head -2; }; done
-          # التفعيل الفوري: الكورس ينفتح قبل وصول الإشعار ويتثبت بعده
-          R=$(php artisan tinker --execute='$u=new App\Models\User; $u->forceFill(["name"=>"طالب دفع","phone"=>"07700000077","password"=>bcrypt("x12345678"),"role"=>"student"])->save(); $c=App\Models\Course::where("slug","smart-defense")->first(); $s=app(App\Services\PaymentService::class); $o=$s->create($u,"qi",$c->finalPrice(),$c); $ok=$s->claim($o); $acc=$u->fresh()->hasAccessTo($c); $again=$s->canClaim($o->fresh()); echo ($ok?1:0).($acc?1:0).($again?1:0)."|".$o->id."|".$o->amount;' | tail -1); echo "instant claim: $R"
-          [ "${R%%|*}" = "110" ] || fail=1
-          OID2=$(echo "$R" | cut -d'|' -f2); AMT2=$(echo "$R" | cut -d'|' -f3); FMT2=$(php -r "echo number_format($AMT2);")
-          c=$(hook '{"title":"Notification","text":"تم استلام مبلغ IQD '$FMT2'.00 إلى حسابك عن طريق SuperQi.","package":"iq.qi","posted_at":'$(date +%s)'000}'); echo "$c hook for claimed $(cat /tmp/hook)"
-          R=$(php artisan tinker --execute='$o=App\Models\PaymentOrder::find('$OID2'); $e=App\Models\Enrollment::where("user_id",$o->user_id)->where("course_id",$o->course_id)->first(); echo $o->status."|".$e->source."|".($e->expires_at?"temp":"perm");' | tail -1); echo "after payment: $R"
-          [ "$R" = "paid|wallet|perm" ] || fail=1
           # حذف الحساب من التطبيق
           c=$(curl -s -o /tmp/out -w '%{http_code}' -X DELETE -H 'Accept: application/json' -H 'Content-Type: application/json' -H "Authorization: Bearer $T" -d '{"password":"12345678"}' http://127.0.0.1:8000/api/v1/me); echo "$c delete account"; [ "$c" = "200" ] || { fail=1; cat /tmp/out; }
           grep -i "error" storage/logs/*.log | head -20 || true

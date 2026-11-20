@@ -33,35 +33,18 @@ object Sender {
         flush(c)
     }
 
-    private val retry = android.os.Handler(android.os.Looper.getMainLooper())
-
     fun flush(c: Context) {
-        val app = c.applicationContext
         Thread {
-            // نبقي المعالج صاحي لحد ما يوصل الطلب (حتى لو الشاشة مطفية)
-            val wl = (app.getSystemService(Context.POWER_SERVICE) as android.os.PowerManager)
-                .newWakeLock(android.os.PowerManager.PARTIAL_WAKE_LOCK, "ghanipay:send")
-            wl.acquire(60_000)
-            try { synchronized(lock) {
-                val q = JSONArray(prefs(app).getString("queue", "[]"))
+            synchronized(lock) {
+                val q = JSONArray(prefs(c).getString("queue", "[]"))
                 val left = JSONArray()
                 for (i in 0 until q.length()) {
                     val item = q.getJSONObject(i)
-                    var res: String? = null
-                    for (attempt in 0 until 3) {        // 3 محاولات سريعة قبل ما نأجله
-                        res = post(app, item)
-                        if (res != null) break
-                        Thread.sleep(1500)
-                    }
-                    if (res == null) left.put(item) else {
-                        val sec = (System.currentTimeMillis() - item.optLong("posted_at", System.currentTimeMillis())) / 1000
-                        log(app, "وصل المنصة خلال ${sec}s: $res")
-                    }
+                    val res = post(c, item)
+                    if (res == null) left.put(item) else log(c, "المنصة: $res")
                 }
-                prefs(app).edit().putString("queue", left.toString()).apply()
-                // المعلق نعيده كل 10 ثواني لحد ما يرجع النت
-                if (left.length() > 0) retry.postDelayed({ flush(app) }, 10_000)
-            } } finally { if (wl.isHeld) wl.release() }
+                prefs(c).edit().putString("queue", left.toString()).apply()
+            }
         }.start()
     }
 

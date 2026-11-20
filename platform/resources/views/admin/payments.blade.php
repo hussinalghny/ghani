@@ -42,7 +42,7 @@
                     <td>{{ $o->course?->title ?? 'شحن محفظة' }}</td>
                     <td class="ltr"><strong>{{ number_format($o->amount) }}</strong></td>
                     <td>{{ \App\Services\PaymentService::methods()[$o->method]['label'] ?? $o->method }}</td>
-                    <td><span @class(['badge', 'badge-green' => $o->status === 'paid', 'badge-gray' => in_array($o->status, ['expired', 'cancelled'])])>{{ \App\Models\PaymentOrder::STATUSES[$o->status] ?? $o->status }}{{ $o->paid_by === 'auto' ? ' · تلقائي' : '' }}</span>@if ($o->claimed_at && $o->status !== 'paid')<div class="tiny" style="color:{{ $o->claim_failed ? 'var(--danger)' : 'var(--gold)' }}">{{ $o->claim_failed ? 'فتح مؤقت وما وصل التحويل' : 'مفتوح مؤقتا' }}</div>@endif</td>
+                    <td><span @class(['badge', 'badge-green' => $o->status === 'paid', 'badge-gray' => in_array($o->status, ['expired', 'cancelled'])])>{{ \App\Models\PaymentOrder::STATUSES[$o->status] ?? $o->status }}{{ $o->paid_by === 'auto' ? ' · تلقائي' : '' }}</span></td>
                     <td class="tiny ltr">{{ $o->created_at->timezone('Asia/Baghdad')->format('m/d H:i') }}</td>
                     <td>@if (in_array($o->status, ['pending', 'expired']))<form method="POST" action="{{ route('admin.payments.approve', $o) }}" data-confirm="تأكيد إن المبلغ وصل وتفعيل الطلب؟">@csrf<button class="btn btn-plain btn-sm" type="submit">تأكيد يدوي</button></form>@endif</td>
                 </tr>
@@ -69,9 +69,6 @@
             <div class="field"><label for="fa">الاسم الظاهر</label><input class="input" id="fa" name="pay_fastpay_name" value="{{ setting('pay_fastpay_name') }}"></div>
         </div>
         <span class="help">الطريقة اللي بدون رقم ما تطلع للطلاب.</span>
-        <h2 style="margin-top:20px">التفعيل الفوري</h2>
-        <label class="switch"><input type="checkbox" name="pay_instant" value="1" @checked((string) setting('pay_instant', '1') === '1')> الطالب يضغط «حولت» والكورس ينفتح فورا بدون انتظار</label>
-        <div class="field" style="margin-top:10px"><label for="pim">مهلة وصول التحويل (دقيقة)</label><input class="input" id="pim" name="pay_instant_minutes" type="number" min="5" max="240" dir="ltr" value="{{ \App\Services\PaymentService::instantMinutes() }}" style="max-width:140px"><span class="help">إذا ما وصل التحويل خلالها الكورس يتسكر. الطالب اللي يفشل مرتين تنطفي عنده هالميزة.</span></div>
         <button class="btn btn-primary" type="submit" style="margin-top:12px">حفظ</button>
     </form>
 
@@ -84,14 +81,12 @@
             @csrf
             @foreach (['pay_qi_number', 'pay_qi_name', 'pay_zaincash_number', 'pay_zaincash_name', 'pay_fastpay_number', 'pay_fastpay_name'] as $k)<input type="hidden" name="{{ $k }}" value="{{ setting($k) }}">@endforeach
             @if (setting('pay_enabled'))<input type="hidden" name="pay_enabled" value="1">@endif
-            @if ((string) setting('pay_instant', '1') === '1')<input type="hidden" name="pay_instant" value="1">@endif
-            <input type="hidden" name="pay_instant_minutes" value="{{ \App\Services\PaymentService::instantMinutes() }}">
             <input type="hidden" name="new_secret" value="1">
             <button class="btn btn-plain btn-sm" type="submit">مفتاح جديد</button>
         </form>
         <p class="help" style="margin-top:12px">آخر الإشعارات:</p>
         @foreach ($recent as $n)
-            <div class="tiny muted" style="padding:4px 0;border-bottom:1px solid var(--line)"><span @class(['badge', 'badge-green' => $n->status === 'matched', 'badge-gray' => $n->status === 'ignored'])>{{ $n->status === 'matched' ? 'تطابق' : 'متجاهل' }}</span> <span class="ltr">{{ $n->amount ? number_format($n->amount) : '' }}</span> {{ \Illuminate\Support\Str::limit($n->text, 60) }}@if ($n->posted_at) · <span title="من وصول الإشعار للموبايل لحد ما وصل المنصة">التأخير <span class="ltr">{{ max(0, (int) $n->posted_at->diffInSeconds($n->created_at, false)) }}s</span></span>@endif</div>
+            <div class="tiny muted" style="padding:4px 0;border-bottom:1px solid var(--line)"><span @class(['badge', 'badge-green' => $n->status === 'matched', 'badge-gray' => $n->status === 'ignored'])>{{ $n->status === 'matched' ? 'تطابق' : 'متجاهل' }}</span> <span class="ltr">{{ $n->amount ? number_format($n->amount) : '' }}</span> {{ \Illuminate\Support\Str::limit($n->text, 70) }}</div>
         @endforeach
     </div>
 </div>

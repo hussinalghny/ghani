@@ -11,7 +11,7 @@ class Enrollment extends Model
 
     protected $casts = ['expires_at' => 'datetime', 'completed_at' => 'datetime'];
 
-    public const SOURCES = ['wallet' => 'من الرصيد', 'voucher' => 'قسيمة', 'admin' => 'من الإدارة', 'free' => 'مجاني', 'payment' => 'دفع مباشر', 'pending' => 'دفع قيد التأكيد'];
+    public const SOURCES = ['wallet' => 'من الرصيد', 'voucher' => 'قسيمة', 'admin' => 'من الإدارة', 'free' => 'مجاني'];
 
     public function user(): BelongsTo
     {

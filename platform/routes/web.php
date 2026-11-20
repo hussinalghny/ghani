@@ -61,7 +61,6 @@ Route::middleware('auth')->group(function () {
     Route::post('/pay', [App\Http\Controllers\PaymentController::class, 'store'])->name('pay.store')->middleware('throttle:10,1');
     Route::get('/pay/{order}', [App\Http\Controllers\PaymentController::class, 'show'])->name('pay.show');
     Route::get('/pay/{order}/status', [App\Http\Controllers\PaymentController::class, 'status'])->name('pay.status');
-    Route::post('/pay/{order}/claim', [App\Http\Controllers\PaymentController::class, 'claim'])->name('pay.claim');
     Route::post('/pay/{order}/cancel', [App\Http\Controllers\PaymentController::class, 'cancel'])->name('pay.cancel');
     Route::post('/wallet/redeem', [WalletController::class, 'redeem'])->name('wallet.redeem')->middleware('throttle:redeem');
 
