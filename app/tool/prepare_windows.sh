@@ -17,7 +17,7 @@ flutter pub get
 
 # النافذة: عنوان وحجم
 MAIN=windows/runner/main.cpp
-perl -pi -e 's/window\.Create\(L"[^"]*"/window.Create(L"Ghani Academy"/; s/Win32Window::Size size\(\d+, \d+\)/Win32Window::Size size(1200, 820)/' "$MAIN"
+perl -pi -e 's/window\.Create\(L"[^"]*"/window.Create(L"Ghani Academy"/; s/Win32Window::Size size\(\d+, \d+\)/Win32Window::Size size(1320, 860)/' "$MAIN"
 
 # الحماية
 cp tool/windows/guard.cpp windows/runner/ghani_guard.h

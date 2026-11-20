@@ -12,6 +12,13 @@ class LessonAccess
 {
     public function __construct(private BunnyStream $bunny) {}
 
+    public function blockedMessage(): string
+    {
+        $where = array_keys(array_filter(['تطبيق الكمبيوتر' => $this->channelAllowed('desktop'), 'تطبيق الموبايل' => $this->channelAllowed('app'), 'الموقع' => $this->channelAllowed('web')]));
+
+        return $where ? 'حماية للمحتوى، الدروس تشتغل من '.implode(' أو ', $where).' فقط.' : 'تشغيل الدروس متوقف حاليا.';
+    }
+
     public function authorize(?User $user, Lesson $lesson): void
     {
         $course = $lesson->course;
@@ -43,8 +50,25 @@ class LessonAccess
         LessonView::create(['user_id' => $user->id, 'lesson_id' => $lesson->id, 'device_id' => $deviceId, 'ip' => $ip]);
     }
 
+    /** أماكن تشغيل الفيديو من الإعدادات: web | app (موبايل) | desktop */
+    public const CHANNEL_DEFAULTS = ['web' => 0, 'app' => 0, 'desktop' => 1];
+
+    public function channelAllowed(string $channel): bool
+    {
+        return (bool) (int) setting('video_'.$channel, self::CHANNEL_DEFAULTS[$channel] ?? 0);
+    }
+
     public function playback(Lesson $lesson, ?User $user, string $channel = 'web'): array
     {
+        if ($lesson->type === 'video' && ! $this->channelAllowed($channel)) {
+            return [
+                'type' => 'video', 'provider' => 'blocked', 'video_url' => null, 'embed_url' => null, 'hls_url' => null,
+                'expires_in' => 0, 'watermark' => null,
+                'blocked_message' => $this->blockedMessage(),
+                'download_url' => route('app'),
+            ];
+        }
+
         $data = [
             'type' => $lesson->type,
             'provider' => null,

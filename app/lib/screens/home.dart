@@ -86,11 +86,20 @@ class HomeScreen extends StatelessWidget {
               ],
               if (latest.isNotEmpty) ...[
                 const Padding(padding: EdgeInsets.fromLTRB(20, 26, 20, 12), child: Title2('أحدث الكورسات', size: 22)),
-                for (var i = 0; i < latest.length; i++)
+                if (kDesktop)
                   Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 0, 20, 14),
-                    child: FadeSlide(index: i + 3, child: CourseCard(latest[i], onTap: () => go(ctx, CourseScreen(slug: latest[i]['slug'])))),
-                  ),
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    child: AutoGrid(children: [
+                      for (var i = 0; i < latest.length; i++)
+                        FadeSlide(index: i + 3, child: CourseCard(latest[i], onTap: () => go(ctx, CourseScreen(slug: latest[i]['slug'])))),
+                    ]),
+                  )
+                else
+                  for (var i = 0; i < latest.length; i++)
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(20, 0, 20, 14),
+                      child: FadeSlide(index: i + 3, child: CourseCard(latest[i], onTap: () => go(ctx, CourseScreen(slug: latest[i]['slug'])))),
+                    ),
               ],
             ]);
           },
@@ -226,7 +235,14 @@ class _CoursesScreenState extends State<CoursesScreen> {
                 ? ListView(padding: const EdgeInsets.all(20), children: const [
                     EmptyState(icon: CupertinoIcons.search, title: 'ما لقينا كورسات', text: 'جرب كلمة ثانية أو تصفح كل الأقسام.'),
                   ])
-                : ListView.separated(
+                : kDesktop
+                    ? ListView(padding: const EdgeInsets.all(20), children: [
+                        AutoGrid(children: [
+                          for (var i = 0; i < list.length; i++)
+                            FadeSlide(index: i, child: CourseCard(list[i], onTap: () => go(ctx, CourseScreen(slug: list[i]['slug'])))),
+                        ]),
+                      ])
+                    : ListView.separated(
                     padding: const EdgeInsets.all(16),
                     itemCount: list.length,
                     separatorBuilder: (_, __) => const SizedBox(height: 14),
@@ -320,7 +336,12 @@ class _CourseScreenState extends State<CourseScreen> {
                 ]),
               ),
               const SizedBox(height: 18),
-              FadeSlide(index: 4, child: AspectRatio(aspectRatio: 16 / 9, child: Cover(c, radius: 20))),
+              FadeSlide(
+                index: 4,
+                child: kDesktop
+                    ? Align(alignment: AlignmentDirectional.centerStart, child: ConstrainedBox(constraints: const BoxConstraints(maxWidth: 640), child: AspectRatio(aspectRatio: 16 / 9, child: Cover(c, radius: 20))))
+                    : AspectRatio(aspectRatio: 16 / 9, child: Cover(c, radius: 20)),
+              ),
               if (outcomes.isNotEmpty) ...[
                 const SizedBox(height: 26),
                 const Title2('ماذا ستتعلم', size: 21),

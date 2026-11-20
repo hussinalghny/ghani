@@ -1,4 +1,8 @@
+import 'dart:io';
+import 'dart:math' as math;
+
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
@@ -433,3 +437,22 @@ Future<void> withBusy(BuildContext ctx, Future<void> Function() f) async {
 }
 
 String err(Object e) => e is ApiException ? e.message : 'حدث خطأ. أعد المحاولة.';
+
+
+/// نسخة الكمبيوتر (ويندوز/ماك)
+final bool kDesktop = !kIsWeb && (Platform.isWindows || Platform.isMacOS || Platform.isLinux);
+
+/// شبكة تتوزع حسب عرض الشاشة (للكمبيوتر)
+class AutoGrid extends StatelessWidget {
+  final List<Widget> children;
+  final double minItem, gap, runGap;
+  const AutoGrid({super.key, required this.children, this.minItem = 300, this.gap = 18, this.runGap = 18});
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(builder: (ctx, box) {
+      final n = math.max(1, ((box.maxWidth + gap) / (minItem + gap)).floor());
+      final w = (box.maxWidth - gap * (n - 1)) / n;
+      return Wrap(spacing: gap, runSpacing: runGap, children: [for (final x in children) SizedBox(width: w, child: x)]);
+    });
+  }
+}

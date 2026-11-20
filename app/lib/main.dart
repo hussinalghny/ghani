@@ -7,7 +7,6 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 import 'api.dart';
-import 'desktop_guard.dart';
 import 'push.dart';
 import 'screens/account.dart';
 import 'screens/auth.dart';
@@ -53,10 +52,7 @@ class GhaniApp extends StatelessWidget {
             GlobalCupertinoLocalizations.delegate,
           ],
           home: const Shell(),
-          // الكمبيوتر: نفس تصميم التطبيق بعرض مريح بنص النافذة
-          builder: (ctx, child) => DesktopGuard.isDesktop
-              ? ColoredBox(color: C.bg, child: Center(child: ConstrainedBox(constraints: const BoxConstraints(maxWidth: 760), child: child)))
-              : child!,
+
         );
       },
     );
@@ -93,6 +89,25 @@ class Shell extends StatelessWidget {
       valueListenable: tab,
       builder: (ctx, raw, __) {
         final i = raw.clamp(0, t.length - 1);
+        if (kDesktop) {
+          // الكمبيوتر: شريط جانبي ثابت + محتوى بعرض مريح
+          return Scaffold(
+            body: Row(children: [
+              _SideBar(tabs: t, index: i),
+              Expanded(
+                child: ColoredBox(
+                  color: C.bg,
+                  child: Center(
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 1120),
+                      child: IndexedStack(index: i, children: [for (final x in t) _nav(x.page, pad: 0)]),
+                    ),
+                  ),
+                ),
+              ),
+            ]),
+          );
+        }
         final bottom = MediaQuery.of(ctx).padding.bottom;
         return Scaffold(
           extendBody: true,
@@ -111,9 +126,78 @@ class Shell extends StatelessWidget {
   }
 
   // كل تبويب عنده Navigator خاص، ومساحة بالأسفل للشريط العائم
-  Widget _nav(Widget root) => Navigator(
-        onGenerateRoute: (_) => CupertinoPageRoute(builder: (c) => Padding(padding: const EdgeInsets.only(bottom: 84), child: root)),
+  Widget _nav(Widget root, {double pad = 84}) => Navigator(
+        onGenerateRoute: (_) => CupertinoPageRoute(builder: (c) => Padding(padding: EdgeInsets.only(bottom: pad), child: root)),
       );
+}
+
+/// شريط الكمبيوتر الجانبي: شعار، تبويبات، تبديل الوضع
+class _SideBar extends StatelessWidget {
+  final List<_Tab> tabs;
+  final int index;
+  const _SideBar({required this.tabs, required this.index});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 252,
+      decoration: BoxDecoration(
+        color: C.bgAlt,
+        border: BorderDirectional(end: BorderSide(color: C.dark ? const Color(0x1FFFFFFF) : const Color(0x141B1446))),
+      ),
+      padding: const EdgeInsets.fromLTRB(16, 26, 16, 18),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 8),
+          child: Align(alignment: AlignmentDirectional.centerStart, child: Image.asset(C.dark ? 'assets/img/logo-dark.png' : 'assets/img/logo-light.png', height: 38)),
+        ),
+        const SizedBox(height: 30),
+        for (var k = 0; k < tabs.length; k++)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 6),
+            child: Material(
+              color: k == index ? (C.dark ? C.champagne.withValues(alpha: .14) : C.mist) : Colors.transparent,
+              borderRadius: BorderRadius.circular(14),
+              child: InkWell(
+                borderRadius: BorderRadius.circular(14),
+                onTap: () => tab.value = k,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+                  child: Row(children: [
+                    Icon(k == index ? tabs[k].active : tabs[k].icon, size: 22, color: k == index ? C.accent : C.text2),
+                    const SizedBox(width: 12),
+                    Text(tabs[k].label,
+                        style: TextStyle(fontSize: 15, color: k == index ? C.accent : C.text, fontWeight: k == index ? FontWeight.w600 : FontWeight.w500)),
+                  ]),
+                ),
+              ),
+            ),
+          ),
+        const Spacer(),
+        Material(
+          color: Colors.transparent,
+          child: InkWell(
+            borderRadius: BorderRadius.circular(14),
+            onTap: () => darkMode.value = !darkMode.value,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              child: Row(children: [
+                Icon(C.dark ? CupertinoIcons.sun_max : CupertinoIcons.moon, size: 20, color: C.text2),
+                const SizedBox(width: 12),
+                Text(C.dark ? 'الوضع النهاري' : 'الوضع الليلي', style: TextStyle(color: C.text2)),
+              ]),
+            ),
+          ),
+        ),
+        const SizedBox(height: 8),
+        Row(children: [
+          Icon(CupertinoIcons.lock_shield_fill, size: 15, color: C.accent),
+          const SizedBox(width: 6),
+          Expanded(child: Text('المحتوى محمي من تسجيل الشاشة', style: TextStyle(color: C.text3, fontSize: 12))),
+        ]),
+      ]),
+    );
+  }
 }
 
 class _TabBar extends StatelessWidget {

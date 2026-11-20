@@ -14,6 +14,14 @@
             <label class="switch"><input type="checkbox" name="single_session" value="1" @checked(setting('single_session'))> جلسة واحدة: الدخول من متصفح أو تطبيق جديد يطلع القديم</label>
             <label class="switch"><input type="checkbox" name="watermark" value="1" @checked(setting('watermark'))> علامة مائية متحركة باسم ورقم الطالب على الفيديو</label>
         </div>
+        <h2 style="margin-top:22px">أماكن تشغيل الفيديو</h2>
+        @php($ch = \App\Services\LessonAccess::CHANNEL_DEFAULTS)
+        <div class="stack">
+            <label class="switch"><input type="checkbox" name="video_desktop" value="1" @checked(setting('video_desktop', $ch['desktop']))> تطبيق الكمبيوتر (الأقوى: النافذة سودة بأي تسجيل)</label>
+            <label class="switch"><input type="checkbox" name="video_app" value="1" @checked(setting('video_app', $ch['app']))> تطبيق الموبايل (منع السكرين شوت والتسجيل)</label>
+            <label class="switch"><input type="checkbox" name="video_web" value="1" @checked(setting('video_web', $ch['web']))> الموقع بالمتصفح (أضعف حماية)</label>
+            <span class="help">المكان المقفول يطلع للطالب رسالة وزر تنزيل التطبيق.</span>
+        </div>
         <div class="alert" style="margin-top:18px">
             @include('partials.icon', ['n' => 'shield'])
             <span>Bunny Stream: {{ $bunny ? 'مربوط' : 'غير مربوط' }}. فعّل من لوحة Bunny: Embed Token Authentication، و Allowed Domains لدومين المنصة فقط، و MediaCage DRM إذا متاح بخطتك.</span>

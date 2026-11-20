@@ -1,6 +1,7 @@
 # Hostinger: public_html = مجلد المشروع. بدون أي تحويل لـ /public/
 DirectoryIndex index.php
 Options -Indexes -MultiViews
+DirectorySlash Off
 
 <IfModule mod_rewrite.c>
     RewriteEngine On
@@ -14,7 +15,9 @@ Options -Indexes -MultiViews
     RewriteRule ^(.+)$ public/$1 [L]
 
     # 2) منع الوصول المباشر لملفات الكود والإعدادات
-    RewriteRule ^(app|bootstrap|config|database|lang|resources|routes|storage|tests|vendor|node_modules)(/|$) - [F,L]
+    # /app و /app/download صفحات المنصة، باقي app/ ممنوع
+    RewriteRule ^app/(?!download/).+ - [F,L]
+    RewriteRule ^(bootstrap|config|database|lang|resources|routes|storage|tests|vendor|node_modules)(/|$) - [F,L]
     RewriteRule ^\. - [F,L]
 
     # 3) كل الباقي للمنصة

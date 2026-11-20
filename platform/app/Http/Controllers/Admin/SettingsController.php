@@ -26,6 +26,9 @@ class SettingsController extends Controller
         $data['voucher_denominations'] = preg_replace('/\s+/', '', $data['voucher_denominations']);
         $data['single_session'] = $request->boolean('single_session') ? 1 : 0;
         $data['watermark'] = $request->boolean('watermark') ? 1 : 0;
+        foreach (['web', 'app', 'desktop'] as $ch) {
+            $data['video_'.$ch] = $request->boolean('video_'.$ch) ? 1 : 0;
+        }
         $data['announcement'] = $data['announcement'] ?? '';
         Setting::put($data);
 

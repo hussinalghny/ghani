@@ -11,7 +11,9 @@
     <div class="learn-main">
         @if ($lesson->type === 'video')
             <div class="player-shell paused" id="player" data-progress-url="{{ route('learn.progress', $lesson) }}" data-enrolled="{{ $enrolled ? 1 : 0 }}" data-start="{{ (int) optional($done->get($lesson->id))->position }}">
-                @if ($playback['provider'] === 'local')
+                @if ($playback['provider'] === 'blocked')
+                    <div class="player-empty"><div><strong>{{ $playback['blocked_message'] }}</strong><p class="small" style="margin:10px 0 14px">نزل التطبيق وسجل دخول بنفس حسابك، وكمل من نفس الدرس.</p><a class="btn btn-gold btn-sm" href="{{ $playback['download_url'] }}">تنزيل التطبيق</a></div></div>
+                @elseif ($playback['provider'] === 'local')
                     <video id="vid" data-source="{{ route('learn.source', $lesson) }}" playsinline preload="metadata" controlslist="nodownload noremoteplayback" disablepictureinpicture disableremoteplayback oncontextmenu="return false"></video>
                     <button class="vbig" type="button" id="vBig" aria-label="تشغيل">@include('partials.icon', ['n' => 'play'])</button>
                     <div class="vctl" id="vCtl">

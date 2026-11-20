@@ -30,9 +30,9 @@ jobs:
       - run: flutter analyze --no-fatal-infos --no-fatal-warnings lib
       # توقيع ثابت: كل نسخة جديدة تتنصب فوق القديمة بدون حذف
       - run: mkdir -p ~/.android && cp tool/debug.keystore ~/.android/debug.keystore
-      - run: flutter build apk --release --build-number=${{ github.run_number }} --dart-define=API_BASE=$API_BASE --dart-define=BUILD=${{ github.run_number }}
+      - run: flutter build apk --release --build-number=${{ github.run_number }} --dart-define=API_BASE=$API_BASE --dart-define=BUILD=${{ github.run_number }} --obfuscate --split-debug-info=build/symbols
       # نسخة Google Play (AAB): بدون شراء داخل التطبيق
-      - run: flutter build appbundle --release --build-number=${{ github.run_number }} --dart-define=API_BASE=$API_BASE --dart-define=BUILD=${{ github.run_number }} --dart-define=STORE_BUILD=true
+      - run: flutter build appbundle --release --build-number=${{ github.run_number }} --dart-define=API_BASE=$API_BASE --dart-define=BUILD=${{ github.run_number }} --obfuscate --split-debug-info=build/symbols --dart-define=STORE_BUILD=true
       - run: cp build/app/outputs/bundle/release/app-release.aab ghani-academy-v${{ github.run_number }}.aab
       - name: Verify icons font is bundled
         run: |
@@ -58,7 +58,7 @@ jobs:
           channel: stable
           cache: true
       - run: bash tool/prepare.sh
-      - run: flutter build ios --release --no-codesign --build-number=${{ github.run_number }} --dart-define=API_BASE=$API_BASE --dart-define=BUILD=${{ github.run_number }} --dart-define=STORE_BUILD=true
+      - run: flutter build ios --release --no-codesign --build-number=${{ github.run_number }} --dart-define=API_BASE=$API_BASE --dart-define=BUILD=${{ github.run_number }} --obfuscate --split-debug-info=build/symbols --dart-define=STORE_BUILD=true
       - name: Package IPA (unsigned)
         run: |
           mkdir -p Payload

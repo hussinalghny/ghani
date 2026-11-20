@@ -60,6 +60,7 @@ class LearnController extends Controller
     {
         $this->access->authorize($request->user(), $lesson);
         abort_unless($lesson->video_path, 404);
+        abort_unless($this->access->channelAllowed('web'), 403);
 
         return response()->json(['src' => \App\Http\Controllers\VideoController::webUrl($lesson)])
             ->header('Cache-Control', 'no-store');

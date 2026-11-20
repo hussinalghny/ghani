@@ -33,6 +33,7 @@ class VideoController extends Controller
         abort_unless(hash_equals($expected, (string) $request->query('s')), 403);
         // المتصفح يطلب الفيديو كعنصر video فقط، مو كصفحة أو تنزيل
         abort_if($request->header('Sec-Fetch-Dest') === 'document', 403);
+        $request->attributes->set('video_channel', 'web');
 
         return $this->stream($request, $lesson, $access);
     }
@@ -58,6 +59,7 @@ class VideoController extends Controller
         $device = \App\Models\Device::where('user_id', $user->id)->where('device_id', $token->name)->first();
         abort_if(! $device || $device->is_blocked, 403);
         $request->setUserResolver(fn () => $user);
+        $request->attributes->set('video_channel', 'desktop');
 
         return $this->stream($request, $lesson, $access);
     }
@@ -67,6 +69,7 @@ class VideoController extends Controller
     {
         $user = $request->user();
         abort_if(! $user || ! $user->is_active, 403);
+        abort_unless($access->channelAllowed($request->attributes->get('video_channel', 'app')), 403);
         $access->authorize($user, $lesson);
 
         $path = storage_path('app/private/'.$lesson->video_path);

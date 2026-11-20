@@ -54,6 +54,7 @@ jobs:
           # فيديو محلي: درس معاينة مجاني برابط موقع ويدعم Range
           mkdir -p storage/app/private/videos/2026-11 && head -c 300000 /dev/urandom > storage/app/private/videos/2026-11/test.mp4
           php artisan tinker --execute='App\Models\Lesson::where("is_free_preview",1)->first()->update(["video_path"=>"videos/2026-11/test.mp4"]);'
+          php artisan tinker --execute='App\Models\Setting::put(["video_web"=>1,"video_app"=>1,"video_desktop"=>1]);'
           L=$(php artisan tinker --execute='echo App\Models\Lesson::where("is_free_preview",1)->first()->id;' | tail -1)
           V=$(curl -s -H 'Accept: application/json' -H "Authorization: Bearer $T" http://127.0.0.1:8000/api/v1/lessons/$L | php -r '$d=json_decode(stream_get_contents(STDIN)); echo $d->data->playback->video_url ?? "";')
           echo "video url: $V"; [ -n "$V" ] || fail=1
@@ -94,6 +95,13 @@ jobs:
           c=$(curl -s -o /dev/null -w '%{http_code}' -c $I -b $I -X POST -d "_token=$X&_method=PUT&title=عنوان جديد&level=beginner&price=1&category_id=1&is_published=1" http://127.0.0.1:8000/admin/courses/smart-defense); echo "$c instructor update"
           R=$(php artisan tinker --execute='$c=App\Models\Course::where("slug","smart-defense")->first(); echo $c->title."|".$c->price;' | tail -1); echo "after update: $R (price before $P0)"
           [ "$c" = "302" ] && [ "$R" = "عنوان جديد|$P0" ] || fail=1
+          # التشغيل من تطبيق الكمبيوتر فقط (الافتراضي)
+          php artisan tinker --execute='App\Models\Setting::put(["video_web"=>0,"video_app"=>0,"video_desktop"=>1]);'
+          P=$(curl -s -H 'Accept: application/json' -H "Authorization: Bearer $T" http://127.0.0.1:8000/api/v1/lessons/$L | php -r '$d=json_decode(stream_get_contents(STDIN)); echo $d->data->playback->provider ?? "";'); echo "mobile provider: $P"; [ "$P" = "blocked" ] || fail=1
+          c=$(curl -s -o /dev/null -w '%{http_code}' -H 'Range: bytes=0-100' -H "Authorization: Bearer $T" -H 'Accept: application/json' "$V"); echo "$c mobile stream locked"; [ "$c" = "403" ] || fail=1
+          D=$(curl -s -H 'Accept: application/json' -H 'X-Client: desktop' -H "Authorization: Bearer $T" http://127.0.0.1:8000/api/v1/lessons/$L | php -r '$d=json_decode(stream_get_contents(STDIN)); echo $d->data->playback->video_url ?? "";')
+          c=$(curl -s -o /dev/null -w '%{http_code}' -H 'Range: bytes=0-100' "$D"); echo "$c desktop still works"; [ "$c" = "206" ] || fail=1
+          c=$(curl -s -o /tmp/out -w '%{http_code}' -c $J -b $J http://127.0.0.1:8000/learn/smart-defense); echo "$c web lesson page locked"; grep -q 'تطبيق الكمبيوتر' /tmp/out || fail=1
           # حذف الحساب من التطبيق
           c=$(curl -s -o /tmp/out -w '%{http_code}' -X DELETE -H 'Accept: application/json' -H 'Content-Type: application/json' -H "Authorization: Bearer $T" -d '{"password":"12345678"}' http://127.0.0.1:8000/api/v1/me); echo "$c delete account"; [ "$c" = "200" ] || { fail=1; cat /tmp/out; }
           grep -i "error" storage/logs/*.log | head -20 || true

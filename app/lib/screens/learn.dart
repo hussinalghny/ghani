@@ -31,7 +31,10 @@ class MyCoursesScreen extends StatelessWidget {
                 text: Api.storeBuild ? 'كورساتك المفعلة على حسابك تظهر هنا.' : 'اختر كورسك الأول أو فعل قسيمة كورس من المحفظة.',
                 action: FilledButton(onPressed: () => tab.value = 0, child: const Text('تصفح الكورسات')),
               ),
-            for (var i = 0; i < list.length; i++) FadeSlide(index: i, child: _item(ctx, list[i])),
+            if (kDesktop)
+              AutoGrid(minItem: 420, runGap: 0, children: [for (var i = 0; i < list.length; i++) FadeSlide(index: i, child: _item(ctx, list[i]))])
+            else
+              for (var i = 0; i < list.length; i++) FadeSlide(index: i, child: _item(ctx, list[i])),
           ]),
         ),
       ),
@@ -399,6 +402,24 @@ p.on('ready',function(){ if($start>10)p.setCurrentTime(${start - 3});
           Positioned.fill(child: _localPlayer())
         else if (web != null)
           Positioned.fill(child: WebViewWidget(controller: web!))
+        else if (asMap(lesson?['playback'])['provider'] == 'blocked')
+          Positioned.fill(
+            child: Center(
+              child: Padding(
+                padding: const EdgeInsets.all(20),
+                child: Column(mainAxisSize: MainAxisSize.min, children: [
+                  const Icon(CupertinoIcons.desktopcomputer, color: C.lavender, size: 34),
+                  const SizedBox(height: 10),
+                  Text(asMap(lesson?['playback'])['blocked_message'] ?? '', textAlign: TextAlign.center, style: const TextStyle(color: Colors.white, height: 1.7)),
+                  const SizedBox(height: 12),
+                  FilledButton(
+                    onPressed: () => launchUrl(Uri.parse(asMap(lesson?['playback'])['download_url'] ?? '$apiBase/app'), mode: LaunchMode.externalApplication),
+                    child: const Text('تنزيل التطبيق'),
+                  ),
+                ]),
+              ),
+            ),
+          )
         else
           const Positioned.fill(child: Center(child: Text('الفيديو قيد التجهيز', style: TextStyle(color: C.lavender)))),
         if (wm != null) Positioned.fill(child: IgnorePointer(child: Watermark(text: wm))),
