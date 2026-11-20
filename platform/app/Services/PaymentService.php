@@ -46,7 +46,44 @@ class PaymentService
 
     public function expireOld(): void
     {
+        // مهلة التفعيل الفوري خلصت وما وصل التحويل: نسجلها ضد الطالب
+        PaymentOrder::where('status', 'pending')->whereNotNull('claimed_at')->where('claim_failed', false)
+            ->where('claimed_at', '<', now()->subMinutes(self::instantMinutes()))->update(['claim_failed' => true]);
         PaymentOrder::where('status', 'pending')->where('expires_at', '<', now())->update(['status' => 'expired']);
+    }
+
+    /** التفعيل الفوري: الكورس ينفتح أول ما يضغط الطالب «حولت»، ويتثبت لما يوصل الإشعار */
+    public static function instantMinutes(): int
+    {
+        return max(5, (int) (setting('pay_instant_minutes') ?: 30));
+    }
+
+    public function canClaim(PaymentOrder $order): bool
+    {
+        if (! $order->course_id || ! $order->isOpen() || $order->claimed_at || (string) setting('pay_instant', '1') !== '1') {
+            return false;
+        }
+        $uid = $order->user_id;
+        $failed = PaymentOrder::where('user_id', $uid)->where('claim_failed', true)->where('status', '!=', 'paid')->count();
+        $active = PaymentOrder::where('user_id', $uid)->where('status', 'pending')->whereNotNull('claimed_at')->where('claim_failed', false)->exists();
+
+        return $failed < 2 && ! $active;
+    }
+
+    public function claim(PaymentOrder $order): bool
+    {
+        if (! $this->canClaim($order)) {
+            return false;
+        }
+        DB::transaction(function () use ($order) {
+            $order->update(['claimed_at' => now()]);
+            \App\Models\Enrollment::query()->updateOrCreate(
+                ['user_id' => $order->user_id, 'course_id' => $order->course_id],
+                ['source' => 'pending', 'price_paid' => 0, 'expires_at' => now()->addMinutes(self::instantMinutes())]
+            );
+        });
+
+        return true;
     }
 
     public function create(User $user, string $method, int $base, ?Course $course = null): PaymentOrder
@@ -132,7 +169,7 @@ class PaymentService
         $parsed = self::parse(($title ? $title.' ' : '').$text);
         $n = PaymentNotification::create([
             'fingerprint' => $fp, 'source' => $source, 'package' => $package, 'title' => $title, 'text' => mb_substr($text, 0, 2000),
-            'amount' => $parsed['amount'] ?? null, 'received_at' => $parsed['at'] ?? $postedAt,
+            'amount' => $parsed['amount'] ?? null, 'received_at' => $parsed['at'] ?? $postedAt, 'posted_at' => $postedAt,
             'status' => $parsed ? 'review' : 'ignored',
         ]);
         if ($parsed) {
@@ -163,7 +200,7 @@ class PaymentService
             if ($o->status === 'paid') {
                 return null;
             }
-            $o->update(['status' => 'paid', 'paid_at' => now(), 'paid_by' => $by]);
+            $o->update(['status' => 'paid', 'paid_at' => now(), 'paid_by' => $by, 'claim_failed' => false]);
             $n?->update(['status' => 'matched', 'order_id' => $o->id]);
             $this->wallet->credit($o->user, $o->amount, 'payment', 'دفع مباشر · '.(self::methods()[$o->method]['label'] ?? $o->method), 'pay:'.$o->id);
 
@@ -175,6 +212,8 @@ class PaymentService
 
         $msg = 'وصل تحويلك وانضاف '.number_format($done->amount).' د.ع لمحفظتك.';
         if ($done->course) {
+            // الاشتراك المؤقت يتحول لاشتراك دائم
+            \App\Models\Enrollment::where('user_id', $done->user_id)->where('course_id', $done->course_id)->where('source', 'pending')->delete();
             try {
                 $this->enrollments->purchase($done->user->refresh(), $done->course);
                 $msg = 'تم الدفع وانفتح كورس '.$done->course->title.'. بالتوفيق.';

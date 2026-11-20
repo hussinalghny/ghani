@@ -45,6 +45,8 @@ class PaymentController extends Controller
         ]);
         $data = array_map(fn ($v) => (string) $v, $data);
         $data['pay_enabled'] = $request->boolean('pay_enabled') ? 1 : 0;
+        $data['pay_instant'] = $request->boolean('pay_instant') ? 1 : 0;
+        $data['pay_instant_minutes'] = max(5, min(240, $request->integer('pay_instant_minutes') ?: 30));
         if ($request->boolean('new_secret')) {
             $data['pay_hook_secret'] = Str::random(40);
         }

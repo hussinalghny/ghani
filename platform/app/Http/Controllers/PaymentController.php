@@ -45,7 +45,17 @@ class PaymentController extends Controller
         $this->payments->expireOld();
         $order->refresh();
 
-        return view('pay.show', ['order' => $order, 'method' => PaymentService::methods()[$order->method] ?? null]);
+        return view('pay.show', ['order' => $order, 'method' => PaymentService::methods()[$order->method] ?? null, 'canClaim' => $this->payments->canClaim($order)]);
+    }
+
+    public function claim(Request $request, PaymentOrder $order)
+    {
+        abort_unless($order->user_id === $request->user()->id, 404);
+        if (! $this->payments->claim($order)) {
+            return back()->with('error', 'ما نگدر نفتح الكورس قبل ما يوصل التحويل. ينفتح تلقائيا أول ما يوصل.');
+        }
+
+        return redirect()->route('learn.show', $order->course)->with('success', 'انفتح الكورس. نثبت اشتراكك أول ما يوصل التحويل خلال '.PaymentService::instantMinutes().' دقيقة.');
     }
 
     public function status(Request $request, PaymentOrder $order)
