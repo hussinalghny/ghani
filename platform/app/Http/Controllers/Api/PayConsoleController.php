@@ -54,6 +54,10 @@ class PayConsoleController extends Controller
                 'pending' => PaymentOrder::where('status', 'pending')->count(),
                 'review' => PaymentNotification::where('status', 'review')->count(),
             ],
+            'device' => PaymentService::device() + [
+                'online' => PaymentService::deviceOnline(),
+                'seen' => setting('pay_device_seen') ? \Illuminate\Support\Carbon::parse(setting('pay_device_seen'))->timezone($tz)->format('m/d H:i') : null,
+            ],
             'wallets' => collect(PaymentService::methods())->map(fn ($m, $k) => ['key' => $k, 'label' => $m['label'], 'number' => $m['number']])->values(),
             'pending' => PaymentOrder::with(['user:id,name,phone', 'course:id,title'])->where('status', 'pending')->latest()->limit(40)->get()->map($order),
             'review' => PaymentNotification::where('status', 'review')->latest()->limit(30)->get()->map(function ($n) use ($tz) {

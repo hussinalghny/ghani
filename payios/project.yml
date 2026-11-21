@@ -1,0 +1,35 @@
+name: GhaniPay
+options:
+  bundleIdPrefix: iq.ghaniacademy
+  deploymentTarget:
+    iOS: "16.0"
+targets:
+  GhaniPay:
+    type: application
+    platform: iOS
+    sources: [GhaniPay]
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: iq.ghaniacademy.pay
+        PRODUCT_NAME: GhaniPay
+        MARKETING_VERSION: "1.0"
+        CURRENT_PROJECT_VERSION: "1"
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        TARGETED_DEVICE_FAMILY: "1"
+        SWIFT_VERSION: "5.0"
+        CODE_SIGNING_ALLOWED: "NO"
+        CODE_SIGNING_REQUIRED: "NO"
+        CODE_SIGN_IDENTITY: ""
+    info:
+      path: GhaniPay/Info.plist
+      properties:
+        CFBundleDisplayName: غني باي
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        CFBundleDevelopmentRegion: ar
+        UILaunchScreen:
+          UIColorName: LaunchBG
+        UIAppFonts: [Alexandria-Bold.ttf, ReadexPro-Regular.ttf, ReadexPro-SemiBold.ttf]
+        UISupportedInterfaceOrientations: [UIInterfaceOrientationPortrait]
+        UIUserInterfaceStyle: Dark
+        ITSAppUsesNonExemptEncryption: false

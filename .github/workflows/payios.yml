@@ -1,0 +1,35 @@
+name: Ghani Pay (iPhone console)
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['payios/**', '.github/workflows/payios.yml']
+
+jobs:
+  build:
+    runs-on: macos-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build IPA (unsigned)
+        working-directory: payios
+        run: |
+          brew install xcodegen >/dev/null
+          xcodegen generate
+          xcodebuild -project GhaniPay.xcodeproj -scheme GhaniPay -configuration Release -sdk iphoneos \
+            -derivedDataPath build CURRENT_PROJECT_VERSION=${{ github.run_number }} \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" build | xcpretty || exit ${PIPESTATUS[0]}
+          mkdir -p Payload
+          cp -R build/Build/Products/Release-iphoneos/GhaniPay.app Payload/
+          zip -qry GhaniPay.ipa Payload
+          cp GhaniPay.ipa GhaniPay-v${{ github.run_number }}.ipa
+      - uses: softprops/action-gh-release@v2
+        with:
+          tag_name: payios-v${{ github.run_number }}
+          name: غني باي آيفون ${{ github.run_number }}
+          body: لوحة متابعة غني باي للآيفون (الطلبات والمراجعة والتأكيد اليدوي). غير موقع، يتنصب عبر ESign أو Sideloadly.
+          make_latest: false
+          files: |
+            payios/GhaniPay*.ipa

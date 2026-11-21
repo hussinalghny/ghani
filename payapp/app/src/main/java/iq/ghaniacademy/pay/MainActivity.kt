@@ -64,14 +64,12 @@ class MainActivity : Activity() {
     private val d get() = resources.displayMetrics.density
     private fun dp(v: Int) = (v * d).toInt()
 
-    private fun font(file: String, weight: Int): Typeface = runCatching {
-        if (Build.VERSION.SDK_INT >= 26) Typeface.Builder(assets, "fonts/$file").setFontVariationSettings("'wght' $weight").build()
-        else Typeface.createFromAsset(assets, "fonts/$file")
-    }.getOrNull() ?: if (weight >= 600) Typeface.DEFAULT_BOLD else Typeface.DEFAULT
+    private fun font(file: String, bold: Boolean): Typeface =
+        runCatching { Typeface.createFromAsset(assets, "fonts/$file") }.getOrNull() ?: if (bold) Typeface.DEFAULT_BOLD else Typeface.DEFAULT
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        head = font("Alexandria.ttf", 700); reg = font("ReadexPro.ttf", 400); med = font("ReadexPro.ttf", 600)
+        head = font("Alexandria-Bold.ttf", true); reg = font("ReadexPro-Regular.ttf", false); med = font("ReadexPro-SemiBold.ttf", true)
         window.decorView.layoutDirection = View.LAYOUT_DIRECTION_RTL
         window.statusBarColor = BG
         window.navigationBarColor = CARD

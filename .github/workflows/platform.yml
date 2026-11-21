@@ -135,7 +135,7 @@ jobs:
           curl -s -o /dev/null -c $J -b $J -X POST -d "_token=$X&method=qi&amount=25000" http://127.0.0.1:8000/pay
           O3=$(php artisan tinker --execute='echo App\Models\PaymentOrder::latest("id")->value("id");' | tail -1)
           c=$(curl -s -o /tmp/out -w '%{http_code}' -c $J -b $J http://127.0.0.1:8000/pay/$O3); echo "$c pay page copy buttons"; grep -q 'نسخ المبلغ' /tmp/out && grep -q 'نسخ الرقم' /tmp/out || fail=1
-          c=$(sreq GET /api/v1/payments/console/feed); echo "$c console feed $(head -c 160 /tmp/con)"; [ "$c" = "200" ] && grep -q '"pending"' /tmp/con || fail=1
+          c=$(sreq GET /api/v1/payments/console/feed); echo "$c console feed $(head -c 160 /tmp/con)"; [ "$c" = "200" ] && grep -q '"pending"' /tmp/con && grep -q '"device"' /tmp/con || fail=1
           c=$(curl -s -o /dev/null -w '%{http_code}' -H 'Accept: application/json' http://127.0.0.1:8000/api/v1/payments/console/feed); echo "$c console unsigned"; [ "$c" = "401" ] || fail=1
           c=$(sreq POST /api/v1/payments/console/orders/$O3/approve '{}'); echo "$c console approve"
           R=$(php artisan tinker --execute='echo App\Models\PaymentOrder::find('$O3')->status."|".App\Models\PaymentOrder::find('$O3')->paid_by;' | tail -1); echo "approved: $R"; [ "$R" = "paid|admin" ] || fail=1
