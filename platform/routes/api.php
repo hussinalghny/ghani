@@ -20,6 +20,7 @@ Route::prefix('v1')->middleware('throttle:api')->group(function () {
     Route::post('payments/hook', App\Http\Controllers\Api\PaymentHookController::class)->name('payments.hook')->withoutMiddleware('throttle:api')->middleware('throttle:120,1');
     Route::prefix('payments/console')->withoutMiddleware('throttle:api')->middleware('throttle:240,1')->controller(App\Http\Controllers\Api\PayConsoleController::class)->group(function () {
         Route::get('feed', 'feed');
+        Route::post('heartbeat', 'heartbeat');
         Route::post('orders/{order}/approve', 'approve');
         Route::post('notifications/{notification}/attach', 'attach');
         Route::post('notifications/{notification}/ignore', 'ignore');

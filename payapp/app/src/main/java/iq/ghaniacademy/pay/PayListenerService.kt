@@ -11,6 +11,8 @@ class PayListenerService : NotificationListenerService() {
     override fun onListenerConnected() {
         Sender.log(this, "متصل بالإشعارات")
         Sender.flush(this)
+        Heartbeat.schedule(this)
+        Heartbeat.now(this)
     }
 
     override fun onNotificationPosted(sbn: StatusBarNotification) {

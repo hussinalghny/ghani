@@ -51,9 +51,11 @@ class PaymentController extends Controller
     public function status(Request $request, PaymentOrder $order)
     {
         abort_unless($order->user_id === $request->user()->id, 404);
+        $this->payments->watchdogLazy();
 
         return response()->json([
             'status' => $order->status,
+            'slow' => $order->status === 'pending' && PaymentService::deviceOnline() === false,
             'redirect' => $order->status === 'paid' ? ($order->course ? route('learn.show', $order->course) : route('wallet')) : null,
         ])->header('Cache-Control', 'no-store');
     }

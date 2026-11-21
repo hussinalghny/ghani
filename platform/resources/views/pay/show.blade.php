@@ -49,6 +49,7 @@
                 <span class="spinner" aria-hidden="true"></span>
                 <span>بانتظار التحويل. أول ما يوصل يتفعل طلبك تلقائيا خلال ثواني، خليك بهاي الصفحة أو ارجع لها بعدين.</span>
             </div>
+            <div class="alert" id="slow" role="status" @style(['display:none' => \App\Services\PaymentService::deviceOnline() !== false])>نظام التأكيد التلقائي متأخر شوية هسه. إذا حولت، لا تعيد التحويل: طلبك محفوظ ويتفعل أول ما يرجع، أو راسل الدعم.</div>
             <p class="tiny" style="margin:0">الطلب صالح لحد <span class="ltr">{{ $order->expires_at->timezone('Asia/Baghdad')->format('Y/m/d H:i') }}</span>.</p>
 
             <form method="POST" action="{{ route('pay.cancel', $order) }}" data-confirm="إلغاء الطلب؟ لا تلغيه إذا حولت المبلغ.">
@@ -84,7 +85,7 @@
   function poll() {
     fetch(box.dataset.status, { headers: { Accept: 'application/json' }, credentials: 'same-origin' })
       .then(function (r) { return r.json(); })
-      .then(function (d) { if (d.redirect) location.href = d.redirect; else if (d.status === 'pending') setTimeout(poll, 2000); else location.reload(); })
+      .then(function (d) { var s = document.getElementById('slow'); if (s) s.style.display = d.slow ? '' : 'none'; if (d.redirect) location.href = d.redirect; else if (d.status === 'pending') setTimeout(poll, 2000); else location.reload(); })
       .catch(function () { setTimeout(poll, 10000); });
   }
   setTimeout(poll, 2000);

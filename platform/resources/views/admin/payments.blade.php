@@ -7,7 +7,11 @@
     <div class="kpi"><span>مدفوعات اليوم</span><strong class="ltr">{{ iqd($stats['today'], false) }}</strong></div>
     <div class="kpi"><span>مدفوعات الشهر</span><strong class="ltr">{{ iqd($stats['month'], false) }}</strong><em><span class="ltr">{{ $stats['auto'] }}</span> طلب تفعل تلقائيا</em></div>
     <div class="kpi"><span>طلبات معلقة</span><strong class="ltr">{{ $stats['pending'] }}</strong></div>
-    <div class="kpi"><span>تطبيق غني باي</span><strong style="font-size:18px">{{ setting('pay_hook_seen') ? 'آخر اتصال' : 'غير مربوط' }}</strong><em style="color:var(--text-3)" class="ltr">{{ setting('pay_hook_seen') }}</em></div>
+    @php($online = \App\Services\PaymentService::deviceOnline())
+    @php($dev = \App\Services\PaymentService::device())
+    <div class="kpi"><span>موبايل غني باي</span>
+        <strong style="font-size:18px;color:{{ $online === true ? 'var(--success,#1E9E6A)' : ($online === false ? 'var(--danger,#D64545)' : 'inherit') }}">{{ $online === true ? 'متصل' : ($online === false ? 'منقطع' : 'غير مربوط') }}</strong>
+        <em style="color:var(--text-3)">@if (setting('pay_device_seen'))آخر نبض <span class="ltr">{{ \Illuminate\Support\Carbon::parse(setting('pay_device_seen'))->timezone('Asia/Baghdad')->format('m/d H:i') }}</span>@endif @isset($dev['battery'])· بطارية <span class="ltr">{{ $dev['battery'] }}%{{ ! empty($dev['charging']) ? ' ⚡' : '' }}</span>@endisset @if (! empty($dev['queue']))· بالطابور <span class="ltr">{{ $dev['queue'] }}</span>@endif</em></div>
 </div>
 
 @if ($review->isNotEmpty())
@@ -69,7 +73,13 @@
             <div class="field"><label for="fa">الاسم الظاهر</label><input class="input" id="fa" name="pay_fastpay_name" value="{{ setting('pay_fastpay_name') }}"></div>
         </div>
         <span class="help">الطريقة اللي بدون رقم ما تطلع للطلاب.</span>
-        <button class="btn btn-primary" type="submit" style="margin-top:12px">حفظ</button>
+        <h2 style="margin-top:18px">تنبيهات تيليگرام</h2>
+        <div class="form-grid">
+            <div class="field"><label for="tgt">توكن البوت</label><input class="input" id="tgt" name="pay_tg_token" dir="ltr" value="{{ setting('pay_tg_token') }}" placeholder="123456:ABC..." autocomplete="off"></div>
+            <div class="field"><label for="tgc">رقم المحادثة (chat id)</label><input class="input" id="tgc" name="pay_tg_chat" dir="ltr" value="{{ setting('pay_tg_chat') }}"></div>
+        </div>
+        <span class="help">يوصلك تنبيه إذا موبايل غني باي انقطع أكثر من <span class="ltr">{{ \App\Services\PaymentService::OFFLINE_MIN }}</span> دقايق، أو البطارية خلصت، أو الرصيد زاد بدون إشعار.</span>
+        <div class="row" style="margin-top:12px;gap:8px"><button class="btn btn-primary" type="submit">حفظ</button><button class="btn btn-plain" type="submit" name="tg_test" value="1">حفظ وتجربة التنبيه</button></div>
     </form>
 
     <div class="panel">
@@ -79,7 +89,7 @@
         <div class="field"><label>المفتاح السري</label><input class="input" dir="ltr" readonly value="{{ setting('pay_hook_secret') }}" onclick="this.select()"></div>
         <form method="POST" action="{{ route('admin.payments.settings') }}" data-confirm="تغيير المفتاح يوقف التطبيق لحد ما تحدثه. متأكد؟">
             @csrf
-            @foreach (['pay_qi_number', 'pay_qi_name', 'pay_zaincash_number', 'pay_zaincash_name', 'pay_fastpay_number', 'pay_fastpay_name'] as $k)<input type="hidden" name="{{ $k }}" value="{{ setting($k) }}">@endforeach
+            @foreach (['pay_qi_number', 'pay_qi_name', 'pay_zaincash_number', 'pay_zaincash_name', 'pay_fastpay_number', 'pay_fastpay_name', 'pay_tg_token', 'pay_tg_chat'] as $k)<input type="hidden" name="{{ $k }}" value="{{ setting($k) }}">@endforeach
             @if (setting('pay_enabled'))<input type="hidden" name="pay_enabled" value="1">@endif
             <input type="hidden" name="new_secret" value="1">
             <button class="btn btn-plain btn-sm" type="submit">مفتاح جديد</button>

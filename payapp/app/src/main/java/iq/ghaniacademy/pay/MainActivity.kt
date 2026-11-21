@@ -67,6 +67,7 @@ class MainActivity : Activity() {
         super.onResume()
         Sender.onChange = { load() }
         ui.post(tick)
+        Heartbeat.schedule(this)
     }
 
     override fun onPause() {
@@ -259,7 +260,7 @@ class MainActivity : Activity() {
                 ui.post {
                     val ok = r?.first == 200
                     Toast.makeText(this, if (ok) "متصل بالمنصة" else "فشل: ${r?.first ?: "ماكو اتصال"}", Toast.LENGTH_LONG).show()
-                    if (ok) { lastFeed = JSONObject(r!!.second); online = true; showSettings = false }
+                    if (ok) { lastFeed = JSONObject(r!!.second); online = true; showSettings = false; Heartbeat.now(this) }
                     render()
                 }
             }.start()

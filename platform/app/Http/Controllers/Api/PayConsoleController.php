@@ -22,10 +22,24 @@ class PayConsoleController extends Controller
         abort_unless(hash_equals(hash_hmac('sha256', $time.'.'.$request->getContent(), $secret), $sign), 401, 'bad signature');
     }
 
+    /** نبض الموبايل كل دقيقة: {battery, charging, queue, version} */
+    public function heartbeat(Request $request)
+    {
+        self::verify($request);
+        $d = $request->validate([
+            'battery' => ['nullable', 'integer', 'between:0,100'], 'charging' => ['nullable', 'boolean'],
+            'queue' => ['nullable', 'integer', 'min:0'], 'version' => ['nullable', 'string', 'max:20'],
+        ]);
+        $this->payments->heartbeat($d);
+
+        return response()->json(['ok' => true]);
+    }
+
     public function feed(Request $request)
     {
         self::verify($request);
         $this->payments->expireOld();
+        $this->payments->watchdogLazy();
         $tz = 'Asia/Baghdad';
         $order = fn (PaymentOrder $o) => [
             'id' => $o->id, 'amount' => $o->amount, 'base' => $o->base_amount, 'method' => $o->method,
