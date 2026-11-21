@@ -33,6 +33,9 @@ class PaymentController extends Controller
         if (! setting('pay_hook_secret')) {
             Setting::put(['pay_hook_secret' => Str::random(40)]);
         }
+        if (! setting('pay_ios_token')) {
+            Setting::put(['pay_ios_token' => Str::random(32)]);
+        }
 
         return view('admin.payments', compact('orders', 'review', 'recent', 'stats', 'status'));
     }
@@ -47,6 +50,12 @@ class PaymentController extends Controller
         ]);
         $data = array_map(fn ($v) => (string) $v, $data);
         $data['pay_enabled'] = $request->boolean('pay_enabled') ? 1 : 0;
+        if ($request->has('pay_watch_form')) {
+            $data['pay_watch'] = $request->boolean('pay_watch') ? '1' : '0';
+        }
+        if ($request->boolean('new_ios_token')) {
+            $data['pay_ios_token'] = Str::random(32);
+        }
         if ($request->boolean('new_secret')) {
             $data['pay_hook_secret'] = Str::random(40);
         }

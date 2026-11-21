@@ -94,6 +94,19 @@
             <input type="hidden" name="new_secret" value="1">
             <button class="btn btn-plain btn-sm" type="submit">مفتاح جديد</button>
         </form>
+        <h2 style="margin-top:22px">الاستلام من الآيفون (الاختصارات)</h2>
+        <p class="small muted">الآيفون ما يسمح بقراءة إشعارات التطبيقات، بس يقرأ رسائل SMS عبر أتمتة «الاختصارات». يشتغل إذا المحفظة تدزلك رسالة SMS بالاستلام. آخر رسالة: <span class="ltr">{{ setting('pay_ios_seen') ? \Illuminate\Support\Carbon::parse(setting('pay_ios_seen'))->timezone('Asia/Baghdad')->format('m/d H:i') : '—' }}</span></p>
+        <div class="field"><label>الرابط</label><input class="input" dir="ltr" readonly value="{{ route('payments.hook.ios') }}" onclick="this.select()"></div>
+        <div class="field"><label>التوكن (هيدر X-Ghani-Token)</label><input class="input" dir="ltr" readonly value="{{ setting('pay_ios_token') }}" onclick="this.select()"></div>
+        <form method="POST" action="{{ route('admin.payments.settings') }}" class="stack" style="gap:10px">
+            @csrf
+            @foreach (['pay_qi_number', 'pay_qi_name', 'pay_zaincash_number', 'pay_zaincash_name', 'pay_fastpay_number', 'pay_fastpay_name', 'pay_tg_token', 'pay_tg_chat'] as $k)<input type="hidden" name="{{ $k }}" value="{{ setting($k) }}">@endforeach
+            @if (setting('pay_enabled'))<input type="hidden" name="pay_enabled" value="1">@endif
+            <input type="hidden" name="pay_watch_form" value="1">
+            <label class="switch"><input type="checkbox" name="pay_watch" value="1" @checked((string) setting('pay_watch', '1') !== '0')> مراقبة موبايل الأندرويد (طفيها إذا تستلم من الآيفون بس)</label>
+            <div class="row" style="gap:8px"><button class="btn btn-plain btn-sm" type="submit">حفظ</button>
+            <button class="btn btn-plain btn-sm" type="submit" name="new_ios_token" value="1">توكن جديد</button></div>
+        </form>
         <p class="help" style="margin-top:12px">آخر الإشعارات:</p>
         @foreach ($recent as $n)
             <div class="tiny muted" style="padding:4px 0;border-bottom:1px solid var(--line)"><span @class(['badge', 'badge-green' => $n->status === 'matched', 'badge-gray' => $n->status === 'ignored'])>{{ $n->status === 'matched' ? 'تطابق' : 'متجاهل' }}</span> <span class="ltr">{{ $n->amount ? number_format($n->amount) : '' }}</span> {{ \Illuminate\Support\Str::limit($n->text, 70) }}</div>

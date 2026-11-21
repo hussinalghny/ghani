@@ -17,6 +17,7 @@ Route::prefix('v1')->middleware('throttle:api')->group(function () {
     // فيديو تطبيق الدسكتوب: رابط موقع مربوط بتوكن الجهاز (مشغل ويندوز ما يرسل هيدرات)
     Route::get('lessons/{lesson}/desktop', [App\Http\Controllers\VideoController::class, 'desktop'])->name('video.desktop')->middleware(['signed', 'throttle:600,1']);
     // إشعارات الاستلام من تطبيق غني باي (موقعة بمفتاح سري)
+    Route::post('payments/hook/ios', App\Http\Controllers\Api\PaymentIosHookController::class)->name('payments.hook.ios')->withoutMiddleware('throttle:api')->middleware('throttle:60,1');
     Route::post('payments/hook', App\Http\Controllers\Api\PaymentHookController::class)->name('payments.hook')->withoutMiddleware('throttle:api')->middleware('throttle:120,1');
     Route::prefix('payments/console')->withoutMiddleware('throttle:api')->middleware('throttle:240,1')->controller(App\Http\Controllers\Api\PayConsoleController::class)->group(function () {
         Route::get('feed', 'feed');

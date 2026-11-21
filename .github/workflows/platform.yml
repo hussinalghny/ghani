@@ -151,6 +151,17 @@ jobs:
           c=$(curl -s -o /tmp/out -w '%{http_code}' -c $J -b $J http://127.0.0.1:8000/admin/payments); echo "$c admin shows offline"; grep -q 'منقطع' /tmp/out || fail=1
           sreq POST /api/v1/payments/console/heartbeat '{"battery":79,"charging":true}' >/dev/null
           W=$(php artisan tinker --execute='echo setting("pay_alert_down") ? "down" : "cleared";' | tail -1); echo "after heartbeat: $W"; [ "$W" = "cleared" ] || fail=1
+          # الآيفون: رسالة SMS عبر الاختصارات بتوكن
+          php artisan tinker --execute='App\Models\Setting::put(["pay_ios_token"=>"ios-token-123"]);'
+          curl -s -o /dev/null -c $J -b $J -X POST -d "_token=$X&method=qi&amount=35000" http://127.0.0.1:8000/pay
+          A5=$(php artisan tinker --execute='echo App\Models\PaymentOrder::latest("id")->value("amount");' | tail -1)
+          ios() { curl -s -o /tmp/ios -w '%{http_code}' -X POST -H 'Accept: application/json' -H 'Content-Type: application/json' -H "X-Ghani-Token: $1" --data "$2" http://127.0.0.1:8000/api/v1/payments/hook/ios; }
+          c=$(ios wrong '{"text":"x","sender":"SuperQi"}'); echo "$c ios bad token"; [ "$c" = "401" ] || fail=1
+          c=$(ios ios-token-123 '{"text":"تم استلام مبلغ IQD 99,000.00","sender":"07701234567"}'); echo "$c ios from number $(cat /tmp/ios)"; grep -q '"ignored"' /tmp/ios || fail=1
+          c=$(ios ios-token-123 '{"text":"تم استلام مبلغ IQD '$(php -r "echo number_format($A5);")'.00 إلى حسابك عن طريق SuperQi","sender":"SuperQi"}'); echo "$c ios incoming $(cat /tmp/ios)"; grep -q '"matched"' /tmp/ios || fail=1
+          c=$(sreq GET /api/v1/payments/console/feed); grep -q 'ios-token-123' /tmp/con && echo "feed has ios hook" || fail=1
+          php artisan tinker --execute='App\Models\Setting::put(["pay_watch"=>"0","pay_device_seen"=>now()->subMinutes(30)->toDateTimeString()]);'
+          W=$(php artisan tinker --execute='var_export(App\Services\PaymentService::deviceOnline());' | tail -1); echo "watch off: $W"; [ "$W" = "NULL" ] || fail=1
           # حذف الحساب من التطبيق
           c=$(curl -s -o /tmp/out -w '%{http_code}' -X DELETE -H 'Accept: application/json' -H 'Content-Type: application/json' -H "Authorization: Bearer $T" -d '{"password":"12345678"}' http://127.0.0.1:8000/api/v1/me); echo "$c delete account"; [ "$c" = "200" ] || { fail=1; cat /tmp/out; }
           grep -i "error" storage/logs/*.log | head -20 || true

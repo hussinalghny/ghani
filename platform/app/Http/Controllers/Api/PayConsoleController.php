@@ -41,6 +41,9 @@ class PayConsoleController extends Controller
         $this->payments->expireOld();
         $this->payments->watchdogLazy();
         $tz = 'Asia/Baghdad';
+        if (! setting('pay_ios_token')) {
+            \App\Models\Setting::put(['pay_ios_token' => \Illuminate\Support\Str::random(32)]);
+        }
         $order = fn (PaymentOrder $o) => [
             'id' => $o->id, 'amount' => $o->amount, 'base' => $o->base_amount, 'method' => $o->method,
             'user' => $o->user?->name, 'phone' => $o->user?->phone, 'course' => $o->course?->title ?? 'شحن محفظة',
@@ -54,6 +57,8 @@ class PayConsoleController extends Controller
                 'pending' => PaymentOrder::where('status', 'pending')->count(),
                 'review' => PaymentNotification::where('status', 'review')->count(),
             ],
+            'ios' => ['url' => route('payments.hook.ios'), 'token' => (string) setting('pay_ios_token'),
+                'seen' => setting('pay_ios_seen') ? \Illuminate\Support\Carbon::parse(setting('pay_ios_seen'))->timezone($tz)->format('m/d H:i') : null],
             'device' => PaymentService::device() + [
                 'online' => PaymentService::deviceOnline(),
                 'seen' => setting('pay_device_seen') ? \Illuminate\Support\Carbon::parse(setting('pay_device_seen'))->timezone($tz)->format('m/d H:i') : null,

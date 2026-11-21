@@ -231,6 +231,9 @@ class PaymentService
     /** true متصل، false منقطع، null بعده ما ربطته */
     public static function deviceOnline(): ?bool
     {
+        if ((string) setting('pay_watch', '1') === '0') {
+            return null; // مراقبة موبايل الأندرويد مطفية (الاستلام من الآيفون فقط)
+        }
         $seen = setting('pay_device_seen');
 
         return $seen ? Carbon::parse($seen)->gt(now()->subMinutes(self::OFFLINE_MIN)) : null;

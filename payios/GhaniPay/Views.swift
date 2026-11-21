@@ -95,7 +95,7 @@ struct Header: View {
                 Text("بوابة الدفع · غني أكاديمي").font(Theme.body(12.5)).foregroundColor(Theme.text2)
             }
             Spacer()
-            let ok = store.online == true && store.feed?.device?.online == true
+            let ok = store.online == true && store.feed?.device?.online != false
             Pill(text: store.online == nil ? "..." : ok ? "● يعمل" : "● متوقف", color: store.online == nil ? Theme.text2 : ok ? Theme.green : Theme.red)
         }
         .padding(.bottom, 6)
@@ -341,12 +341,7 @@ struct SettingsView: View {
                         .padding(.top, 4)
                     }
                 }
-                Block(title: "عن نسخة الآيفون") {
-                    Card {
-                        Text("الآيفون ما يسمح بقراءة إشعارات تطبيق المحفظة، فهذي النسخة للمتابعة والتأكيد اليدوي. القراءة التلقائية تشتغل من تطبيق غني باي على موبايل أندرويد.")
-                            .font(Theme.body(13)).foregroundColor(Theme.text2).lineSpacing(5)
-                    }
-                }
+                if let ios = store.feed?.ios { IosHookCard(ios: ios) }
                 let v = (Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "") + "." + (Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "")
                 Text("غني باي v\(v) · Ghani Code").font(Theme.body(11.5)).foregroundColor(Theme.text2.opacity(0.6))
                     .frame(maxWidth: .infinity).padding(.top, 10)
@@ -370,5 +365,64 @@ struct SettingsView: View {
                 .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous).stroke(Theme.line, lineWidth: 1))
         }
         .padding(.top, 6)
+    }
+}
+
+// MARK: - الاستلام من رسائل الآيفون (أتمتة الاختصارات)
+
+struct IosHookCard: View {
+    @EnvironmentObject var store: Store
+    let ios: Feed.Ios
+
+    private let steps = [
+        "افتح الاختصارات ← الأتمتة ← أتمتة جديدة ← رسالة.",
+        "المرسل: اسم المحفظة (مثل SuperQi). الرسالة تحتوي: استلام. واختر «تشغيل فورا».",
+        "أضف إجراء «الحصول على محتويات URL» والصق الرابط، والطريقة POST.",
+        "الرؤوس: X-Ghani-Token والصق التوكن.",
+        "نص الطلب JSON: الحقل text = محتوى الرسالة، والحقل sender = المرسل (من «مدخل الاختصار»).",
+        "جرب: خلي أحد يحولك مبلغ صغير وشوف «آخر رسالة» تتحدث.",
+    ]
+
+    var body: some View {
+        Block(title: "الاستلام من رسائل الآيفون") {
+            Card {
+                Text("الآيفون ما يسمح بقراءة إشعارات التطبيقات، بس الاختصارات تقرأ رسائل SMS وتدزها للمنصة تلقائيا. يشتغل إذا المحفظة تدزلك SMS بالاستلام.")
+                    .font(Theme.body(13)).foregroundColor(Theme.text2).lineSpacing(5)
+                copyRow("الرابط", ios.url)
+                copyRow("التوكن", ios.token)
+                HStack {
+                    Text("آخر رسالة وصلت").font(Theme.body(12)).foregroundColor(Theme.text2)
+                    Spacer()
+                    Pill(text: ios.seen ?? "بعد ما وصلت", color: ios.seen == nil ? Theme.text2 : Theme.green)
+                }
+                .padding(.top, 4)
+                Rectangle().fill(Theme.line).frame(height: 1).padding(.vertical, 4)
+                ForEach(Array(steps.enumerated()), id: \.offset) { i, s in
+                    HStack(alignment: .top, spacing: 10) {
+                        Text("\(i + 1)").font(Theme.head(12)).foregroundColor(Theme.bg)
+                            .frame(width: 22, height: 22).background(Circle().fill(Theme.gold))
+                        Text(s).font(Theme.body(13)).foregroundColor(Theme.text).lineSpacing(4)
+                    }
+                }
+                GoldButton(title: "فتح الاختصارات") {
+                    if let u = URL(string: "shortcuts://") { UIApplication.shared.open(u) }
+                }
+                .padding(.top, 4)
+            }
+        }
+    }
+
+    private func copyRow(_ label: String, _ value: String) -> some View {
+        HStack(spacing: 10) {
+            VStack(alignment: .leading, spacing: 4) {
+                Text(label).font(Theme.body(12)).foregroundColor(Theme.text2)
+                Text(value).font(Theme.body(12.5)).foregroundColor(Theme.text).lineLimit(1).truncationMode(.middle)
+                    .environment(\.layoutDirection, .leftToRight)
+            }
+            Spacer()
+            GoldButton(title: "نسخ", small: true) { store.copy(label, value) }
+        }
+        .padding(12)
+        .background(RoundedRectangle(cornerRadius: 14, style: .continuous).fill(Theme.card2))
     }
 }

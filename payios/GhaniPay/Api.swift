@@ -19,12 +19,15 @@ struct Feed: Decodable {
         var online: Bool?; var seen: String?; var battery: Int?; var charging: Bool?; var queue: Int?; var version: String?
     }
 
+    struct Ios: Decodable { var url: String; var token: String; var seen: String? }
+
     var stats: Stats
     var wallets: [Wallet]
     var pending: [Order]
     var review: [Review]
     var recent: [Order]
     var device: Device?
+    var ios: Ios?
 }
 
 // MARK: - تخزين المفتاح بالـ Keychain
