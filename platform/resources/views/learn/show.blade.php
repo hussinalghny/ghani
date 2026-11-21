@@ -16,12 +16,6 @@
                 @elseif ($playback['provider'] === 'local')
                     <video id="vid" data-source="{{ route('learn.source', $lesson) }}" playsinline preload="metadata" controlslist="nodownload noremoteplayback" disablepictureinpicture disableremoteplayback oncontextmenu="return false"></video>
                     <button class="vbig" type="button" id="vBig" aria-label="تشغيل">@include('partials.icon', ['n' => 'play'])</button>
-                    @if (! empty($playback['intro']))
-                        <div class="intro-layer" id="introLayer" data-skip="{{ $playback['intro']['skip_after'] }}" data-mode="{{ $playback['intro']['mode'] }}" hidden>
-                            <video id="introVid" src="{{ $playback['intro']['url'] }}" playsinline preload="auto" disablepictureinpicture></video>
-                            <button type="button" class="intro-skip" id="introSkip" hidden>تخطي</button>
-                        </div>
-                    @endif
                     <div class="vctl" id="vCtl">
                         <button type="button" id="vPlay" aria-label="تشغيل/إيقاف">@include('partials.icon', ['n' => 'play'])</button>
                         <span class="time" id="vTime">0:00 / 0:00</span>
@@ -120,5 +114,5 @@
 
 @push('scripts')
 <script src="https://assets.mediadelivery.net/playerjs/player-0.1.0.min.js"></script>
-<script src="{{ asset('js/player-guard.js') }}?v=2"></script>
+<script src="{{ asset('js/player-guard.js') }}?v=1"></script>
 @endpush

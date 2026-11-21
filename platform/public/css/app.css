@@ -539,10 +539,3 @@ table.table { width: 100%; border-collapse: collapse; font-size: 14.5px; }
 .vbig:hover { transform: scale(1.06); }
 .player-shell:not(.paused) .vbig { opacity: 0; pointer-events: none; }
 .player-shell.pseudo-fs { position: fixed; inset: 0; z-index: 200; border-radius: 0; aspect-ratio: auto; }
-
-/* إنترو الأكاديمية قبل الدرس */
-.intro-layer { position: absolute; inset: 0; z-index: 7; background: #000; }
-.intro-layer[hidden] { display: none; }
-.intro-layer video { width: 100%; height: 100%; object-fit: contain; }
-.intro-skip { position: absolute; bottom: 18px; inset-inline-start: 18px; padding: 10px 20px; border-radius: 12px; border: 1px solid rgba(255,255,255,.35); background: rgba(0,0,0,.55); color: #fff; font: inherit; font-weight: 600; cursor: pointer; }
-.intro-skip[hidden] { display: none; }
