@@ -22,28 +22,11 @@ class PayConsoleController extends Controller
         abort_unless(hash_equals(hash_hmac('sha256', $time.'.'.$request->getContent(), $secret), $sign), 401, 'bad signature');
     }
 
-    /** نبض الموبايل كل دقيقة: {battery, charging, queue, version} */
-    public function heartbeat(Request $request)
-    {
-        self::verify($request);
-        $d = $request->validate([
-            'battery' => ['nullable', 'integer', 'between:0,100'], 'charging' => ['nullable', 'boolean'],
-            'queue' => ['nullable', 'integer', 'min:0'], 'version' => ['nullable', 'string', 'max:20'],
-        ]);
-        $this->payments->heartbeat($d);
-
-        return response()->json(['ok' => true]);
-    }
-
     public function feed(Request $request)
     {
         self::verify($request);
         $this->payments->expireOld();
-        $this->payments->watchdogLazy();
         $tz = 'Asia/Baghdad';
-        if (! setting('pay_ios_token')) {
-            \App\Models\Setting::put(['pay_ios_token' => \Illuminate\Support\Str::random(32)]);
-        }
         $order = fn (PaymentOrder $o) => [
             'id' => $o->id, 'amount' => $o->amount, 'base' => $o->base_amount, 'method' => $o->method,
             'user' => $o->user?->name, 'phone' => $o->user?->phone, 'course' => $o->course?->title ?? 'شحن محفظة',
@@ -56,12 +39,6 @@ class PayConsoleController extends Controller
                 'month' => (int) PaymentOrder::where('status', 'paid')->where('paid_at', '>=', now()->startOfMonth())->sum('amount'),
                 'pending' => PaymentOrder::where('status', 'pending')->count(),
                 'review' => PaymentNotification::where('status', 'review')->count(),
-            ],
-            'ios' => ['url' => route('payments.hook.ios'), 'token' => (string) setting('pay_ios_token'),
-                'seen' => setting('pay_ios_seen') ? \Illuminate\Support\Carbon::parse(setting('pay_ios_seen'))->timezone($tz)->format('m/d H:i') : null],
-            'device' => PaymentService::device() + [
-                'online' => PaymentService::deviceOnline(),
-                'seen' => setting('pay_device_seen') ? \Illuminate\Support\Carbon::parse(setting('pay_device_seen'))->timezone($tz)->format('m/d H:i') : null,
             ],
             'wallets' => collect(PaymentService::methods())->map(fn ($m, $k) => ['key' => $k, 'label' => $m['label'], 'number' => $m['number']])->values(),
             'pending' => PaymentOrder::with(['user:id,name,phone', 'course:id,title'])->where('status', 'pending')->latest()->limit(40)->get()->map($order),

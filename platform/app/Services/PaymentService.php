@@ -6,12 +6,9 @@ use App\Exceptions\AcademyException;
 use App\Models\Course;
 use App\Models\PaymentNotification;
 use App\Models\PaymentOrder;
-use App\Models\Setting;
 use App\Models\User;
 use Illuminate\Support\Carbon;
-use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Http;
 
 /**
  * الدفع المباشر بدون بوابة رسمية:
@@ -21,12 +18,6 @@ use Illuminate\Support\Facades\Http;
 class PaymentService
 {
     public const HOURS = 48;
-
-    /** بعد كم دقيقة بدون نبض نعتبر الموبايل منقطع */
-    public const OFFLINE_MIN = 10;
-
-    /** أقل فرق رصيد نعتبره إشعار ضايع */
-    public const GAP_MIN = 1000;
 
     public function __construct(private WalletService $wallet, private EnrollmentService $enrollments) {}
 
@@ -96,27 +87,11 @@ class PaymentService
         });
     }
 
-    private static function digits(string $text): string
-    {
-        $t = strtr($text, ['٠' => '0', '١' => '1', '٢' => '2', '٣' => '3', '٤' => '4', '٥' => '5', '٦' => '6', '٧' => '7', '٨' => '8', '٩' => '9', '٫' => '.', '٬' => ',']);
-
-        return preg_replace('/\s+/u', ' ', $t);
-    }
-
-    /** رصيد المحفظة بعد العملية (سوبر كي: رصيد حسابك الحالي 1,094,319)، أو null */
-    public static function balance(string $text): ?int
-    {
-        if (! preg_match('/(?:رصيد|الرصيد|balance)[^0-9]{0,30}?((?:\d{1,3}(?:,\d{3})+|\d+)(?:\.\d{1,2})?)/ui', self::digits($text), $m)) {
-            return null;
-        }
-
-        return (int) round((float) str_replace(',', '', $m[1]));
-    }
-
     /** يطلع مبلغ الاستلام من نص الإشعار، أو null إذا مو استلام */
     public static function parse(string $text): ?array
     {
-        $t = self::digits($text);
+        $t = strtr($text, ['٠' => '0', '١' => '1', '٢' => '2', '٣' => '3', '٤' => '4', '٥' => '5', '٦' => '6', '٧' => '7', '٨' => '8', '٩' => '9', '٫' => '.', '٬' => ',']);
+        $t = preg_replace('/\s+/u', ' ', $t);
 
         // تحويل صادر: نتجاهله
         if (preg_match('/(من حسابك|بإرسال|بارسال|أرسلت|ارسلت|تم إرسال|تم ارسال|سحب|دفعت|sent|debited)/ui', $t)) {
@@ -154,149 +129,17 @@ class PaymentService
             return $existing;
         }
 
-        $full = ($title ? $title.' ' : '').$text;
-        $parsed = self::parse($full);
+        $parsed = self::parse(($title ? $title.' ' : '').$text);
         $n = PaymentNotification::create([
             'fingerprint' => $fp, 'source' => $source, 'package' => $package, 'title' => $title, 'text' => mb_substr($text, 0, 2000),
-            'amount' => $parsed['amount'] ?? null, 'balance' => self::balance($full), 'received_at' => $parsed['at'] ?? $postedAt,
+            'amount' => $parsed['amount'] ?? null, 'received_at' => $parsed['at'] ?? $postedAt,
             'status' => $parsed ? 'review' : 'ignored',
         ]);
-        if ($parsed && ! $this->settleGaps($n)) {
+        if ($parsed) {
             $this->match($n);
-        }
-        if ($n->balance !== null) {
-            $this->checkBalance($n->refresh());
         }
 
         return $n->refresh();
-    }
-
-    /**
-     * إشعار وصل متأخر ووقته داخل فرق رصيد مسجل: ينقص الفرق.
-     * إذا الفرق انربط بطلب قبل، الإشعار ينحسب مكرر ونتجاهله (حتى ما ينضاف مرتين).
-     */
-    private function settleGaps(PaymentNotification $n): bool
-    {
-        $at = $n->received_at;
-        $gaps = PaymentNotification::where('source', 'gap')->where('package', $n->package)->whereIn('status', ['review', 'matched'])
-            ->where('gap_from', '<', $at)->where('received_at', '>=', $at)->orderBy('id')->get();
-        foreach ($gaps as $g) {
-            if ($g->status === 'matched') {
-                if ((int) $g->amount === (int) $n->amount) {
-                    $n->update(['status' => 'ignored', 'order_id' => $g->order_id, 'title' => 'محسوب سابقا من فرق الرصيد #'.$g->id]);
-
-                    return true;
-                }
-
-                continue;
-            }
-            $left = (int) $g->amount - (int) $n->amount;
-            $g->update($left < self::GAP_MIN ? ['status' => 'ignored', 'title' => 'انحل: وصل إشعاره متأخر'] : ['amount' => $left]);
-
-            return false;
-        }
-
-        return false;
-    }
-
-    /** يقارن الرصيد ويا الإشعار اللي قبله: إذا الرصيد زاد أكثر من المستلم، اكو تحويل ضاع إشعاره */
-    private function checkBalance(PaymentNotification $n): void
-    {
-        $prev = PaymentNotification::whereKeyNot($n->id)->where('source', '!=', 'gap')->where('package', $n->package)
-            ->whereNotNull('balance')->where('received_at', '<=', $n->received_at)
-            ->orderByDesc('received_at')->orderByDesc('id')->first();
-        if (! $prev) {
-            return;
-        }
-        $gap = (int) $n->balance - (int) $prev->balance - (int) $n->amount;
-        if ($gap < self::GAP_MIN) {
-            return;
-        }
-        $tz = 'Asia/Baghdad';
-        $from = $prev->received_at->timezone($tz)->format('m/d H:i');
-        $to = $n->received_at->timezone($tz)->format('m/d H:i');
-        $g = PaymentNotification::firstOrCreate(['fingerprint' => hash('sha256', 'gap|'.$n->id)], [
-            'source' => 'gap', 'package' => $n->package, 'title' => 'فرق رصيد',
-            'text' => 'الرصيد صار '.number_format($n->balance).' بعد ما كان '.number_format($prev->balance).'، والمستلم '.number_format((int) $n->amount)
-                .'. يعني اكو تحويل بقيمة '.number_format($gap).' وصل بين '.$from.' و '.$to.' وما وصل إشعاره.',
-            'amount' => $gap, 'status' => 'review', 'received_at' => $n->received_at, 'gap_from' => $prev->received_at,
-        ]);
-        if ($g->wasRecentlyCreated) {
-            $this->alert('⚠️ غني باي: فرق رصيد '.number_format($gap).' د.ع بين '.$from.' و '.$to.'. اكو تحويل ما وصل إشعاره، راجعه بقائمة المراجعة.');
-        }
-    }
-
-    // ---------- نبض الموبايل والتنبيهات ----------
-
-    /** true متصل، false منقطع، null بعده ما ربطته */
-    public static function deviceOnline(): ?bool
-    {
-        if ((string) setting('pay_watch', '1') === '0') {
-            return null; // مراقبة موبايل الأندرويد مطفية (الاستلام من الآيفون فقط)
-        }
-        $seen = setting('pay_device_seen');
-
-        return $seen ? Carbon::parse($seen)->gt(now()->subMinutes(self::OFFLINE_MIN)) : null;
-    }
-
-    public static function device(): array
-    {
-        return (array) (json_decode((string) setting('pay_device'), true) ?: []);
-    }
-
-    public function heartbeat(array $info): void
-    {
-        $down = setting('pay_alert_down');
-        $lowBattery = isset($info['battery']) && $info['battery'] <= 15 && empty($info['charging']);
-        $put = ['pay_device_seen' => now()->toDateTimeString(), 'pay_device' => json_encode($info), 'pay_alert_down' => ''];
-        if ($lowBattery && ! setting('pay_alert_battery')) {
-            $put['pay_alert_battery'] = 1;
-            $this->alert('🔋 بطارية موبايل غني باي '.$info['battery'].'%. اشحنه حتى ما ينطفي.');
-        } elseif (! $lowBattery) {
-            $put['pay_alert_battery'] = '';
-        }
-        Setting::put($put);
-        if ($down) {
-            $this->alert('✅ رجع اتصال غني باي (كان منقطع من '.Carbon::parse($down)->timezone('Asia/Baghdad')->format('H:i').').');
-        }
-    }
-
-    /** إذا الموبايل انقطع: تنبيه واحد بس لحد ما يرجع */
-    public function watchdog(): bool
-    {
-        if (! self::enabled() || self::deviceOnline() !== false || setting('pay_alert_down')) {
-            return false;
-        }
-        $seen = (string) setting('pay_device_seen');
-        Setting::put(['pay_alert_down' => $seen]);
-        $pending = PaymentOrder::where('status', 'pending')->count();
-        $this->alert('🚨 غني باي منقطع من '.Carbon::parse($seen)->timezone('Asia/Baghdad')->format('H:i')
-            .'. الدفعات ما راح تتأكد تلقائيا. شيك الموبايل والنت. الطلبات المعلقة: '.$pending);
-
-        return true;
-    }
-
-    /** نفس watchdog بس مرة بالدقيقة كحد أقصى (للصفحات اللي تنفتح كثير) */
-    public function watchdogLazy(): void
-    {
-        if (Cache::add('pay.watchdog', 1, 60)) {
-            rescue(fn () => $this->watchdog(), report: false);
-        }
-    }
-
-    /** رسالة تيليگرام للإدارة (إذا مضبوط البوت) */
-    public function alert(string $text): bool
-    {
-        $token = (string) setting('pay_tg_token');
-        $chat = (string) setting('pay_tg_chat');
-        if ($token === '' || $chat === '') {
-            return false;
-        }
-        try {
-            return Http::asForm()->timeout(6)->post("https://api.telegram.org/bot{$token}/sendMessage", ['chat_id' => $chat, 'text' => $text])->successful();
-        } catch (\Throwable) {
-            return false;
-        }
     }
 
     public function match(PaymentNotification $n): ?PaymentOrder

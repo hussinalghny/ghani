@@ -9,7 +9,7 @@ class PaymentNotification extends Model
 {
     protected $guarded = ['id'];
 
-    protected $casts = ['received_at' => 'datetime', 'gap_from' => 'datetime'];
+    protected $casts = ['received_at' => 'datetime'];
 
     public function order(): BelongsTo
     {

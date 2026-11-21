@@ -17,7 +17,6 @@ class PaymentController extends Controller
     public function index(Request $request)
     {
         $this->payments->expireOld();
-        $this->payments->watchdogLazy();
         $status = $request->query('status', 'pending');
         $orders = PaymentOrder::with(['user:id,name,phone', 'course:id,title'])
             ->when($status !== 'all', fn ($q) => $q->where('status', $status))
@@ -33,9 +32,6 @@ class PaymentController extends Controller
         if (! setting('pay_hook_secret')) {
             Setting::put(['pay_hook_secret' => Str::random(40)]);
         }
-        if (! setting('pay_ios_token')) {
-            Setting::put(['pay_ios_token' => Str::random(32)]);
-        }
 
         return view('admin.payments', compact('orders', 'review', 'recent', 'stats', 'status'));
     }
@@ -46,25 +42,13 @@ class PaymentController extends Controller
             'pay_qi_number' => ['nullable', 'string', 'max:40'], 'pay_qi_name' => ['nullable', 'string', 'max:80'],
             'pay_zaincash_number' => ['nullable', 'string', 'max:40'], 'pay_zaincash_name' => ['nullable', 'string', 'max:80'],
             'pay_fastpay_number' => ['nullable', 'string', 'max:40'], 'pay_fastpay_name' => ['nullable', 'string', 'max:80'],
-            'pay_tg_token' => ['nullable', 'string', 'max:120'], 'pay_tg_chat' => ['nullable', 'string', 'max:40'],
         ]);
         $data = array_map(fn ($v) => (string) $v, $data);
         $data['pay_enabled'] = $request->boolean('pay_enabled') ? 1 : 0;
-        if ($request->has('pay_watch_form')) {
-            $data['pay_watch'] = $request->boolean('pay_watch') ? '1' : '0';
-        }
-        if ($request->boolean('new_ios_token')) {
-            $data['pay_ios_token'] = Str::random(32);
-        }
         if ($request->boolean('new_secret')) {
             $data['pay_hook_secret'] = Str::random(40);
         }
         Setting::put($data);
-        if ($request->boolean('tg_test')) {
-            return $this->payments->alert('✅ تجربة تنبيهات غني باي من '.url('/'))
-                ? back()->with('success', 'وصلت رسالة التجربة للتيليگرام.')
-                : back()->with('error', 'ما وصلت الرسالة. شيك توكن البوت ورقم المحادثة، وتأكد دزيت /start للبوت.');
-        }
 
         return back()->with('success', $request->boolean('new_secret') ? 'تم تغيير المفتاح. حدثه بتطبيق غني باي.' : 'تم الحفظ.');
     }

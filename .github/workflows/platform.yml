@@ -119,15 +119,6 @@ jobs:
           c=$(hook "$BODY"); echo "$c hook duplicate $(cat /tmp/hook)"
           R=$(php artisan tinker --execute='$o=App\Models\PaymentOrder::find('$OID'); echo $o->status."|".$o->paid_by."|".$o->user->balance;' | tail -1); echo "order after: $R (balance before $B0)"
           [ "$R" = "paid|auto|$((B0 + AMT))" ] || fail=1
-          # مطابقة الرصيد: الرصيد زاد أكثر من المستلم = اكو إشعار ضايع
-          curl -s -o /dev/null -c $J -b $J -X POST -d "_token=$X&method=qi&amount=40000" http://127.0.0.1:8000/pay
-          A2=$(php artisan tinker --execute='echo App\Models\PaymentOrder::latest("id")->value("amount");' | tail -1)
-          c=$(hook '{"text":"تم استلام مبلغ IQD '$(php -r "echo number_format($A2);")'.00 إلى حسابك بتاريخ '"$(TZ=Asia/Baghdad date -d '+3 min' '+%d/%m/%y %H:%M:%S')"' عن طريق SuperQi. رصيد حسابك الحالي '$(php -r "echo number_format(1094319+$A2+7000);")'","package":"iq.qi"}'); echo "$c hook with gap $(cat /tmp/hook)"; grep -q '"matched"' /tmp/hook || fail=1
-          gap() { php artisan tinker --execute='$g=App\Models\PaymentNotification::where("source","gap")->latest("id")->first(); echo $g ? $g->status."|".$g->amount : "none";' | tail -1; }
-          G=$(gap); echo "gap: $G"; [ "$G" = "review|7000" ] || fail=1
-          # الإشعار الضايع وصل متأخر: الفرق ينحل
-          c=$(hook '{"text":"تم استلام مبلغ IQD 7,000.00 إلى حسابك بتاريخ '"$(TZ=Asia/Baghdad date -d '+1 min' '+%d/%m/%y %H:%M:%S')"' عن طريق SuperQi. رصيد حسابك الحالي '$(php -r "echo number_format(1094319+7000);")'","package":"iq.qi"}'); echo "$c hook late $(cat /tmp/hook)"
-          G=$(gap); echo "gap after late: $G"; [ "$G" = "ignored|7000" ] || fail=1
           for u in /admin/payments "/admin/payments?status=paid" /wallet /course/smart-defense; do c=$(curl -s -o /tmp/out -w '%{http_code}' -c $J -b $J "http://127.0.0.1:8000$u"); echo "$c $u"; [ "$c" = "200" ] || { fail=1; grep -o 'class="exception-message[^<]*<[^<]*' /tmp/out | head -2; }; done
           # لوحة غني باي: الطلبات والتأكيد اليدوي بنفس التوقيع
           sreq() { local m="$1" p="$2" body="${3:-}" ts=$(date +%s); local sig=$(printf '%s' "$ts.$body" | openssl dgst -sha256 -hmac ci-secret-123 | sed 's/.*= //'); curl -s -o /tmp/con -w '%{http_code}' -X "$m" -H 'Accept: application/json' -H 'Content-Type: application/json' -H "X-Ghani-Time: $ts" -H "X-Ghani-Sign: $sig" ${body:+--data "$body"} "http://127.0.0.1:8000$p"; }
@@ -135,33 +126,10 @@ jobs:
           curl -s -o /dev/null -c $J -b $J -X POST -d "_token=$X&method=qi&amount=25000" http://127.0.0.1:8000/pay
           O3=$(php artisan tinker --execute='echo App\Models\PaymentOrder::latest("id")->value("id");' | tail -1)
           c=$(curl -s -o /tmp/out -w '%{http_code}' -c $J -b $J http://127.0.0.1:8000/pay/$O3); echo "$c pay page copy buttons"; grep -q 'نسخ المبلغ' /tmp/out && grep -q 'نسخ الرقم' /tmp/out || fail=1
-          c=$(sreq GET /api/v1/payments/console/feed); echo "$c console feed $(head -c 160 /tmp/con)"; [ "$c" = "200" ] && grep -q '"pending"' /tmp/con && grep -q '"device"' /tmp/con || fail=1
+          c=$(sreq GET /api/v1/payments/console/feed); echo "$c console feed $(head -c 160 /tmp/con)"; [ "$c" = "200" ] && grep -q '"pending"' /tmp/con || fail=1
           c=$(curl -s -o /dev/null -w '%{http_code}' -H 'Accept: application/json' http://127.0.0.1:8000/api/v1/payments/console/feed); echo "$c console unsigned"; [ "$c" = "401" ] || fail=1
           c=$(sreq POST /api/v1/payments/console/orders/$O3/approve '{}'); echo "$c console approve"
           R=$(php artisan tinker --execute='echo App\Models\PaymentOrder::find('$O3')->status."|".App\Models\PaymentOrder::find('$O3')->paid_by;' | tail -1); echo "approved: $R"; [ "$R" = "paid|admin" ] || fail=1
-          # نبض الموبايل: إذا انقطع يطلع تنبيه وصفحة الطالب تبين التأخير، وإذا رجع ينحل
-          c=$(sreq POST /api/v1/payments/console/heartbeat '{"battery":80,"charging":true,"queue":0,"version":"ci"}'); echo "$c heartbeat"; [ "$c" = "200" ] || { fail=1; cat /tmp/con; }
-          c=$(curl -s -o /dev/null -w '%{http_code}' -X POST -H 'Accept: application/json' http://127.0.0.1:8000/api/v1/payments/console/heartbeat); echo "$c heartbeat unsigned"; [ "$c" = "401" ] || fail=1
-          curl -s -o /dev/null -c $J -b $J -X POST -d "_token=$X&method=qi&amount=30000" http://127.0.0.1:8000/pay
-          O4=$(php artisan tinker --execute='echo App\Models\PaymentOrder::latest("id")->value("id");' | tail -1)
-          curl -s -c $J -b $J http://127.0.0.1:8000/pay/$O4/status > /tmp/st; echo "status online $(cat /tmp/st)"; grep -q '"slow":false' /tmp/st || fail=1
-          W=$(php artisan tinker --execute='App\Models\Setting::put(["pay_device_seen"=>now()->subMinutes(30)->toDateTimeString()]); echo app(App\Services\PaymentService::class)->watchdog() ? "alerted" : "no";' | tail -1); echo "watchdog: $W"; [ "$W" = "alerted" ] || fail=1
-          W=$(php artisan tinker --execute='echo app(App\Services\PaymentService::class)->watchdog() ? "again" : "once";' | tail -1); echo "watchdog repeat: $W"; [ "$W" = "once" ] || fail=1
-          curl -s -c $J -b $J http://127.0.0.1:8000/pay/$O4/status > /tmp/st; echo "status offline $(cat /tmp/st)"; grep -q '"slow":true' /tmp/st || fail=1
-          c=$(curl -s -o /tmp/out -w '%{http_code}' -c $J -b $J http://127.0.0.1:8000/admin/payments); echo "$c admin shows offline"; grep -q 'منقطع' /tmp/out || fail=1
-          sreq POST /api/v1/payments/console/heartbeat '{"battery":79,"charging":true}' >/dev/null
-          W=$(php artisan tinker --execute='echo setting("pay_alert_down") ? "down" : "cleared";' | tail -1); echo "after heartbeat: $W"; [ "$W" = "cleared" ] || fail=1
-          # الآيفون: رسالة SMS عبر الاختصارات بتوكن
-          php artisan tinker --execute='App\Models\Setting::put(["pay_ios_token"=>"ios-token-123"]);'
-          curl -s -o /dev/null -c $J -b $J -X POST -d "_token=$X&method=qi&amount=35000" http://127.0.0.1:8000/pay
-          A5=$(php artisan tinker --execute='echo App\Models\PaymentOrder::latest("id")->value("amount");' | tail -1)
-          ios() { curl -s -o /tmp/ios -w '%{http_code}' -X POST -H 'Accept: application/json' -H 'Content-Type: application/json' -H "X-Ghani-Token: $1" --data "$2" http://127.0.0.1:8000/api/v1/payments/hook/ios; }
-          c=$(ios wrong '{"text":"x","sender":"SuperQi"}'); echo "$c ios bad token"; [ "$c" = "401" ] || fail=1
-          c=$(ios ios-token-123 '{"text":"تم استلام مبلغ IQD 99,000.00","sender":"07701234567"}'); echo "$c ios from number $(cat /tmp/ios)"; grep -q '"ignored"' /tmp/ios || fail=1
-          c=$(ios ios-token-123 '{"text":"تم استلام مبلغ IQD '$(php -r "echo number_format($A5);")'.00 إلى حسابك عن طريق SuperQi","sender":"SuperQi"}'); echo "$c ios incoming $(cat /tmp/ios)"; grep -q '"matched"' /tmp/ios || fail=1
-          c=$(sreq GET /api/v1/payments/console/feed); grep -q 'ios-token-123' /tmp/con && echo "feed has ios hook" || fail=1
-          php artisan tinker --execute='App\Models\Setting::put(["pay_watch"=>"0","pay_device_seen"=>now()->subMinutes(30)->toDateTimeString()]);'
-          W=$(php artisan tinker --execute='var_export(App\Services\PaymentService::deviceOnline());' | tail -1); echo "watch off: $W"; [ "$W" = "NULL" ] || fail=1
           # حذف الحساب من التطبيق
           c=$(curl -s -o /tmp/out -w '%{http_code}' -X DELETE -H 'Accept: application/json' -H 'Content-Type: application/json' -H "Authorization: Bearer $T" -d '{"password":"12345678"}' http://127.0.0.1:8000/api/v1/me); echo "$c delete account"; [ "$c" = "200" ] || { fail=1; cat /tmp/out; }
           grep -i "error" storage/logs/*.log | head -20 || true
