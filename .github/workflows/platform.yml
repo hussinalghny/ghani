@@ -130,6 +130,13 @@ jobs:
           c=$(curl -s -o /dev/null -w '%{http_code}' -H 'Accept: application/json' http://127.0.0.1:8000/api/v1/payments/console/feed); echo "$c console unsigned"; [ "$c" = "401" ] || fail=1
           c=$(sreq POST /api/v1/payments/console/orders/$O3/approve '{}'); echo "$c console approve"
           R=$(php artisan tinker --execute='echo App\Models\PaymentOrder::find('$O3')->status."|".App\Models\PaymentOrder::find('$O3')->paid_by;' | tail -1); echo "approved: $R"; [ "$R" = "paid|admin" ] || fail=1
+          # إنترو الفيديو: يطلع ببيانات الدرس وبالصفحة، والملف موجود
+          php artisan tinker --execute='App\Models\Setting::put(["video_web"=>1,"video_app"=>1,"video_desktop"=>1]);'
+          P=$(curl -s -H 'Accept: application/json' -H "Authorization: Bearer $T" http://127.0.0.1:8000/api/v1/lessons/$L | php -r '$d=json_decode(stream_get_contents(STDIN)); echo $d->data->playback->intro->url ?? "none";'); echo "intro in api: $P"; echo "$P" | grep -q 'ghani-intro.mp4' || fail=1
+          c=$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8000/media/ghani-intro.mp4); echo "$c intro file"; [ "$c" = "200" ] || fail=1
+          c=$(curl -s -o /tmp/out -w '%{http_code}' -c $J -b $J http://127.0.0.1:8000/admin/settings); echo "$c settings with intro"; grep -q 'إنترو الفيديو' /tmp/out || fail=1
+          php artisan tinker --execute='App\Models\Setting::put(["intro_enabled"=>0]);'
+          P=$(curl -s -H 'Accept: application/json' -H "Authorization: Bearer $T" http://127.0.0.1:8000/api/v1/lessons/$L | php -r '$d=json_decode(stream_get_contents(STDIN)); echo json_encode($d->data->playback->intro ?? null);'); echo "intro disabled: $P"; [ "$P" = "null" ] || fail=1
           # حذف الحساب من التطبيق
           c=$(curl -s -o /tmp/out -w '%{http_code}' -X DELETE -H 'Accept: application/json' -H 'Content-Type: application/json' -H "Authorization: Bearer $T" -d '{"password":"12345678"}' http://127.0.0.1:8000/api/v1/me); echo "$c delete account"; [ "$c" = "200" ] || { fail=1; cat /tmp/out; }
           grep -i "error" storage/logs/*.log | head -20 || true

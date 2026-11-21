@@ -97,7 +97,23 @@ class LessonAccess
         if ($user && setting('watermark')) {
             $data['watermark'] = $user->watermarkText();
         }
+        $data['intro'] = $data['provider'] === 'local' ? self::intro() : null;
 
         return $data;
+    }
+
+    /** إنترو الأكاديمية قبل كل فيديو (من الإعدادات) */
+    public static function intro(): ?array
+    {
+        if ((string) setting('intro_enabled', '1') !== '1') {
+            return null;
+        }
+        $file = setting('intro_file');
+
+        return [
+            'url' => $file ? asset('storage/'.$file) : asset('media/ghani-intro.mp4'),
+            'skip_after' => (int) (setting('intro_skip_after') ?? 3),   // -1 = بدون تخطي
+            'mode' => setting('intro_mode') ?: 'every',                 // every | session
+        ];
     }
 }

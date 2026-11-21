@@ -24,7 +24,25 @@ class SettingsController extends Controller
             'announcement' => ['nullable', 'string', 'max:200'],
             'home_badge' => ['nullable', 'string', 'max:80'],
             'home_hero_image' => ['nullable', 'image', 'max:6144'],
+            'intro_file' => ['nullable', 'file', 'mimetypes:video/mp4', 'max:51200'],
+            'intro_skip_after' => ['nullable', 'integer', 'min:-1', 'max:30'],
+            'intro_mode' => ['nullable', 'in:every,session'],
         ]);
+        unset($data['intro_file']);
+        $data['intro_enabled'] = $request->boolean('intro_enabled') ? 1 : 0;
+        $data['intro_skip_after'] = (int) ($data['intro_skip_after'] ?? 3);
+        $data['intro_mode'] = $data['intro_mode'] ?? 'every';
+        if ($request->boolean('intro_reset')) {
+            if ($old = setting('intro_file')) {
+                \Illuminate\Support\Facades\Storage::disk('public')->delete($old);
+            }
+            $data['intro_file'] = '';
+        } elseif ($request->hasFile('intro_file')) {
+            if ($old = setting('intro_file')) {
+                \Illuminate\Support\Facades\Storage::disk('public')->delete($old);
+            }
+            $data['intro_file'] = $request->file('intro_file')->store('site', 'public');
+        }
         unset($data['home_hero_image']);
         $data['home_badge'] = (string) ($data['home_badge'] ?? '');
         if ($request->hasFile('home_hero_image')) {

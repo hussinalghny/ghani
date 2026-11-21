@@ -166,6 +166,10 @@ class _PlayerScreenState extends State<PlayerScreen> {
   final playerKey = GlobalKey();
   Timer? guardT;
   String? recorder;
+  // إنترو الأكاديمية قبل الدرس
+  VideoPlayerController? intro;
+  bool canSkip = false;
+  static bool introSeen = false; // لوضع «أول درس بس» خلال نفس الجلسة
 
   @override
   void initState() {
@@ -185,6 +189,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
   void dispose() {
     vp?.removeListener(_onTick);
     vp?.dispose();
+    intro?.dispose();
     hideT?.cancel();
     guardT?.cancel();
     SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
@@ -207,6 +212,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
         if (start > 10 && start < c.value.duration.inSeconds - 5) await c.seekTo(Duration(seconds: start - 3));
         c.addListener(_onTick);
         vp = c;
+        await _startIntro(asMap(pb['intro']));
       } else if (embed != null) {
         final c = WebViewController()
           ..setJavaScriptMode(JavaScriptMode.unrestricted)
@@ -392,6 +398,40 @@ p.on('ready',function(){ if($start>10)p.setCurrentTime(${start - 3});
     }
   }
 
+  Future<void> _startIntro(Map<String, dynamic> cfg) async {
+    final url = cfg['url'] as String?;
+    if (url == null || (cfg['mode'] == 'session' && introSeen)) return; // بدون إنترو: نفس السلوك القديم
+    try {
+      final c = VideoPlayerController.networkUrl(Uri.parse(url));
+      await c.initialize();
+      intro = c;
+      c.addListener(() {
+        final v = c.value;
+        if (v.hasError || (v.isInitialized && v.duration > Duration.zero && v.position >= v.duration - const Duration(milliseconds: 120))) _endIntro();
+      });
+      await c.play();
+      final skip = (cfg['skip_after'] ?? 3) as int;
+      if (skip >= 0) {
+        Future.delayed(Duration(seconds: skip), () {
+          if (mounted && intro != null) setState(() => canSkip = true);
+        });
+      }
+    } catch (_) {
+      _endIntro();
+    }
+  }
+
+  void _endIntro() {
+    final c = intro;
+    if (c == null && introSeen) return;
+    intro = null;
+    introSeen = true;
+    canSkip = false;
+    if (mounted) setState(() {});
+    Future.microtask(() => c?.dispose());
+    if (recorder == null) vp?.play();
+  }
+
   Widget player() {
     final wm = asMap(lesson?['playback'])['watermark'] as String?;
     return Container(
@@ -423,6 +463,30 @@ p.on('ready',function(){ if($start>10)p.setCurrentTime(${start - 3});
         else
           const Positioned.fill(child: Center(child: Text('الفيديو قيد التجهيز', style: TextStyle(color: C.lavender)))),
         if (wm != null) Positioned.fill(child: IgnorePointer(child: Watermark(text: wm))),
+        if (intro != null)
+          Positioned.fill(
+            child: ColoredBox(
+              color: Colors.black,
+              child: Stack(children: [
+                Center(child: AspectRatio(aspectRatio: intro!.value.aspectRatio, child: VideoPlayer(intro!))),
+                if (canSkip)
+                  PositionedDirectional(
+                    bottom: 16,
+                    start: 16,
+                    child: TextButton(
+                      onPressed: _endIntro,
+                      style: TextButton.styleFrom(
+                        backgroundColor: Colors.black54,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: const BorderSide(color: Colors.white38)),
+                      ),
+                      child: const Text('تخطي', style: TextStyle(fontWeight: FontWeight.w600)),
+                    ),
+                  ),
+              ]),
+            ),
+          ),
         if (recorder != null)
           Positioned.fill(
             child: Container(

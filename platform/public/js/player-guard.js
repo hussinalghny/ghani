@@ -100,6 +100,32 @@
 
   // ---- المشغل المجاني (فيديو على سيرفرنا) بأزرار خاصة ----
   var vid = document.getElementById('vid');
+
+  // ---- إنترو الأكاديمية: يشتغل أول ما يضغط الطالب تشغيل، وبعده الدرس مباشرة ----
+  var introLayer = document.getElementById('introLayer');
+  if (vid && introLayer) {
+    var introVid = document.getElementById('introVid'), skipBtn = document.getElementById('introSkip');
+    var skipAfter = +introLayer.dataset.skip, introDone = false;
+    try { if (introLayer.dataset.mode === 'session' && sessionStorage.getItem('ga-intro')) introDone = true; } catch (e) {}
+    var finish = function () {
+      if (introDone) return;
+      introDone = true;
+      introVid.pause(); introLayer.hidden = true;
+      try { sessionStorage.setItem('ga-intro', '1'); } catch (e) {}
+      vid.play();
+    };
+    vid.addEventListener('play', function () {
+      if (introDone) return;
+      vid.pause();
+      introLayer.hidden = false;
+      introVid.currentTime = 0;
+      introVid.play().catch(finish);
+      if (skipAfter >= 0) setTimeout(function () { skipBtn.hidden = false; }, skipAfter * 1000);
+    }, true);
+    introVid.addEventListener('ended', finish);
+    introVid.addEventListener('error', finish);
+    skipBtn.addEventListener('click', finish);
+  }
   if (vid && vid.dataset.source) {
     // الرابط ما موجود بالصفحة: نجيبه بطلب منفصل، وهو مربوط بجلسة هذا المتصفح فقط
     fetch(vid.dataset.source, { method: 'POST', headers: { 'X-CSRF-TOKEN': csrf, Accept: 'application/json' }, credentials: 'same-origin' })

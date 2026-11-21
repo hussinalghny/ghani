@@ -13,7 +13,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Alexandria:wght@700;800&family=Readex+Pro:wght@400;500;600&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="{{ asset('css/app.css') }}?v=3">
+    <link rel="stylesheet" href="{{ asset('css/app.css') }}?v=4">
     <link rel="stylesheet" href="{{ asset('css/theme.css') }}?v=2">
     @stack('head')
 </head>

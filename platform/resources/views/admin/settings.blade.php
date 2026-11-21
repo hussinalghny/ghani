@@ -42,6 +42,28 @@
     </div>
 
     <div class="panel">
+        <h2>إنترو الفيديو</h2>
+        @php($intro = \App\Services\LessonAccess::intro() ?? ['url' => setting('intro_file') ? asset('storage/'.setting('intro_file')) : asset('media/ghani-intro.mp4')])
+        <label class="switch"><input type="checkbox" name="intro_enabled" value="1" @checked((string) setting('intro_enabled', '1') === '1')> تشغيل الإنترو تلقائيا قبل الدروس</label>
+        <div class="form-grid" style="margin-top:12px">
+            <div class="field"><label for="intro_mode">متى يطلع</label>
+                <select class="input" id="intro_mode" name="intro_mode">
+                    <option value="every" @selected((setting('intro_mode') ?: 'every') === 'every')>قبل كل درس</option>
+                    <option value="session" @selected(setting('intro_mode') === 'session')>أول درس بس كل ما يفتح الطالب التطبيق أو الموقع</option>
+                </select></div>
+            <div class="field"><label for="intro_skip_after">زر التخطي</label>
+                <select class="input" id="intro_skip_after" name="intro_skip_after">
+                    @foreach ([0 => 'فورا', 2 => 'بعد ثانيتين', 3 => 'بعد 3 ثواني', 5 => 'بعد 5 ثواني', -1 => 'بدون تخطي'] as $k => $v)<option value="{{ $k }}" @selected((int) (setting('intro_skip_after') ?? 3) === $k)>{{ $v }}</option>@endforeach
+                </select></div>
+            <div class="field full"><label for="intro_file">فيديو إنترو بديل (MP4، أقل من 50MB)</label>
+                <video src="{{ $intro['url'] }}" controls muted playsinline style="width:100%;max-width:420px;border-radius:14px;background:#000;margin-bottom:10px"></video>
+                <input class="input" type="file" id="intro_file" name="intro_file" accept="video/mp4">
+                @if (setting('intro_file'))<label class="switch" style="margin-top:8px"><input type="checkbox" name="intro_reset" value="1"> الرجوع لإنترو الأكاديمية الافتراضي</label>@endif
+            </div>
+        </div>
+    </div>
+
+    <div class="panel">
         <h2>واجهة الرئيسية</h2>
         <div class="form-grid">
             <div class="field full"><label for="home_badge">النص فوق العنوان</label><input class="input" id="home_badge" name="home_badge" value="{{ setting('home_badge') }}" placeholder="التسجيل مفتوح · كورسات تقنية عملية"></div>
