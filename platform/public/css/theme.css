@@ -1,3 +1,14 @@
+/* خط ثمانية (ينزل تلقائيا للسيرفر من الرابط الرسمي، والخط الاحتياطي لحد ما يجهز) */
+@font-face { font-family: 'Thmanyah Sans'; src: url(../fonts/thmanyah/thmanyahsans-Regular.woff2) format('woff2'); font-weight: 400; font-display: swap; }
+@font-face { font-family: 'Thmanyah Sans'; src: url(../fonts/thmanyah/thmanyahsans-Medium.woff2) format('woff2'); font-weight: 500 600; font-display: swap; }
+@font-face { font-family: 'Thmanyah Sans'; src: url(../fonts/thmanyah/thmanyahsans-Bold.woff2) format('woff2'); font-weight: 700; font-display: swap; }
+@font-face { font-family: 'Thmanyah Sans'; src: url(../fonts/thmanyah/thmanyahsans-Black.woff2) format('woff2'); font-weight: 800 900; font-display: swap; }
+@font-face { font-family: 'Thmanyah Serif'; src: url(../fonts/thmanyah/thmanyahserifdisplay-Medium.woff2) format('woff2'); font-weight: 500 600; font-display: swap; }
+@font-face { font-family: 'Thmanyah Serif'; src: url(../fonts/thmanyah/thmanyahserifdisplay-Bold.woff2) format('woff2'); font-weight: 700; font-display: swap; }
+@font-face { font-family: 'Thmanyah Serif'; src: url(../fonts/thmanyah/thmanyahserifdisplay-Black.woff2) format('woff2'); font-weight: 800 900; font-display: swap; }
+:root { --font-head: 'Thmanyah Serif', 'Alexandria', 'Readex Pro', system-ui, sans-serif; --font-body: 'Thmanyah Sans', 'Readex Pro', system-ui, -apple-system, 'Segoe UI', sans-serif; }
+body, button, input, select, textarea { font-family: var(--font-body); }
+
 /* =========================================================
    غني أكاديمي — التصميم الجديد (2026)
    الليلي: أسود وذهبي · النهاري: بنفسجي وأبيض

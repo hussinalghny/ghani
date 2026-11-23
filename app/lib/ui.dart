@@ -4,7 +4,6 @@ import 'dart:math' as math;
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 import 'api.dart';
 
@@ -44,13 +43,11 @@ class C {
       : const [Color(0xFF6A45E6), violet, deep];
 }
 
-TextStyle _font(String family, TextStyle base) {
-  try {
-    return GoogleFonts.getFont(family, textStyle: base);
-  } catch (_) {
-    return base;
-  }
-}
+/// خط ثمانية: سيريف ديسبلاي للعناوين وسانس للنص (مضمن بالتطبيق وقت البناء)
+const fontHead = 'ThmanyahSerif';
+const fontBody = 'ThmanyahSans';
+
+TextStyle _font(String family, TextStyle base) => base.copyWith(fontFamily: family == 'Alexandria' ? fontHead : fontBody);
 
 TextStyle head(double size, {Color? color, FontWeight w = FontWeight.w700}) =>
     _font('Alexandria', TextStyle(fontSize: size, fontWeight: w, color: color ?? C.text, height: 1.4, letterSpacing: 0));
@@ -58,6 +55,7 @@ TextStyle head(double size, {Color? color, FontWeight w = FontWeight.w700}) =>
 ThemeData buildTheme(bool dark) {
   final base = ThemeData(
     useMaterial3: true,
+    fontFamily: fontBody,
     brightness: dark ? Brightness.dark : Brightness.light,
     colorScheme: ColorScheme.fromSeed(
       seedColor: C.violet,
@@ -73,12 +71,7 @@ ThemeData buildTheme(bool dark) {
       TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
     }),
   );
-  TextTheme tt;
-  try {
-    tt = GoogleFonts.getTextTheme('Readex Pro', base.textTheme);
-  } catch (_) {
-    tt = base.textTheme;
-  }
+  final tt = base.textTheme.apply(fontFamily: fontBody);
   final border = OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: dark ? const Color(0xFF3A3268) : const Color(0xFFE4DDFB)));
   return base.copyWith(
     textTheme: tt.apply(bodyColor: C.text, displayColor: C.text),

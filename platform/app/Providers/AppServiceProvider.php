@@ -45,6 +45,9 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         $this->autoMigrate();
+        if (! $this->app->runningInConsole() && ! \App\Support\ThmanyahFont::ready()) {
+            $this->app->terminating(fn () => \App\Support\ThmanyahFont::ensure());
+        }
         Schema::defaultStringLength(191);
         \Carbon\Carbon::setLocale(config('app.locale', 'ar'));
         Paginator::defaultView('vendor.pagination.apple');

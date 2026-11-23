@@ -26,7 +26,7 @@ jobs:
         with:
           channel: stable
           cache: true
-      - run: bash tool/prepare.sh
+      - run: bash tool/prepare.sh && bash tool/fonts.sh
       - run: flutter analyze --no-fatal-infos --no-fatal-warnings lib
       # توقيع ثابت: كل نسخة جديدة تتنصب فوق القديمة بدون حذف
       - run: mkdir -p ~/.android && cp tool/debug.keystore ~/.android/debug.keystore
@@ -57,7 +57,7 @@ jobs:
         with:
           channel: stable
           cache: true
-      - run: bash tool/prepare.sh
+      - run: bash tool/prepare.sh && bash tool/fonts.sh
       - run: flutter build ios --release --no-codesign --build-number=${{ github.run_number }} --dart-define=API_BASE=$API_BASE --dart-define=BUILD=${{ github.run_number }} --obfuscate --split-debug-info=build/symbols --dart-define=STORE_BUILD=true
       - name: Package IPA (unsigned)
         run: |
