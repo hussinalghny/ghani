@@ -34,6 +34,7 @@ jobs:
       - name: App screenshots → branch app-shots
         continue-on-error: true
         run: |
+          mkdir -p test && cp shots/shots_test.dart test/
           flutter test --update-goldens test/shots_test.dart || true
           ls test/shots || exit 0
           cd test/shots && git init -q && git checkout -q -b app-shots && git add . && git -c user.name=ci -c user.email=ci@local commit -qm shots
