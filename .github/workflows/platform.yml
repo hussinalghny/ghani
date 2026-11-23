@@ -145,6 +145,12 @@ jobs:
           c=$(curl -s -o /dev/null -w '%{http_code}' -c $J -b $J -X POST -d "_token=$X&answer=نزل VirtualBox وكمل الخطوات بالدرس." http://127.0.0.1:8000/teach/questions/$QID); echo "$c answer question"; [ "$c" = "302" ] || fail=1
           c=$(curl -s -o /tmp/out -w '%{http_code}' -H 'Accept: application/json' -H "Authorization: Bearer $T" http://127.0.0.1:8000/api/v1/lessons/$L/questions); echo "$c api questions $(head -c 160 /tmp/out)"
           c=$(curl -s -o /tmp/out -w '%{http_code}' http://127.0.0.1:8000/course/smart-defense); echo "$c course page with review"; grep -q 'كورس عملي ومرتب' /tmp/out || fail=1
+          # الصور المصغرة للأغلفة (قرص public = public/storage)
+          php artisan tinker --execute='@mkdir(public_path("storage/covers"),0755,true); $i=imagecreatetruecolor(1200,675); imagejpeg($i, public_path("storage/covers/ci.jpg")); App\Models\Course::where("slug","smart-defense")->update(["cover"=>"covers/ci.jpg"]);'
+          CID=$(php artisan tinker --execute='echo App\Models\Course::where("slug","smart-defense")->value("id");' | tail -1)
+          c=$(curl -s -o /tmp/th.jpg -w '%{http_code} %{content_type}' http://127.0.0.1:8000/thumb/$CID); echo "$c thumb"; case "$c" in "200 image/jpeg"*) ;; *) fail=1;; esac
+          c=$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8000/storage/covers/ci.jpg); echo "$c cover file"; [ "$c" = "200" ] || fail=1
+          curl -s http://127.0.0.1:8000/ | grep -q "storage/thumbs/c$CID-" && echo "home uses thumb file" || { echo "home does not use thumb file"; fail=1; }
           # لقطات HTML للتصميم (تنفتح محليا ويا ملفات public)
           mkdir -p /tmp/snap && cp -r public/css public/img public/js /tmp/snap/; ls public/fonts/thmanyah || echo "NO THMANYAH FONTS"
           c=$(curl -s -o /dev/null -w '%{http_code}' -c $J -b $J http://127.0.0.1:8000/); echo "$c home (logged in)"; [ "$c" = "200" ] || fail=1

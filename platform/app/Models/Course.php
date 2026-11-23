@@ -41,7 +41,7 @@ class Course extends Model
         }
         $name = 'thumbs/c'.$this->id.'-'.substr(md5($this->cover), 0, 8).'.jpg';
 
-        return is_file(storage_path('app/public/'.$name)) ? asset('storage/'.$name) : route('thumb', $this->id);
+        return is_file(public_path('storage/'.$name)) ? asset('storage/'.$name) : route('thumb', $this->id);
     }
 
     public function getRouteKeyName(): string

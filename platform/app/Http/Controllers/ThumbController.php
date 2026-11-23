@@ -11,16 +11,19 @@ class ThumbController extends Controller
     {
         $course = Course::findOrFail($id);
         abort_unless($course->cover, 404);
-        $src = storage_path('app/public/'.$course->cover);
-        abort_unless(is_file($src), 404);
+        // قرص public بهذه المنصة = public/storage (بدون symlink على Hostinger)
+        $src = public_path('storage/'.$course->cover);
+        if (! is_file($src)) {
+            return redirect($course->coverUrl());
+        }
         $rel = 'thumbs/c'.$course->id.'-'.substr(md5($course->cover), 0, 8).'.jpg';
-        $dst = storage_path('app/public/'.$rel);
+        $dst = public_path('storage/'.$rel);
 
         if (! is_file($dst)) {
             try {
                 @mkdir(dirname($dst), 0755, true);
-                $img = @imagecreatefromstring((string) file_get_contents($src));
-                if (! $img) {
+                $img = function_exists('imagecreatefromstring') ? @imagecreatefromstring((string) file_get_contents($src)) : false;
+                if (! $img || ! function_exists('imagecreatetruecolor')) {
                     return redirect($course->coverUrl());
                 }
                 $w = imagesx($img);
