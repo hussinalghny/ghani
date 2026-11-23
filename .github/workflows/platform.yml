@@ -134,6 +134,7 @@ jobs:
           R=$(php artisan tinker --execute='echo App\Models\PaymentOrder::find('$O3')->status."|".App\Models\PaymentOrder::find('$O3')->paid_by;' | tail -1); echo "approved: $R"; [ "$R" = "paid|admin" ] || fail=1
           # لقطات HTML للتصميم (تنفتح محليا ويا ملفات public)
           mkdir -p /tmp/snap && cp -r public/css public/img public/js /tmp/snap/
+          c=$(curl -s -o /dev/null -w '%{http_code}' -c $J -b $J http://127.0.0.1:8000/); echo "$c home (logged in)"; [ "$c" = "200" ] || fail=1
           curl -s -c $J -b $J http://127.0.0.1:8000/ | sed 's#http://127.0.0.1:8000/##g' > /tmp/snap/home-user.html
           curl -s http://127.0.0.1:8000/ | sed 's#http://127.0.0.1:8000/##g' > /tmp/snap/home-guest.html
           curl -s http://127.0.0.1:8000/course/smart-defense | sed 's#http://127.0.0.1:8000/##g' > /tmp/snap/course-guest.html

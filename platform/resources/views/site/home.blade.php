@@ -32,7 +32,7 @@
             </div>
             <div class="ga-group">
                 @auth
-                    <a class="ga-cell" href="{{ route('wallet') }}"><span class="ic ic-gold">@include('partials.icon', ['n' => 'wallet'])</span><span class="t"><b>رصيدك <span class="ltr">{{ iqd($user->balance, false) }}</span> د.ع</b><small>اشحن بسوبر كي أو بقسيمة</small></span><span class="chev">@include('partials.icon', ['n' => 'chev-left', 'class' => 'icon icon-sm'])</span></a>
+                    <a class="ga-cell" href="{{ route('wallet') }}"><span class="ic ic-gold">@include('partials.icon', ['n' => 'wallet'])</span><span class="t"><b>رصيدك <span class="ltr">{{ iqd(auth()->user()->balance, false) }}</span> د.ع</b><small>اشحن بسوبر كي أو بقسيمة</small></span><span class="chev">@include('partials.icon', ['n' => 'chev-left', 'class' => 'icon icon-sm'])</span></a>
                     <a class="ga-cell" href="{{ route('account') }}"><span class="ic ic-violet">@include('partials.icon', ['n' => 'play'])</span><span class="t"><b>مساري</b><small>كمل من حيث وقفت</small></span><span class="chev">@include('partials.icon', ['n' => 'chev-left', 'class' => 'icon icon-sm'])</span></a>
                 @else
                     <a class="ga-cell" href="{{ route('register') }}"><span class="ic ic-violet">@include('partials.icon', ['n' => 'user'])</span><span class="t"><b>سوي حسابك</b><small>دقيقة وحدة برقم موبايلك</small></span><span class="chev">@include('partials.icon', ['n' => 'chev-left', 'class' => 'icon icon-sm'])</span></a>
