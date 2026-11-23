@@ -132,6 +132,19 @@ jobs:
           c=$(curl -s -o /dev/null -w '%{http_code}' -H 'Accept: application/json' http://127.0.0.1:8000/api/v1/payments/console/feed); echo "$c console unsigned"; [ "$c" = "401" ] || fail=1
           c=$(sreq POST /api/v1/payments/console/orders/$O3/approve '{}'); echo "$c console approve"
           R=$(php artisan tinker --execute='echo App\Models\PaymentOrder::find('$O3')->status."|".App\Models\PaymentOrder::find('$O3')->paid_by;' | tail -1); echo "approved: $R"; [ "$R" = "paid|admin" ] || fail=1
+          # التقييمات وأسئلة الدروس والرئيسية السريعة
+          c=$(curl -s -o /tmp/out -w '%{http_code}' -H 'Accept: application/json' -H "Authorization: Bearer $T" http://127.0.0.1:8000/api/v1/home); echo "$c api home"; [ "$c" = "200" ] && grep -q '"popular"' /tmp/out || fail=1
+          c=$(curl -s -o /tmp/out -w '%{http_code}' -H 'Accept: application/json' http://127.0.0.1:8000/api/v1/courses/smart-defense); echo "$c api course"; grep -q '"rating_breakdown"' /tmp/out || fail=1
+          c=$(curl -s -o /tmp/out -w '%{http_code}' -H 'Accept: application/json' http://127.0.0.1:8000/api/v1/courses/smart-defense/reviews); echo "$c api reviews"; [ "$c" = "200" ] || fail=1
+          c=$(curl -s -o /tmp/out -w '%{http_code}' -X POST -H 'Accept: application/json' -H 'Content-Type: application/json' -H "Authorization: Bearer $T" -d '{"rating":5}' http://127.0.0.1:8000/api/v1/courses/smart-defense/review); echo "$c api review before 30% $(head -c 120 /tmp/out)"; [ "$c" -ge 400 ] || fail=1
+          php artisan tinker --execute='$c=App\Models\Course::where("slug","smart-defense")->first(); $u=App\Models\User::where("role","admin")->first(); App\Models\CourseReview::create(["course_id"=>$c->id,"user_id"=>$u->id,"rating"=>5,"body"=>"كورس عملي ومرتب"]); App\Models\CourseReview::refresh($c);'
+          X=$(curl -s -c $J -b $J http://127.0.0.1:8000/learn/smart-defense/$L | grep -o 'name="csrf-token" content="[^"]*"' | sed 's/.*content="//;s/"//')
+          c=$(curl -s -o /dev/null -w '%{http_code}' -c $J -b $J -X POST -d "_token=$X&body=شلون أنصب المختبر على ويندوز؟" http://127.0.0.1:8000/learn/lesson/$L/ask); echo "$c web ask question"; [ "$c" = "302" ] || fail=1
+          QID=$(php artisan tinker --execute='echo App\Models\LessonQuestion::latest("id")->value("id");' | tail -1)
+          c=$(curl -s -o /tmp/out -w '%{http_code}' -c $J -b $J http://127.0.0.1:8000/teach); echo "$c teach shows question"; grep -q 'شلون أنصب المختبر' /tmp/out || fail=1
+          c=$(curl -s -o /dev/null -w '%{http_code}' -c $J -b $J -X POST -d "_token=$X&answer=نزل VirtualBox وكمل الخطوات بالدرس." http://127.0.0.1:8000/teach/questions/$QID); echo "$c answer question"; [ "$c" = "302" ] || fail=1
+          c=$(curl -s -o /tmp/out -w '%{http_code}' -H 'Accept: application/json' -H "Authorization: Bearer $T" http://127.0.0.1:8000/api/v1/lessons/$L/questions); echo "$c api questions $(head -c 160 /tmp/out)"
+          c=$(curl -s -o /tmp/out -w '%{http_code}' http://127.0.0.1:8000/course/smart-defense); echo "$c course page with review"; grep -q 'كورس عملي ومرتب' /tmp/out || fail=1
           # لقطات HTML للتصميم (تنفتح محليا ويا ملفات public)
           mkdir -p /tmp/snap && cp -r public/css public/img public/js /tmp/snap/; ls public/fonts/thmanyah || echo "NO THMANYAH FONTS"
           c=$(curl -s -o /dev/null -w '%{http_code}' -c $J -b $J http://127.0.0.1:8000/); echo "$c home (logged in)"; [ "$c" = "200" ] || fail=1
@@ -139,6 +152,8 @@ jobs:
           curl -s http://127.0.0.1:8000/ | sed 's#http://127.0.0.1:8000/##g' > /tmp/snap/home-guest.html
           curl -s http://127.0.0.1:8000/course/smart-defense | sed 's#http://127.0.0.1:8000/##g' > /tmp/snap/course-guest.html
           curl -s http://127.0.0.1:8000/courses | sed 's#http://127.0.0.1:8000/##g' > /tmp/snap/courses.html
+          curl -s -c $J -b $J http://127.0.0.1:8000/course/smart-defense | sed 's#http://127.0.0.1:8000/##g' > /tmp/snap/course-user.html
+          curl -s -c $J -b $J http://127.0.0.1:8000/learn/smart-defense/$L | sed 's#http://127.0.0.1:8000/##g' > /tmp/snap/learn.html
           # حذف الحساب من التطبيق
           c=$(curl -s -o /tmp/out -w '%{http_code}' -X DELETE -H 'Accept: application/json' -H 'Content-Type: application/json' -H "Authorization: Bearer $T" -d '{"password":"12345678"}' http://127.0.0.1:8000/api/v1/me); echo "$c delete account"; [ "$c" = "200" ] || { fail=1; cat /tmp/out; }
           grep -i "error" storage/logs/*.log | head -20 || true
@@ -150,7 +165,7 @@ jobs:
         working-directory: /tmp/snap
         run: |
           mkdir -p shots
-          for f in home-user home-guest course-guest courses; do
+          for f in home-user home-guest course-guest course-user courses learn; do
             [ -f $f.html ] || continue
             google-chrome --headless=new --no-sandbox --hide-scrollbars --force-device-scale-factor=1 --window-size=390,2200 --virtual-time-budget=6000 --screenshot=$PWD/shots/$f-m.png file://$PWD/$f.html 2>/dev/null || true
             google-chrome --headless=new --no-sandbox --hide-scrollbars --window-size=1440,1500 --virtual-time-budget=6000 --screenshot=$PWD/shots/$f-d.png file://$PWD/$f.html 2>/dev/null || true

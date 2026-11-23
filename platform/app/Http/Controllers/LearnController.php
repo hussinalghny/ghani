@@ -52,7 +52,11 @@ class LearnController extends Controller
         $enrolled = $user->hasAccessTo($course);
         $progress = $enrolled ? $this->certs->progressPercent($user, $course) : 0;
 
-        return view('learn.show', compact('course', 'lesson', 'lessons', 'done', 'playback', 'fileUrl', 'prev', 'next', 'enrolled', 'progress'));
+        $questions = $enrolled ? \App\Models\LessonQuestion::where('lesson_id', $lesson->id)
+            ->where(fn ($q) => $q->whereNotNull('answered_at')->orWhere('user_id', $user->id))
+            ->with('user:id,name')->latest()->take(30)->get() : collect();
+
+        return view('learn.show', compact('course', 'lesson', 'lessons', 'done', 'playback', 'fileUrl', 'prev', 'next', 'enrolled', 'progress', 'questions'));
     }
 
     /** مصدر الفيديو يتجلب بطلب منفصل حتى ما يظهر بكود الصفحة */
@@ -104,5 +108,16 @@ class LearnController extends Controller
         return Storage::disk('local')->download($lesson->attachment, $lesson->attachment_name ?: basename($lesson->attachment), [
             'Cache-Control' => 'no-store, private',
         ]);
+    }
+
+    public function ask(Request $request, \App\Models\Lesson $lesson)
+    {
+        $user = $request->user();
+        abort_unless($user->hasAccessTo($lesson->course), 403);
+        $data = $request->validate(['body' => ['required', 'string', 'min:5', 'max:1500']]);
+        $q = \App\Models\LessonQuestion::create(['lesson_id' => $lesson->id, 'course_id' => $lesson->course_id, 'user_id' => $user->id, 'body' => $data['body']]);
+        \App\Services\Community::notifyInstructor($q);
+
+        return redirect(route('learn.show', [$lesson->course, $lesson]).'#qa')->with('success', 'وصل سؤالك للمدرب.');
     }
 }

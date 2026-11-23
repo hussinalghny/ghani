@@ -103,6 +103,39 @@
         @endforelse
     </div>
 </div>
+<div class="grid" style="grid-template-columns:minmax(0,1.4fr) minmax(0,1fr);gap:16px;margin-top:16px">
+    <div class="panel" id="questions">
+        <h2>أسئلة الطلاب <span class="badge ltr">{{ $questions->count() }}</span></h2>
+        @forelse ($questions as $q)
+            <div style="border-top:1px solid var(--line);padding:14px 0">
+                <div class="tiny muted">{{ $q->user?->name }} · {{ $q->course?->title }} · {{ $q->lesson?->title }} · {{ $q->created_at->diffForHumans() }}</div>
+                <p style="margin:6px 0 10px;white-space:pre-line">{{ $q->body }}</p>
+                <form method="POST" action="{{ route('teach.answer', $q) }}" class="row" style="gap:8px;align-items:flex-start">
+                    @csrf
+                    <textarea class="input" name="answer" rows="2" required minlength="2" placeholder="اكتب جوابك" aria-label="الجواب" style="flex:1"></textarea>
+                    <button class="btn btn-primary btn-sm" type="submit">إرسال</button>
+                </form>
+            </div>
+        @empty
+            <p class="muted">ما أكو أسئلة تنتظر جواب.</p>
+        @endforelse
+    </div>
+    <div class="panel">
+        <h2>آخر التقييمات</h2>
+        @forelse ($reviews as $r)
+            <div style="border-top:1px solid var(--line);padding:12px 0">
+                <div class="row-between"><strong>{{ $r->user?->name }}</strong><span class="ltr" style="color:#C4710D">{{ str_repeat('★', $r->rating) }}{{ str_repeat('☆', 5 - $r->rating) }}</span></div>
+                <div class="tiny muted">{{ $r->course?->title }}</div>
+                @if ($r->body)<p class="small" style="margin:6px 0 0">{{ $r->body }}</p>@endif
+                @if (auth()->user()->isAdmin())
+                    <form method="POST" action="{{ route('teach.review', $r) }}" style="margin-top:6px">@csrf<button class="btn btn-plain btn-sm" type="submit">{{ $r->is_visible ? 'إخفاء' : 'إظهار' }}</button></form>
+                @endif
+            </div>
+        @empty
+            <p class="muted">ما أكو تقييمات بعد.</p>
+        @endforelse
+    </div>
+</div>
 @endif
 @endsection
 

@@ -15,6 +15,7 @@ class CourseResource extends JsonResource
             'title' => $this->title,
             'subtitle' => $this->subtitle,
             'cover' => $this->coverUrl(),
+            'thumb' => $this->thumbUrl(),
             'price' => $this->price,
             'final_price' => $this->finalPrice(),
             'price_label' => $this->isFree() ? 'مجاني' : iqd($this->finalPrice()),
@@ -24,6 +25,9 @@ class CourseResource extends JsonResource
             'lessons_count' => $this->whenCounted('lessons'),
             'has_certificate' => $this->has_certificate,
             'is_featured' => $this->is_featured,
+            'rating' => round((float) $this->rating_avg, 1),
+            'rating_count' => (int) $this->rating_count,
+            'students_count' => $this->whenCounted('enrollments'),
             'category' => $this->whenLoaded('category', fn () => ['id' => $this->category->id, 'name' => $this->category->name, 'slug' => $this->category->slug]),
             'instructor' => $this->whenLoaded('instructor', fn () => $this->instructor ? [
                 'name' => $this->instructor->name,

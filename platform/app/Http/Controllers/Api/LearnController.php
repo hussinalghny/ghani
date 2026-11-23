@@ -70,10 +70,17 @@ class LearnController extends Controller
         $this->access->throttle($user, $lesson, $request->attributes->get('device')?->id, $request->ip());
 
         $progress = LessonProgress::where('user_id', $user->id)->where('lesson_id', $lesson->id)->first();
+        $ordered = $lesson->course->sections()->with('lessons:id,section_id,title,duration,sort')->get()->flatMap->lessons->values();
+        $i = $ordered->search(fn ($l) => $l->id === $lesson->id);
+        $next = $i !== false ? $ordered->get($i + 1) : null;
 
         return response()->json(['data' => [
             'id' => $lesson->id,
             'course_id' => $lesson->course_id,
+            'course' => ['slug' => $lesson->course->slug, 'title' => $lesson->course->title],
+            'next' => $next ? ['id' => $next->id, 'title' => $next->title, 'duration' => $next->duration] : null,
+            'index' => $i === false ? null : $i + 1,
+            'total' => $ordered->count(),
             'title' => $lesson->title,
             'type' => $lesson->type,
             'duration' => $lesson->duration,

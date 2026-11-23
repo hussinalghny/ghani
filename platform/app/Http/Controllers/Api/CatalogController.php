@@ -33,15 +33,34 @@ class CatalogController extends Controller
         ]);
     }
 
-    public function home()
+    /** الرئيسية بطلب واحد: الكتالوج محفوظ بالكاش 5 دقائق + «كمل التعلم» للمسجلين */
+    public function home(Request $request)
     {
-        $base = fn () => Course::published()->with(['category', 'instructor'])->withCount('lessons');
+        $catalog = cache()->remember('api.home', 300, function () use ($request) {
+            $base = fn () => Course::published()->with(['category', 'instructor'])->withCount(['lessons', 'enrollments']);
 
-        return response()->json([
-            'featured' => CourseResource::collection($base()->where('is_featured', true)->orderBy('sort')->take(6)->get()),
-            'latest' => CourseResource::collection($base()->latest()->take(10)->get()),
-            'categories' => $this->categoryList(),
-        ]);
+            return [
+                'featured' => CourseResource::collection($base()->where('is_featured', true)->orderBy('sort')->take(6)->get())->toArray($request),
+                'popular' => CourseResource::collection($base()->orderByDesc('enrollments_count')->take(10)->get())->toArray($request),
+                'latest' => CourseResource::collection($base()->latest()->take(10)->get())->toArray($request),
+                'categories' => $this->categoryList()->values()->all(),
+            ];
+        });
+
+        $continue = null;
+        if ($user = auth('sanctum')->user()) {
+            $last = \App\Models\LessonProgress::where('user_id', $user->id)->latest('updated_at')->with('lesson:id,title,course_id', 'lesson.course')->first();
+            if ($last?->lesson?->course && $user->hasAccessTo($last->lesson->course)) {
+                $course = $last->lesson->course->loadCount('lessons');
+                $continue = [
+                    'course' => (new CourseResource($course->load('category')))->toArray($request),
+                    'lesson' => ['id' => $last->lesson->id, 'title' => $last->lesson->title],
+                    'progress' => app(\App\Services\CertificateService::class)->progressPercent($user, $course),
+                ];
+            }
+        }
+
+        return response()->json($catalog + ['continue' => $continue]);
     }
 
     public function categories()
@@ -70,8 +89,10 @@ class CatalogController extends Controller
     public function course(Request $request, Course $course)
     {
         abort_unless($course->is_published, 404);
-        $course->load(['category', 'instructor', 'sections.lessons'])->loadCount('lessons');
+        $course->load(['category', 'instructor', 'sections.lessons'])->loadCount(['lessons', 'enrollments']);
         $user = auth('sanctum')->user();
+        $enrolled = $user ? $user->hasAccessTo($course) : false;
+        $mine = $user ? \App\Models\CourseReview::where('course_id', $course->id)->where('user_id', $user->id)->first() : null;
 
         return response()->json([
             'data' => (new CourseResource($course))->toArray($request) + [
@@ -79,7 +100,13 @@ class CatalogController extends Controller
                 'outcomes' => $course->outcomesList(),
                 'access_days' => $course->access_days,
                 'total_duration' => $course->sections->sum(fn ($s) => $s->lessons->sum('duration')),
-                'is_enrolled' => $user ? $user->hasAccessTo($course) : false,
+                'is_enrolled' => $enrolled,
+                'reviews' => $course->reviews()->where('is_visible', true)->with('user:id,name')->latest()->take(5)->get()->map->toApi(),
+                'rating_breakdown' => \App\Services\Community::breakdown($course),
+                'my_review' => $mine?->toApi(),
+                'can_review' => $enrolled && app(\App\Services\CertificateService::class)->progressPercent($user, $course) >= \App\Services\Community::REVIEW_MIN_PROGRESS,
+                'review_min_progress' => \App\Services\Community::REVIEW_MIN_PROGRESS,
+                'updated_at' => $course->updated_at?->toDateString(),
                 'sections' => $course->sections->map(fn ($s) => [
                     'id' => $s->id,
                     'title' => $s->title,

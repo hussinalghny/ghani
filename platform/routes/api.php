@@ -13,6 +13,7 @@ Route::prefix('v1')->middleware('throttle:api')->group(function () {
     Route::get('categories', [Api\CatalogController::class, 'categories']);
     Route::get('courses', [Api\CatalogController::class, 'courses']);
     Route::get('courses/{course}', [Api\CatalogController::class, 'course']);
+    Route::get('courses/{course}/reviews', [Api\CommunityController::class, 'reviews']);
     Route::get('verify/{certificate}', [Api\CatalogController::class, 'verifyCertificate']);
     // فيديو تطبيق الدسكتوب: رابط موقع مربوط بتوكن الجهاز (مشغل ويندوز ما يرسل هيدرات)
     Route::get('lessons/{lesson}/desktop', [App\Http\Controllers\VideoController::class, 'desktop'])->name('video.desktop')->middleware(['signed', 'throttle:600,1']);
@@ -46,6 +47,9 @@ Route::prefix('v1')->middleware('throttle:api')->group(function () {
         Route::delete('me/push-token', [Api\DeviceController::class, 'deleteToken']);
         Route::delete('me', [Api\DeviceController::class, 'destroyAccount']);
         Route::post('lessons/{lesson}/progress', [Api\LearnController::class, 'progress']);
+        Route::post('courses/{course}/review', [Api\CommunityController::class, 'review'])->middleware('throttle:10,1');
+        Route::get('lessons/{lesson}/questions', [Api\CommunityController::class, 'questions']);
+        Route::post('lessons/{lesson}/questions', [Api\CommunityController::class, 'ask'])->middleware('throttle:10,1');
 
         Route::get('chats', [Api\ChatController::class, 'index']);
         Route::post('chats/support', [Api\ChatController::class, 'support']);

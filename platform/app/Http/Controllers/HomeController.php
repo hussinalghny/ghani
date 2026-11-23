@@ -24,6 +24,18 @@ class HomeController extends Controller
             'students' => User::query()->where('role', 'student')->count(),
         ]);
 
-        return view('site.home', compact('featured', 'latest', 'categories', 'stats'));
+        $popular = Course::published()->with(['category', 'instructor'])->withCount(['lessons', 'enrollments'])
+            ->orderByDesc('enrollments_count')->orderByDesc('is_featured')->take(8)->get();
+
+        $continue = null;
+        if ($user = auth()->user()) {
+            $last = \App\Models\LessonProgress::where('user_id', $user->id)->latest('updated_at')->with('lesson.course')->first();
+            if ($last?->lesson?->course && $user->hasAccessTo($last->lesson->course)) {
+                $continue = ['lesson' => $last->lesson, 'course' => $last->lesson->course,
+                    'progress' => app(\App\Services\CertificateService::class)->progressPercent($user, $last->lesson->course)];
+            }
+        }
+
+        return view('site.home', compact('featured', 'latest', 'categories', 'stats', 'popular', 'continue'));
     }
 }

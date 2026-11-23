@@ -30,9 +30,9 @@
             <a href="{{ route('courses.index') }}" class="btn btn-ghost">كل الكورسات</a>
         </div>
     @else
-        <div class="grid grid-3">
+        <div class="u-grid">
             @foreach ($courses as $course)
-                @include('partials.course-card', ['course' => $course])
+                @include('partials.ucard', ['course' => $course])
             @endforeach
         </div>
         {{ $courses->links() }}

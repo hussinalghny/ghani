@@ -57,7 +57,27 @@ class CourseController extends Controller
         $related = Course::published()->where('category_id', $course->category_id)->whereKeyNot($course->id)
             ->withCount('lessons')->with('instructor')->take(3)->get();
 
-        return view('site.course', compact('course', 'lessonsCount', 'totalDuration', 'enrolled', 'progress', 'done', 'related'));
+        $reviews = $course->reviews()->where('is_visible', true)->with('user:id,name')->latest()->take(6)->get();
+        $breakdown = \App\Services\Community::breakdown($course);
+        $myReview = $user ? $course->reviews()->where('user_id', $user->id)->first() : null;
+        $canReview = $enrolled && $progress >= \App\Services\Community::REVIEW_MIN_PROGRESS;
+        $students = $course->enrollments()->count();
+
+        return view('site.course', compact('course', 'lessonsCount', 'totalDuration', 'enrolled', 'progress', 'done', 'related', 'reviews', 'breakdown', 'myReview', 'canReview', 'students'));
+    }
+
+    public function review(Request $request, Course $course, CertificateService $certs)
+    {
+        $user = $request->user();
+        abort_unless($user->hasAccessTo($course), 403);
+        if ($certs->progressPercent($user, $course) < \App\Services\Community::REVIEW_MIN_PROGRESS) {
+            return back()->with('error', 'تقدر تقيم الكورس بعد ما تكمل '.\App\Services\Community::REVIEW_MIN_PROGRESS.'% منه.');
+        }
+        $data = $request->validate(['rating' => ['required', 'integer', 'between:1,5'], 'body' => ['nullable', 'string', 'max:1000']]);
+        \App\Models\CourseReview::updateOrCreate(['course_id' => $course->id, 'user_id' => $user->id], $data);
+        \App\Models\CourseReview::refresh($course);
+
+        return redirect(route('courses.show', $course).'#reviews')->with('success', 'شكرا. تقييمك وصل.');
     }
 
     public function enroll(Request $request, Course $course, EnrollmentService $service)

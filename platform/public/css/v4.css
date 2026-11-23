@@ -1,0 +1,164 @@
+/* =========================================================
+   v4 — تصميم عملي بروح Coursera وUdemy
+   أبيض نظيف، البنفسجي للأزرار والتمييز فقط، بتن بار زجاجي مثل آبل
+   ========================================================= */
+:root {
+  --font-head: 'Thmanyah Sans', 'Readex Pro', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --text: #1C1D1F; --text-2: #4A4D50; --text-3: #6A6F73;
+  --line: #E6E3EE; --line-2: #D9D5E5; --bg-alt: #F7F6FB; --mist: #F1EDFF;
+  --star: #C4710D; --max: 1180px; --nav-bg: rgba(255, 255, 255, .82);
+}
+html.dark { --star: #F5B83D; --violet: #8F72F5; --violet-600: #7B5CF0; --on-primary: #fff; --mist: rgba(143, 114, 245, .14); --bg: #0E0E12; --bg-alt: #16161C; --card: #17171E; --text: #F2F1F7; --text-2: #C2C0CE; --text-3: #9895A8; --line: rgba(255, 255, 255, .09); --line-2: rgba(255, 255, 255, .16); --nav-bg: rgba(23, 23, 30, .72); }
+h1, h2, h3, h4 { font-weight: 700; }
+.dot { display: none; }
+.btn { border-radius: 12px; }
+.btn-primary { background: var(--violet); color: var(--on-primary); }
+.nav { height: 64px; }
+
+/* ---------- الرئيسية ---------- */
+.u-home { padding-top: 18px; padding-bottom: 48px; }
+.u-search { display: flex; align-items: center; gap: 10px; height: 52px; border-radius: 14px; background: var(--bg-alt); border: 1px solid var(--line); padding: 0 16px; color: var(--text-3); max-width: 720px; }
+.u-search:focus-within { border-color: var(--violet); background: var(--card); }
+.u-search input { flex: 1; border: 0; background: none; outline: none; font-size: 15.5px; color: var(--text); min-width: 0; height: 100%; }
+.u-chips { display: flex; gap: 8px; margin-top: 14px; overflow-x: auto; scrollbar-width: none; }
+.u-chips::-webkit-scrollbar { display: none; }
+.u-chips a { flex: none; padding: 7px 16px; border-radius: 99px; border: 1px solid var(--line-2); color: var(--text); font-size: 14px; font-weight: 500; }
+.u-chips a.on, .u-chips a:hover { background: var(--text); border-color: var(--text); color: var(--bg); }
+.u-sec { display: flex; justify-content: space-between; align-items: baseline; margin: 32px 0 12px; }
+.u-sec h2 { font-size: 21px; margin: 0; }
+.u-sec a { font-size: 14px; font-weight: 700; color: var(--violet); }
+.u-cont { display: flex; gap: 14px; align-items: center; border: 1px solid var(--line); border-radius: 16px; padding: 10px; color: var(--text); max-width: 720px; background: var(--card); }
+.u-cont .u-im { width: 96px; height: 64px; border-radius: 10px; overflow: hidden; flex: none; background: var(--mist); }
+.u-cont .t { flex: 1; min-width: 0; }
+.u-cont b { display: block; font-size: 15px; line-height: 1.45; }
+.u-cont small { display: block; font-size: 12.5px; color: var(--text-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.u-bar { display: block; height: 5px; border-radius: 5px; background: var(--mist); overflow: hidden; margin-top: 7px; }
+.u-bar i { display: block; height: 100%; background: var(--violet); border-radius: 5px; }
+.u-play { width: 42px; height: 42px; border-radius: 42px; background: var(--violet); color: #fff; display: grid; place-items: center; flex: none; }
+.u-play .icon { width: 18px; height: 18px; transform: scaleX(-1); }
+.u-ban { margin-top: 22px; border-radius: 20px; background: var(--violet); color: #fff; padding: 26px; position: relative; overflow: hidden; }
+.u-ban::before { content: ""; position: absolute; left: -50px; bottom: -80px; width: 230px; height: 230px; border-radius: 50%; border: 32px solid rgba(255, 255, 255, .08); }
+.u-ban .k { font-size: 12px; font-weight: 700; background: #F5B83D; color: #1B1446; border-radius: 6px; padding: 2px 9px; }
+.u-ban h2 { color: #fff; font-size: clamp(21px, 3vw, 30px); line-height: 1.4; margin: 12px 0 4px; max-width: 520px; }
+.u-ban p { color: #DDD4FF; margin: 0 0 16px; }
+.u-btn-w { background: #fff; color: #1B1446; position: relative; }
+.u-im img { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+/* بطاقة الكورس */
+.u-row { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(240px, 1fr); gap: 18px; overflow-x: auto; scrollbar-width: none; padding-bottom: 4px; }
+.u-row::-webkit-scrollbar { display: none; }
+@media (min-width: 1000px) { .u-row { grid-auto-columns: calc((100% - 54px) / 4); } }
+.u-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 22px; }
+.u-card { color: var(--text); display: block; min-width: 0; }
+.u-card .u-im { aspect-ratio: 16 / 9; border-radius: 12px; overflow: hidden; border: 1px solid var(--line); background: var(--mist); }
+.u-card:hover .u-im img { transform: scale(1.03); }
+.u-card .u-im img { transition: transform .4s ease; }
+.u-ph { width: 100%; height: 100%; display: grid; place-items: center; color: var(--violet); }
+.u-ph .icon { width: 40px; height: 40px; }
+.u-card h4 { font-size: 15.5px; line-height: 1.45; margin: 10px 0 2px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.u-by { font-size: 12.5px; color: var(--text-3); }
+.u-rate { display: flex; align-items: center; gap: 5px; font-size: 13px; margin-top: 3px; color: var(--text-3); }
+.u-rate b { color: var(--star); }
+.u-rate .st { color: var(--line-2); letter-spacing: 1px; font-size: 12px; direction: ltr; }
+.u-rate .st i { font-style: normal; }
+.u-rate .st i.on { color: var(--star); }
+.u-new { font-size: 11.5px; font-weight: 700; color: var(--violet); background: var(--mist); border-radius: 4px; padding: 1px 7px; }
+.u-price { font-weight: 700; font-size: 15.5px; margin-top: 3px; color: var(--text); }
+.u-price del { font-weight: 400; font-size: 13px; color: var(--text-3); margin-inline-start: 6px; }
+.u-badge { display: inline-block; font-size: 11.5px; font-weight: 700; background: #FFF2D6; color: #7A4C00; border-radius: 4px; padding: 1px 8px; margin-top: 6px; }
+.u-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(330px, 1fr)); column-gap: 28px; }
+.u-li { display: flex; gap: 14px; padding: 12px 0; border-bottom: 1px solid var(--line); color: var(--text); }
+.u-li .u-im { width: 120px; height: 72px; border-radius: 10px; overflow: hidden; flex: none; background: var(--mist); }
+.u-li h4 { font-size: 15px; margin: 0; line-height: 1.45; }
+
+/* ---------- صفحة الكورس ---------- */
+.u-course { display: grid; grid-template-columns: minmax(0, 1fr) 360px; gap: 40px; padding-top: 24px; padding-bottom: 56px; align-items: start; }
+.u-video { position: relative; aspect-ratio: 16 / 9; border-radius: 16px; overflow: hidden; background: #0B0A10; }
+.u-video img { width: 100%; height: 100%; object-fit: cover; }
+.u-pl { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; background: rgba(0, 0, 0, .28); color: #fff; }
+.u-pl span { width: 66px; height: 66px; border-radius: 66px; background: #fff; color: #1C1D1F; display: grid; place-items: center; transition: transform .2s; }
+.u-pl:hover span { transform: scale(1.06); }
+.u-pl span .icon { width: 26px; height: 26px; transform: scaleX(-1); }
+.u-pl em { font-style: normal; font-weight: 700; font-size: 14px; text-shadow: 0 1px 6px rgba(0, 0, 0, .5); }
+.u-course .crumbs { margin: 18px 0 2px; font-size: 13px; font-weight: 700; display: flex; align-items: center; gap: 4px; }
+.u-h1 { font-size: clamp(24px, 3.2vw, 34px); line-height: 1.4; margin: 4px 0 6px; }
+.u-ds { color: var(--text-2); font-size: 16px; margin: 0 0 8px; }
+.u-meta { display: flex; flex-wrap: wrap; gap: 6px 16px; align-items: center; font-size: 13.5px; color: var(--text-3); margin-top: 6px; }
+.u-meta .u-rate { margin: 0; }
+.u-ins-line { font-size: 14px; margin-top: 8px; }
+.u-ins-line a { font-weight: 700; }
+.u-box { border: 1px solid var(--line); border-radius: 16px; padding: 20px; margin-top: 20px; background: var(--card); }
+.u-box h3 { font-size: 18.5px; margin: 0 0 12px; }
+.u-learn { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 22px; }
+.u-learn li { display: flex; gap: 10px; font-size: 14.5px; line-height: 1.6; }
+.u-learn .icon { width: 18px; height: 18px; margin-top: 3px; color: var(--text); }
+.u-inc { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px 16px; font-size: 14px; }
+.u-inc span { display: flex; gap: 8px; align-items: center; }
+.u-inc .icon { width: 18px; height: 18px; color: var(--violet); }
+.u-box .curriculum { margin-top: 12px; }
+.u-ins { display: flex; gap: 14px; align-items: center; }
+.u-ins img, .u-ins .ph { width: 64px; height: 64px; border-radius: 64px; object-fit: cover; flex: none; }
+.u-ins .ph { background: linear-gradient(140deg, #6A45E6, #3A1F9A); color: #fff; display: grid; place-items: center; font-weight: 700; font-size: 24px; }
+.u-ins strong { font-size: 17px; color: var(--violet); }
+.u-ins-stats { display: flex; gap: 18px; flex-wrap: wrap; margin-top: 12px; font-size: 13.5px; color: var(--text-3); }
+.u-ins-stats b { color: var(--text); }
+.u-bio { margin: 12px 0 0; font-size: 14.5px; color: var(--text-2); line-height: 1.8; white-space: pre-line; }
+.u-rv-sum { display: flex; gap: 26px; align-items: center; padding-bottom: 14px; border-bottom: 1px solid var(--line); margin-bottom: 6px; }
+.u-rv-sum .big { text-align: center; display: flex; flex-direction: column; align-items: center; }
+.u-rv-sum .big > b { font-size: 46px; line-height: 1; color: var(--star); }
+.u-rv-sum .bars { flex: 1; display: grid; gap: 4px; }
+.u-rv-sum .bars div { display: flex; gap: 10px; align-items: center; }
+.u-rv-sum .bars .u-bar { flex: 1; margin: 0; height: 7px; }
+.u-rv-sum .bars .u-bar i { background: var(--star); }
+.u-rv { padding: 14px 0; border-bottom: 1px solid var(--line); }
+.u-rv p { margin: 6px 0 2px; font-size: 14.5px; }
+.u-stars-s { color: var(--star); font-size: 13px; letter-spacing: 1px; }
+.u-stars-s i { color: var(--line-2); font-style: normal; }
+.u-rv-form { display: grid; gap: 10px; margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--line); justify-items: start; }
+.u-rv-form textarea { width: 100%; }
+.u-star-pick { display: inline-flex; flex-direction: row-reverse; direction: ltr; gap: 2px; }
+.u-star-pick input { position: absolute; opacity: 0; pointer-events: none; }
+.u-star-pick label { font-size: 30px; color: var(--line-2); cursor: pointer; line-height: 1; }
+.u-star-pick input:checked ~ label, .u-star-pick label:hover, .u-star-pick label:hover ~ label { color: var(--star); }
+.u-star-pick input:focus-visible + label { outline: 2px solid var(--violet); border-radius: 4px; }
+.u-side { position: sticky; top: 84px; }
+.u-buy { border-radius: 18px; border: 1px solid var(--line); box-shadow: 0 10px 30px rgba(28, 20, 70, .08); background: var(--card); }
+.u-buy .buy-body { padding: 22px; }
+.u-buy .buy-price { font-family: var(--font-head); font-size: 30px; font-weight: 700; }
+.u-checks { list-style: none; padding: 14px 0 0; margin: 16px 0 0; border-top: 1px solid var(--line); display: grid; gap: 8px; font-size: 14px; }
+.u-checks li { display: flex; gap: 8px; align-items: center; }
+.u-checks .icon { width: 17px; height: 17px; color: var(--success); }
+.ga-buybar b { font-family: var(--font-head); font-size: 20px; display: block; }
+.ga-buybar small { margin: 0; }
+.ga-buybar .btn { border-radius: 12px; }
+
+/* ---------- أسئلة الدرس ---------- */
+.u-qa { margin-top: 28px; }
+.u-qa h2 { font-size: 20px; }
+.u-qa-form { display: grid; gap: 10px; justify-items: start; margin-bottom: 8px; }
+.u-qa-form textarea { width: 100%; }
+.u-q { border-top: 1px solid var(--line); padding: 14px 0; }
+.u-q p { margin: 6px 0; white-space: pre-line; }
+.u-a { background: var(--mist); border-radius: 12px; padding: 12px 14px; margin-top: 8px; }
+.u-a b { color: var(--violet); font-size: 13px; }
+.u-a p { margin: 4px 0 0; }
+
+/* ---------- البتن بار: زجاج آبل عائم ---------- */
+@media (max-width: 760px) {
+  .tabbar { left: 14px; right: 14px; bottom: calc(14px + env(safe-area-inset-bottom)); border-radius: 32px; padding: 5px; height: auto;
+    background: rgba(255, 255, 255, .62) !important; backdrop-filter: blur(22px) saturate(190%); -webkit-backdrop-filter: blur(22px) saturate(190%);
+    border: 1px solid rgba(255, 255, 255, .75); box-shadow: 0 10px 30px rgba(28, 20, 70, .16), inset 0 1px 0 rgba(255, 255, 255, .9); }
+  html.dark .tabbar { background: rgba(30, 30, 38, .62) !important; border-color: rgba(255, 255, 255, .12); box-shadow: 0 10px 30px rgba(0, 0, 0, .4), inset 0 1px 0 rgba(255, 255, 255, .08); }
+  .tabbar a { border-radius: 27px; padding: 8px 0; font-size: 11px; color: var(--text-2); }
+  .tabbar a.active { background: rgba(90, 53, 214, .11); color: var(--violet); font-weight: 700; }
+  .u-course { grid-template-columns: 1fr; gap: 0; padding-top: 0; }
+  .u-course .u-video { margin: 0 -20px; border-radius: 0; }
+  .u-side { position: static; order: 2; margin-top: 20px; }
+  .u-learn, .u-inc { grid-template-columns: 1fr 1fr; }
+  .u-learn { grid-template-columns: 1fr; }
+  .u-list { grid-template-columns: 1fr; }
+  .u-row { grid-auto-columns: 240px; margin: 0 -20px; padding: 0 20px 4px; scroll-padding: 0 20px; }
+  .u-rv-sum { gap: 16px; }
+  .ga-buybar { background: rgba(255, 255, 255, .9); }
+  html.dark .ga-buybar { background: rgba(23, 23, 30, .9); }
+}

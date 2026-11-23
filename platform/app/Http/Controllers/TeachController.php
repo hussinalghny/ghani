@@ -60,6 +60,32 @@ class TeachController extends Controller
 
         $recent = Enrollment::with(['user:id,name', 'course:id,title'])->whereIn('course_id', $courseIds)->latest()->limit(15)->get();
 
-        return view('teach.index', compact('instructor', 'profiles', 'percent', 'courses', 'stats', 'months', 'sources', 'recent'));
+        $questions = \App\Models\LessonQuestion::with(['user:id,name', 'lesson:id,title', 'course:id,title'])
+            ->whereIn('course_id', $courseIds)->whereNull('answered_at')->oldest()->limit(30)->get();
+        $reviews = \App\Models\CourseReview::with(['user:id,name', 'course:id,title'])->whereIn('course_id', $courseIds)->latest()->limit(10)->get();
+
+        return view('teach.index', compact('instructor', 'profiles', 'percent', 'courses', 'stats', 'months', 'sources', 'recent', 'questions', 'reviews'));
+    }
+
+    /** المدرب (أو الأدمن) يجاوب سؤال طالب على درس */
+    public function answer(Request $request, \App\Models\LessonQuestion $question)
+    {
+        $user = $request->user();
+        abort_unless($user->isAdmin() || $question->course?->instructor?->user_id === $user->id, 403);
+        $data = $request->validate(['answer' => ['required', 'string', 'min:2', 'max:3000']]);
+        $question->forceFill(['answer' => $data['answer'], 'answered_by' => $user->id, 'answered_at' => now()])->save();
+        \App\Services\Community::notifyStudent($question);
+
+        return back()->with('success', 'وصل جوابك للطالب.');
+    }
+
+    /** إخفاء/إظهار تقييم (للأدمن) */
+    public function toggleReview(Request $request, \App\Models\CourseReview $review)
+    {
+        abort_unless($request->user()->isAdmin(), 403);
+        $review->forceFill(['is_visible' => ! $review->is_visible])->save();
+        \App\Models\CourseReview::refresh($review->course);
+
+        return back()->with('success', $review->is_visible ? 'التقييم ظاهر.' : 'التقييم مخفي.');
     }
 }

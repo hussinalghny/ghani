@@ -17,6 +17,8 @@ class Course extends Model
         'has_certificate' => 'boolean',
         'price' => 'integer',
         'sale_price' => 'integer',
+        'rating_avg' => 'float',
+        'rating_count' => 'integer',
     ];
 
     public const LEVELS = [
@@ -24,6 +26,23 @@ class Course extends Model
         'intermediate' => 'متوسط',
         'advanced' => 'متقدم',
     ];
+
+    protected static function booted(): void
+    {
+        static::saved(fn () => cache()->forget('api.home'));
+        static::deleted(fn () => cache()->forget('api.home'));
+    }
+
+    /** نسخة مصغرة من الغلاف (480px) للقوائم: أخف بكثير على الموبايل */
+    public function thumbUrl(): ?string
+    {
+        if (! $this->cover) {
+            return null;
+        }
+        $name = 'thumbs/c'.$this->id.'-'.substr(md5($this->cover), 0, 8).'.jpg';
+
+        return is_file(storage_path('app/public/'.$name)) ? asset('storage/'.$name) : route('thumb', $this->id);
+    }
 
     public function getRouteKeyName(): string
     {
@@ -58,6 +77,16 @@ class Course extends Model
     public function enrollments(): HasMany
     {
         return $this->hasMany(Enrollment::class);
+    }
+
+    public function reviews(): HasMany
+    {
+        return $this->hasMany(CourseReview::class);
+    }
+
+    public function questions(): HasMany
+    {
+        return $this->hasMany(LessonQuestion::class);
     }
 
     /** السعر الفعلي بعد الخصم */

@@ -73,6 +73,31 @@
             </a>
         @endif
 
+        @if ($enrolled)
+            <section class="u-qa" id="qa">
+                <h2>أسئلة الدرس</h2>
+                <form method="POST" action="{{ route('learn.ask', $lesson) }}" class="u-qa-form">
+                    @csrf
+                    <label class="sr-only" for="qbody">سؤالك</label>
+                    <textarea class="input" id="qbody" name="body" rows="2" minlength="5" maxlength="1500" required placeholder="عندك سؤال عن هذا الدرس؟ اكتبه والمدرب يجاوبك"></textarea>
+                    <button class="btn btn-primary btn-sm" type="submit">إرسال السؤال</button>
+                </form>
+                @forelse ($questions as $q)
+                    <div class="u-q">
+                        <div class="row-between"><strong>{{ $q->user_id === auth()->id() ? 'سؤالك' : \Illuminate\Support\Str::of($q->user?->name)->explode(' ')->first() }}</strong><span class="tiny">{{ $q->created_at->diffForHumans() }}</span></div>
+                        <p>{{ $q->body }}</p>
+                        @if ($q->answer)
+                            <div class="u-a"><b>جواب المدرب</b><p>{{ $q->answer }}</p></div>
+                        @else
+                            <span class="tiny">بانتظار جواب المدرب</span>
+                        @endif
+                    </div>
+                @empty
+                    <p class="tiny">ما أكو أسئلة بعد. كن أول من يسأل.</p>
+                @endforelse
+            </section>
+        @endif
+
         <div class="lesson-nav">
             @if ($prev)
                 <a class="btn btn-plain" href="{{ route('learn.show', [$course, $prev]) }}">@include('partials.icon', ['n' => 'chev-right', 'class' => 'icon icon-sm']) السابق</a>

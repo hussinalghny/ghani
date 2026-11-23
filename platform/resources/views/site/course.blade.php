@@ -1,97 +1,51 @@
 @extends('layouts.app')
 @section('title', $course->title)
 @section('description', $course->subtitle)
-@section('body_class', 'is-course')
+@section('body_class', 'is-course v4-course')
 
 @section('content')
-<section class="course-hero">
-    <div class="container course-hero-grid">
-        <div>
-            <div class="crumbs">
-                <a href="{{ route('courses.index') }}">الكورسات</a>
-                @include('partials.icon', ['n' => 'chev-left', 'class' => 'icon icon-sm'])
-                <a href="{{ route('courses.category', $course->category) }}">{{ $course->category->name }}</a>
+<div class="container u-course">
+    <div class="u-cmain">
+        <div class="u-video">
+            @if ($course->coverUrl())<img src="{{ $course->coverUrl() }}" alt="">@endif
+            @php($preview = $course->sections->flatMap->lessons->firstWhere('is_free_preview', true))
+            @if ($preview || $enrolled)
+                <a class="u-pl" href="{{ route('learn.show', $enrolled ? [$course] : [$course, $preview]) }}" aria-label="تشغيل"><span>@include('partials.icon', ['n' => 'play'])</span><em>{{ $enrolled ? 'كمل التعلم' : 'شاهد درس المعاينة' }}</em></a>
+            @endif
+        </div>
+
+        <div class="crumbs"><a href="{{ route('courses.index') }}">الكورسات</a> @include('partials.icon', ['n' => 'chev-left', 'class' => 'icon icon-sm']) <a href="{{ route('courses.category', $course->category) }}">{{ $course->category->name }}</a></div>
+        <h1 class="u-h1">{{ $course->title }}</h1>
+        @if ($course->subtitle)<p class="u-ds">{{ $course->subtitle }}</p>@endif
+        <div class="u-meta">
+            @include('partials.stars', ['course' => $course])
+            @if ($course->rating_count)<span><span class="ltr">{{ $course->rating_count }}</span> تقييم</span>@endif
+            @if ($students)<span><span class="ltr">{{ number_format($students) }}</span> طالب</span>@endif
+        </div>
+        @if ($course->instructor)<div class="u-ins-line">المدرب: <a href="#instructor">{{ $course->instructor->name }}</a></div>@endif
+        <div class="u-meta tiny"><span>آخر تحديث {{ $course->updated_at?->translatedFormat('F Y') }}</span><span>عربي</span></div>
+
+        @if ($course->outcomesList())
+            <div class="u-box">
+                <h3>شنو راح تتعلم</h3>
+                <ul class="u-learn">@foreach ($course->outcomesList() as $o)<li>@include('partials.icon', ['n' => 'check']) <span>{{ $o }}</span></li>@endforeach</ul>
             </div>
-            <h1>{{ $course->title }}<span class="dot">.</span></h1>
-            @if ($course->subtitle)<p class="lead">{{ $course->subtitle }}</p>@endif
-            <div class="chips">
-                <span class="chip">@include('partials.icon', ['n' => 'play-circle']) <span class="ltr">{{ $lessonsCount }}</span> درس</span>
-                @if ($totalDuration)<span class="chip">@include('partials.icon', ['n' => 'clock']) {{ duration_human($totalDuration) }}</span>@endif
-                @if ($course->duration_label)<span class="chip">@include('partials.icon', ['n' => 'layers']) {{ $course->duration_label }}</span>@endif
-                <span class="chip">@include('partials.icon', ['n' => 'chart']) {{ $course->levelLabel() }}</span>
-                @if ($course->has_certificate)<span class="chip">@include('partials.icon', ['n' => 'award']) شهادة إتمام</span>@endif
+        @endif
+
+        <div class="u-box">
+            <h3>الكورس يشمل</h3>
+            <div class="u-inc">
+                @if ($totalDuration)<span>@include('partials.icon', ['n' => 'clock']) {{ duration_human($totalDuration) }} فيديو</span>@endif
+                <span>@include('partials.icon', ['n' => 'play-circle']) <span class="ltr">{{ $lessonsCount }}</span> درس</span>
+                @if ($course->has_certificate)<span>@include('partials.icon', ['n' => 'award']) شهادة إتمام</span>@endif
+                <span>@include('partials.icon', ['n' => 'layers']) موبايل وكمبيوتر</span>
+                <span>@include('partials.icon', ['n' => 'chart']) {{ $course->levelLabel() }}</span>
+                <span>@include('partials.icon', ['n' => 'check']) وصول {{ $course->access_days ? $course->access_days.' يوم' : 'دائم' }}</span>
             </div>
         </div>
 
-        <aside class="buy-card" id="buy">
-            @include('partials.cover', ['course' => $course, 'showTag' => false])
-            <div class="buy-body">
-                @if ($enrolled)
-                    <div class="row-between" style="margin-bottom:10px"><strong>تقدمك</strong><span class="ltr">{{ $progress }}%</span></div>
-                    <div class="progress" style="margin-bottom:18px"><span style="width: {{ $progress }}%"></span></div>
-                    <a href="{{ route('learn.show', $course) }}" class="btn btn-primary btn-block">{{ $progress ? 'أكمل من حيث توقفت' : 'ابدأ الدرس الأول' }}</a>
-                    @if ($course->instructor?->user_id)
-                        <form method="POST" action="{{ route('chat.instructor', $course) }}" style="margin-top:8px">@csrf<button class="btn btn-plain btn-block" type="submit">@include('partials.icon', ['n' => 'mic', 'class' => 'icon icon-sm']) اسأل المدرب</button></form>
-                    @endif
-                @else
-                    <div class="buy-price">
-                        @if ($course->isFree()) مجاني
-                        @else <span class="ltr">{{ iqd($course->finalPrice(), false) }}</span> د.ع
-                            @if ($course->finalPrice() < $course->price)<small class="ltr">{{ iqd($course->price, false) }}</small>@endif
-                        @endif
-                    </div>
-                    @auth
-                        <p class="small muted" style="margin:6px 0 16px">رصيدك: <span class="ltr">{{ iqd(auth()->user()->balance, false) }}</span> د.ع</p>
-                        @if (auth()->user()->balance >= $course->finalPrice())
-                            <form method="POST" action="{{ route('courses.enroll', $course) }}" data-once data-confirm="{{ $course->isFree() ? 'تسجيل في الكورس؟' : 'سيتم خصم '.iqd($course->finalPrice()).' من رصيدك. متأكد؟' }}">
-                                @csrf
-                                <button class="btn btn-gold btn-block" type="submit">{{ $course->isFree() ? 'سجل مجانا' : 'اشترك الآن' }}</button>
-                            </form>
-                        @else
-                            @if (\App\Services\PaymentService::enabled())
-                                @include('partials.pay-methods', ['course' => $course])
-                                <p class="tiny" style="margin:10px 0 0;text-align:center">تحويل مباشر، والكورس ينفتح تلقائيا أول ما يوصل. أو</p>
-                                <a href="{{ route('wallet') }}" class="btn btn-plain btn-block" style="margin-top:6px">عندي قسيمة</a>
-                            @else
-                                <a href="{{ route('wallet') }}" class="btn btn-gold btn-block">اشحن رصيدك للاشتراك</a>
-                            @endif
-                            <p class="tiny" style="margin:10px 0 0;text-align:center">تحتاج <span class="ltr">{{ iqd($course->finalPrice() - auth()->user()->balance, false) }}</span> د.ع إضافية. عندك قسيمة؟ اكتبها بالمحفظة.</p>
-                        @endif
-                    @else
-                        <p class="small muted" style="margin:6px 0 16px">سجل حسابك واشحن رصيدك بقسيمة للاشتراك.</p>
-                        <a href="{{ route('register') }}" class="btn btn-gold btn-block">احجز مقعدك</a>
-                        <a href="{{ route('login') }}" class="btn btn-plain btn-block" style="margin-top:8px">عندي حساب</a>
-                    @endauth
-                @endif
-                <ul class="checks">
-                    <li>@include('partials.icon', ['n' => 'check']) وصول {{ $course->access_days ? 'لمدة '.$course->access_days.' يوم' : 'دائم' }} للدروس</li>
-                    <li>@include('partials.icon', ['n' => 'check']) مشاهدة من الموقع والتطبيق</li>
-                    @if ($course->has_certificate)<li>@include('partials.icon', ['n' => 'check']) شهادة إتمام قابلة للتحقق</li>@endif
-                </ul>
-            </div>
-        </aside>
-    </div>
-</section>
-
-<section class="section" style="padding-top:48px">
-    <div class="container content-grid">
-        <div class="stack" style="--gap:32px">
-            @if ($course->outcomesList())
-                <div>
-                    <h2 style="font-size:26px">ماذا ستتعلم<span class="dot">.</span></h2>
-                    <ul class="outcomes">
-                        @foreach ($course->outcomesList() as $o)
-                            <li>@include('partials.icon', ['n' => 'check']) <span>{{ $o }}</span></li>
-                        @endforeach
-                    </ul>
-                </div>
-            @endif
-
-            <div style="margin-top:36px">
-                <div class="row-between" style="margin-bottom:14px">
-                    <h2 style="font-size:26px;margin:0">محتوى الكورس<span class="dot">.</span></h2>
-                    <span class="small muted"><span class="ltr">{{ $course->sections->count() }}</span> فصل · <span class="ltr">{{ $lessonsCount }}</span> درس</span>
-                </div>
+        <div class="u-box" id="content">
+            <div class="row-between"><h3 style="margin:0">محتوى الكورس</h3><span class="tiny"><span class="ltr">{{ $course->sections->count() }}</span> أقسام · <span class="ltr">{{ $lessonsCount }}</span> درس</span></div>
                 <div class="curriculum">
                     @foreach ($course->sections as $i => $section)
                         <details @if ($i === 0) open @endif>
@@ -115,52 +69,116 @@
                         </details>
                     @endforeach
                 </div>
+        </div>
+
+        @if ($course->instructor)
+            @php($ins = $course->instructor)
+            <div class="u-box" id="instructor">
+                <h3>المدرب</h3>
+                <div class="u-ins">
+                    @if ($ins->photoUrl())<img src="{{ $ins->photoUrl() }}" alt="">@else<span class="ph">{{ mb_substr($ins->name, 0, 1) }}</span>@endif
+                    <div><strong>{{ $ins->name }}</strong>@if ($ins->title)<div class="tiny">{{ $ins->title }}</div>@endif</div>
+                </div>
+                <div class="u-ins-stats">
+                    @php($insCourses = $ins->courses()->where('is_published', true)->count())
+                    <span><b class="ltr">{{ $insCourses }}</b> {{ $insCourses == 1 ? 'كورس' : 'كورسات' }}</span>
+                    @if ($course->rating_count)<span><b class="ltr">{{ number_format($course->rating_avg, 1) }}</b> تقييم</span>@endif
+                    @if ($students)<span><b class="ltr">{{ number_format($students) }}</b> طالب</span>@endif
+                </div>
+                @if ($ins->bio)<p class="u-bio">{{ $ins->bio }}</p>@endif
             </div>
+        @endif
 
-            @if ($course->description)
-                <div style="margin-top:36px">
-                    <h2 style="font-size:26px">عن الكورس<span class="dot">.</span></h2>
-                    <div class="prose">{{ $course->description }}</div>
+        <div class="u-box" id="reviews">
+            <h3>آراء الطلاب</h3>
+            @if ($course->rating_count)
+                <div class="u-rv-sum">
+                    <div class="big"><b class="ltr">{{ number_format($course->rating_avg, 1) }}</b>@include('partials.stars', ['course' => $course])<span class="tiny">تقييم الكورس</span></div>
+                    <div class="bars">@foreach ($breakdown as $b)<div><span class="u-bar"><i style="width:{{ $b['percent'] }}%"></i></span><span class="ltr tiny">{{ $b['stars'] }}★ {{ $b['percent'] }}%</span></div>@endforeach</div>
                 </div>
-            @endif
-        </div>
-
-        <div>
-            @if ($course->instructor)
-                <h2 style="font-size:20px">المدرب</h2>
-                <div class="instructor">
-                    @if ($course->instructor->photoUrl())
-                        <img class="ph" src="{{ $course->instructor->photoUrl() }}" alt="">
-                    @else
-                        <span class="ph">{{ mb_substr($course->instructor->name, 0, 1) }}</span>
-                    @endif
-                    <div>
-                        <strong>{{ $course->instructor->name }}</strong>
-                        @if ($course->instructor->title)<div class="small muted">{{ $course->instructor->title }}</div>@endif
+                @foreach ($reviews as $r)
+                    <div class="u-rv">
+                        <div class="row-between"><strong>{{ \Illuminate\Support\Str::of($r->user?->name)->explode(' ')->first() }}</strong><span class="u-stars-s ltr">{{ str_repeat('★', $r->rating) }}<i>{{ str_repeat('★', 5 - $r->rating) }}</i></span></div>
+                        @if ($r->body)<p>{{ $r->body }}</p>@endif
+                        <span class="tiny">{{ $r->created_at->diffForHumans() }}</span>
                     </div>
-                </div>
-                @if ($course->instructor->bio)<p class="small muted" style="margin-top:12px">{{ $course->instructor->bio }}</p>@endif
+                @endforeach
+            @else
+                <p class="muted small">هذا كورس جديد. أول الطلاب يكتبون آرائهم بعد ما يكملون <span class="ltr">{{ \App\Services\Community::REVIEW_MIN_PROGRESS }}%</span> منه.</p>
             @endif
-
-            @if ($related->isNotEmpty())
-                <h2 style="font-size:20px;margin-top:32px">كورسات من نفس المجال</h2>
-                <div class="stack">
-                    @foreach ($related as $r)
-                        <a href="{{ route('courses.show', $r) }}" class="list-row" style="color:inherit">
-                            <span class="cat-icon" style="width:44px;height:44px">@include('partials.icon', ['n' => $course->category->icon])</span>
-                            <span><strong style="display:block">{{ $r->title }}</strong><span class="tiny"><span class="ltr">{{ iqd($r->finalPrice(), false) }}</span> د.ع</span></span>
-                        </a>
-                    @endforeach
-                </div>
+            @if ($canReview)
+                <form method="POST" action="{{ route('courses.review', $course) }}" class="u-rv-form">
+                    @csrf
+                    <strong>{{ $myReview ? 'عدل تقييمك' : 'قيم الكورس' }}</strong>
+                    <div class="u-star-pick">@for ($i = 5; $i >= 1; $i--)<input type="radio" id="st{{ $i }}" name="rating" value="{{ $i }}" @checked(($myReview->rating ?? 5) == $i) required><label for="st{{ $i }}" title="{{ $i }}">★</label>@endfor</div>
+                    <label class="sr-only" for="rvb">رأيك</label>
+                    <textarea class="input" id="rvb" name="body" rows="3" maxlength="1000" placeholder="شنو عجبك بالكورس؟ (اختياري)">{{ $myReview->body ?? '' }}</textarea>
+                    <button class="btn btn-primary btn-sm" type="submit">إرسال التقييم</button>
+                </form>
+            @elseif ($enrolled)
+                <p class="tiny" style="margin-top:12px">تقدر تقيم الكورس بعد ما تكمل <span class="ltr">{{ \App\Services\Community::REVIEW_MIN_PROGRESS }}%</span> منه.</p>
             @endif
         </div>
+
+        @if ($course->description)
+            <div class="u-box"><h3>عن الكورس</h3><div class="prose">{{ $course->description }}</div></div>
+        @endif
     </div>
-</section>
+
+    <aside class="u-side">
+        <div class="buy-card u-buy" id="buy">
+            <div class="buy-body">
+                @if ($enrolled)
+                    <div class="row-between" style="margin-bottom:10px"><strong>تقدمك</strong><span class="ltr">{{ $progress }}%</span></div>
+                    <div class="progress" style="margin-bottom:18px"><span style="width: {{ $progress }}%"></span></div>
+                    <a href="{{ route('learn.show', $course) }}" class="btn btn-primary btn-block">{{ $progress ? 'أكمل من حيث توقفت' : 'ابدأ الدرس الأول' }}</a>
+                    @if ($course->instructor?->user_id)
+                        <form method="POST" action="{{ route('chat.instructor', $course) }}" style="margin-top:8px">@csrf<button class="btn btn-plain btn-block" type="submit">@include('partials.icon', ['n' => 'mic', 'class' => 'icon icon-sm']) اسأل المدرب</button></form>
+                    @endif
+                @else
+                    <div class="buy-price">
+                        @if ($course->isFree()) مجاني
+                        @else <span class="ltr">{{ iqd($course->finalPrice(), false) }}</span> د.ع
+                            @if ($course->finalPrice() < $course->price)<small class="ltr">{{ iqd($course->price, false) }}</small>@endif
+                        @endif
+                    </div>
+                    @auth
+                        <p class="small muted" style="margin:6px 0 16px">رصيدك: <span class="ltr">{{ iqd(auth()->user()->balance, false) }}</span> د.ع</p>
+                        @if (auth()->user()->balance >= $course->finalPrice())
+                            <form method="POST" action="{{ route('courses.enroll', $course) }}" data-once data-confirm="{{ $course->isFree() ? 'تسجيل في الكورس؟' : 'سيتم خصم '.iqd($course->finalPrice()).' من رصيدك. متأكد؟' }}">
+                                @csrf
+                                <button class="btn btn-primary btn-block" type="submit">{{ $course->isFree() ? 'سجل مجانا' : 'سجل الآن' }}</button>
+                            </form>
+                        @else
+                            @if (\App\Services\PaymentService::enabled())
+                                @include('partials.pay-methods', ['course' => $course])
+                                <p class="tiny" style="margin:10px 0 0;text-align:center">تحويل مباشر، والكورس ينفتح تلقائيا أول ما يوصل. أو</p>
+                                <a href="{{ route('wallet') }}" class="btn btn-plain btn-block" style="margin-top:6px">عندي قسيمة</a>
+                            @else
+                                <a href="{{ route('wallet') }}" class="btn btn-primary btn-block">اشحن رصيدك للاشتراك</a>
+                            @endif
+                            <p class="tiny" style="margin:10px 0 0;text-align:center">تحتاج <span class="ltr">{{ iqd($course->finalPrice() - auth()->user()->balance, false) }}</span> د.ع إضافية. عندك قسيمة؟ اكتبها بالمحفظة.</p>
+                        @endif
+                    @else
+                        <p class="small muted" style="margin:6px 0 16px">سجل حسابك واشحن رصيدك بقسيمة للاشتراك.</p>
+                        <a href="{{ route('register') }}" class="btn btn-primary btn-block">احجز مقعدك</a>
+                        <a href="{{ route('login') }}" class="btn btn-plain btn-block" style="margin-top:8px">عندي حساب</a>
+                    @endauth
+                @endif
+                <ul class="u-checks">
+                    <li>@include('partials.icon', ['n' => 'check']) وصول {{ $course->access_days ? 'لمدة '.$course->access_days.' يوم' : 'دائم' }}</li>
+                    <li>@include('partials.icon', ['n' => 'check']) مشاهدة من الموبايل والكمبيوتر</li>
+                    @if ($course->has_certificate)<li>@include('partials.icon', ['n' => 'check']) شهادة إتمام قابلة للتحقق</li>@endif
+                </ul>
+            </div>
+        </div>
+    </aside>
+</div>
 
 @unless ($enrolled)
 <div class="ga-buybar">
-    <div><small>سعر الكورس</small><b>@if ($course->isFree())مجاني@else<span class="ltr">{{ iqd($course->finalPrice(), false) }}</span> د.ع@endif</b></div>
-    <a class="btn btn-gold" href="#buy">{{ $course->isFree() ? 'سجل مجانا' : 'اشترك الآن' }}</a>
+    <div><b>@if ($course->isFree())مجاني@else<span class="ltr">{{ iqd($course->finalPrice(), false) }}</span> د.ع@endif</b><small>وصول كامل + شهادة</small></div>
+    <a class="btn btn-primary" href="#buy">سجل الآن</a>
 </div>
 @endunless
 @endsection

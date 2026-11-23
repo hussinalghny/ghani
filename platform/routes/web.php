@@ -18,6 +18,7 @@ Route::get('/category/{category}', [CourseController::class, 'category'])->name(
 Route::get('/course/{course}', [CourseController::class, 'show'])->name('courses.show');
 // رابط موقع لمدة 10 دقائق يحمل رقم الطالب، يشتغل للموقع والتطبيق
 Route::get('/file/{lesson}', [LearnController::class, 'download'])->name('learn.file')->middleware(['signed', 'throttle:30,1']);
+Route::get('/thumb/{id}', App\Http\Controllers\ThumbController::class)->name('thumb')->whereNumber('id')->middleware('throttle:120,1');
 Route::get('/app', [App\Http\Controllers\AppDownloadController::class, 'show'])->name('app');
 Route::get('/app/download/{platform}', [App\Http\Controllers\AppDownloadController::class, 'download'])->name('app.download')->middleware('throttle:20,1');
 Route::get('/verify/{certificate}', [CertificateController::class, 'show'])->name('certificates.show');
@@ -45,6 +46,8 @@ Route::middleware('auth')->group(function () {
     Route::post('/messages/{conversation}', [App\Http\Controllers\ChatController::class, 'send'])->name('chat.send')->middleware('throttle:30,1');
 
     Route::post('/course/{course}/enroll', [CourseController::class, 'enroll'])->name('courses.enroll');
+    Route::post('/course/{course}/review', [CourseController::class, 'review'])->name('courses.review')->middleware('throttle:10,1');
+    Route::post('/learn/lesson/{lesson}/ask', [LearnController::class, 'ask'])->name('learn.ask')->middleware('throttle:10,1');
 
     Route::get('/learn/{course}/{lesson?}', [LearnController::class, 'show'])->name('learn.show');
     Route::post('/learn/lesson/{lesson}/progress', [LearnController::class, 'progress'])->name('learn.progress');
@@ -100,6 +103,8 @@ Route::middleware(['auth', 'role:admin,instructor', 'course.owner'])->prefix('ad
 
 // ---------- لوحة المدرب ----------
 Route::middleware(['auth', 'role:admin,instructor'])->get('/teach', [App\Http\Controllers\TeachController::class, 'index'])->name('teach');
+Route::middleware(['auth', 'role:admin,instructor'])->post('/teach/questions/{question}', [App\Http\Controllers\TeachController::class, 'answer'])->name('teach.answer');
+Route::middleware(['auth', 'role:admin'])->post('/teach/reviews/{review}', [App\Http\Controllers\TeachController::class, 'toggleReview'])->name('teach.review');
 
 // ---------- لوحة التحكم ----------
 Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->group(function () {

@@ -1,20 +1,18 @@
 <!DOCTYPE html>
-<html lang="ar" dir="rtl" class="dark">
+<html lang="ar" dir="rtl">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <meta name="theme-color" content="#000000">
-    <script>try{if(localStorage.getItem('ga-theme')==='light')document.documentElement.classList.remove('dark')}catch(e){}</script>
+    <meta name="theme-color" content="#FFFFFF">
+    <script>try{if(localStorage.getItem('ga-theme')==='dark')document.documentElement.classList.add('dark')}catch(e){}</script>
     <title>@hasSection('title')@yield('title') · @endif غني أكاديمي</title>
     <meta name="description" content="@yield('description', 'غني أكاديمي: كورسات تقنية عملية في الأمن السيبراني وبرمجة المواقع والتطبيقات. تعلم. طبق. اشتغل.')">
     <link rel="icon" href="{{ asset('favicon.png') }}">
     <link rel="apple-touch-icon" href="{{ asset('img/icon.png') }}">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Alexandria:wght@700;800&family=Readex+Pro:wght@400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{{ asset('css/app.css') }}?v=3">
     <link rel="stylesheet" href="{{ asset('css/theme.css') }}?v=5">
+    <link rel="stylesheet" href="{{ asset('css/v4.css') }}?v=1">
     @stack('head')
 </head>
 @php($user = auth()->user())
@@ -118,8 +116,8 @@
 
     @auth
     <nav class="tabbar" aria-label="التنقل السريع">
-        <a href="{{ route('home') }}" @class(['active' => request()->routeIs('home')])>@include('partials.icon', ['n' => 'home'])اكتشف</a>
-        <a href="{{ route('courses.index') }}" @class(['active' => request()->routeIs('courses.*')])>@include('partials.icon', ['n' => 'search'])الكورسات</a>
+        <a href="{{ route('home') }}" @class(['active' => request()->routeIs('home')])>@include('partials.icon', ['n' => 'home'])الرئيسية</a>
+        <a href="{{ route('courses.index') }}" @class(['active' => request()->routeIs('courses.*')])>@include('partials.icon', ['n' => 'search'])بحث</a>
         <a href="{{ route('account') }}" @class(['active' => request()->routeIs('account', 'learn.*')])>@include('partials.icon', ['n' => 'play-circle'])مساري</a>
         <a href="{{ route('wallet') }}" @class(['active' => request()->routeIs('wallet')])>@include('partials.icon', ['n' => 'wallet'])المحفظة</a>
         <a href="{{ route('account.settings') }}" @class(['active' => request()->routeIs('account.settings', 'certificates.*')])>@include('partials.icon', ['n' => 'user'])حسابي</a>
