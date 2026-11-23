@@ -59,7 +59,10 @@ Widget app(Widget home) => MaterialApp(
     );
 
 void main() {
-  setUpAll(_fonts);
+  setUpAll(() async {
+    kDesktop = false;
+    await _fonts();
+  });
 
   final c1 = course(1, 'الدفاع الذكي: الأمن السيبراني بالذكاء الاصطناعي', 200000, rating: 4.9, count: 31);
   final c2 = course(2, 'برمجة المواقع من الصفر للاحتراف', 150000, rating: 4.7, count: 12);
@@ -119,5 +122,17 @@ void main() {
     await expectLater(find.byType(MaterialApp).first, matchesGoldenFile('shots/course-2.png'));
 
     await shot(t, app(const Shell()), 'home-dark', dark: true);
+
+    Api.i.token = 'x';
+    Api.i.loggedIn.value = true;
+    ResCache.put('u:home', {'popular': [c1, c2], 'latest': [c3], 'categories': [], 'continue': {'course': c1, 'lesson': {'id': 7, 'title': 'الدرس 7: كشف الهجمات'}, 'progress': 58}});
+    await shot(t, app(const Shell()), 'home-user');
+    ResCache.put('u:my', [
+      [{'course': c1, 'progress': 58}, {'course': c2, 'progress': 20}],
+      [],
+    ]);
+    tab.value = 2;
+    await shot(t, app(const Shell()), 'my');
+    tab.value = 0;
   });
 }

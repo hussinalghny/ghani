@@ -100,9 +100,19 @@ ThemeData buildTheme(bool dark) {
         disabledBackgroundColor: C.line,
         minimumSize: const Size.fromHeight(50),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        textStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15.5),
+        textStyle: const TextStyle(fontFamily: fontBody, fontWeight: FontWeight.w700, fontSize: 15.5),
       ),
     ),
+    outlinedButtonTheme: OutlinedButtonThemeData(
+      style: OutlinedButton.styleFrom(
+        foregroundColor: C.text,
+        side: BorderSide(color: C.line),
+        minimumSize: const Size(0, 46),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        textStyle: const TextStyle(fontFamily: fontBody, fontWeight: FontWeight.w700, fontSize: 14.5),
+      ),
+    ),
+    textButtonTheme: TextButtonThemeData(style: TextButton.styleFrom(textStyle: const TextStyle(fontFamily: fontBody, fontWeight: FontWeight.w700))),
     snackBarTheme: const SnackBarThemeData(behavior: SnackBarBehavior.floating),
     dividerColor: C.line,
     listTileTheme: ListTileThemeData(iconColor: C.accent, textColor: C.text),
@@ -563,7 +573,7 @@ String err(Object e) => e is ApiException ? e.message : 'حدث خطأ. أعد �
 
 
 /// نسخة الكمبيوتر (ويندوز/ماك)
-final bool kDesktop = !kIsWeb && (Platform.isWindows || Platform.isMacOS || Platform.isLinux);
+bool kDesktop = !kIsWeb && (Platform.isWindows || Platform.isMacOS || Platform.isLinux);
 
 /// شبكة تتوزع حسب عرض الشاشة (للكمبيوتر)
 class AutoGrid extends StatelessWidget {
