@@ -130,12 +130,24 @@ jobs:
           c=$(curl -s -o /dev/null -w '%{http_code}' -H 'Accept: application/json' http://127.0.0.1:8000/api/v1/payments/console/feed); echo "$c console unsigned"; [ "$c" = "401" ] || fail=1
           c=$(sreq POST /api/v1/payments/console/orders/$O3/approve '{}'); echo "$c console approve"
           R=$(php artisan tinker --execute='echo App\Models\PaymentOrder::find('$O3')->status."|".App\Models\PaymentOrder::find('$O3')->paid_by;' | tail -1); echo "approved: $R"; [ "$R" = "paid|admin" ] || fail=1
+          # لقطات HTML للتصميم (تنفتح محليا ويا ملفات public)
+          mkdir -p /tmp/snap && cp -r public/css public/img public/js /tmp/snap/
+          curl -s -c $J -b $J http://127.0.0.1:8000/ | sed 's#http://127.0.0.1:8000/##g' > /tmp/snap/home-user.html
+          curl -s http://127.0.0.1:8000/ | sed 's#http://127.0.0.1:8000/##g' > /tmp/snap/home-guest.html
+          curl -s http://127.0.0.1:8000/course/smart-defense | sed 's#http://127.0.0.1:8000/##g' > /tmp/snap/course-guest.html
+          curl -s http://127.0.0.1:8000/courses | sed 's#http://127.0.0.1:8000/##g' > /tmp/snap/courses.html
           # حذف الحساب من التطبيق
           c=$(curl -s -o /tmp/out -w '%{http_code}' -X DELETE -H 'Accept: application/json' -H 'Content-Type: application/json' -H "Authorization: Bearer $T" -d '{"password":"12345678"}' http://127.0.0.1:8000/api/v1/me); echo "$c delete account"; [ "$c" = "200" ] || { fail=1; cat /tmp/out; }
           grep -i "error" storage/logs/*.log | head -20 || true
           kill %1 || true
           rm -f .env database/database.sqlite; rm -rf storage/logs/*.log bootstrap/cache/*.php storage/framework/views/*.php
           exit $fail
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: design-snapshots
+          path: /tmp/snap
+          retention-days: 3
       - run: zip -qr ../ghani-academy-ready.zip . -x ".env"
       - uses: actions/upload-artifact@v4
         with:
