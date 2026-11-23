@@ -10,9 +10,9 @@
     <meta name="description" content="@yield('description', 'غني أكاديمي: كورسات تقنية عملية في الأمن السيبراني وبرمجة المواقع والتطبيقات. تعلم. طبق. اشتغل.')">
     <link rel="icon" href="{{ asset('favicon.png') }}">
     <link rel="apple-touch-icon" href="{{ asset('img/icon.png') }}">
-    <link rel="stylesheet" href="{{ asset('css/app.css') }}?v=3">
-    <link rel="stylesheet" href="{{ asset('css/theme.css') }}?v=5">
-    <link rel="stylesheet" href="{{ asset('css/v4.css') }}?v=1">
+    <link rel="stylesheet" href="{{ asset('css/app.css') }}?v={{ @filemtime(public_path('css/app.css')) }}">
+    <link rel="stylesheet" href="{{ asset('css/theme.css') }}?v={{ @filemtime(public_path('css/theme.css')) }}">
+    <link rel="stylesheet" href="{{ asset('css/v4.css') }}?v={{ @filemtime(public_path('css/v4.css')) }}">
     @stack('head')
 </head>
 @php($user = auth()->user())
@@ -131,7 +131,7 @@
         document.querySelector('meta[name=theme-color]').content = dark ? '#000000' : '#FFFFFF';
     });
     </script>
-    <script src="{{ asset('js/app.js') }}?v=1" defer></script>
+    <script src="{{ asset('js/app.js') }}?v={{ @filemtime(public_path('js/app.js')) }}" defer></script>
     @stack('scripts')
 </body>
 </html>
