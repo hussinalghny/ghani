@@ -110,7 +110,7 @@ fi
 # شريط التبويبات الأصلي مال iOS (UITabBar): نفس شريط النظام وزجاجه بـ iOS 26
 if ! grep -q "GhaniTabBar.register" "$APPDEL"; then
   perl -0pi -e 's/(GeneratedPluginRegistrant\.register\(with: ([^)]+)\))/$1\n    GhaniTabBar.register(with: $2)/' "$APPDEL"
-  grep -v '^import ' tool/ios/GhaniTabBar.swift >> "$APPDEL"
+  grep -v '^import ' tool/swift/GhaniTabBar.swift >> "$APPDEL"
 fi
 grep -q "GhaniTabBar.register(with" "$APPDEL" || echo "WARNING: GhaniTabBar not registered"
 
