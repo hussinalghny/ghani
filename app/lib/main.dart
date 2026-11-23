@@ -95,7 +95,7 @@ class Shell extends StatelessWidget {
                   child: Center(
                     child: ConstrainedBox(
                       constraints: const BoxConstraints(maxWidth: 1120),
-                      child: IndexedStack(index: i, children: [for (final x in t) _nav(x.page, pad: 0)]),
+                      child: IndexedStack(index: i, children: [for (var n = 0; n < t.length; n++) _lazy(n, i, () => _nav(t[n].page, pad: 0))]),
                     ),
                   ),
                 ),
@@ -107,7 +107,7 @@ class Shell extends StatelessWidget {
         return Scaffold(
           extendBody: true,
           body: Stack(children: [
-            IndexedStack(index: i, children: [for (final x in t) _nav(x.page)]),
+            IndexedStack(index: i, children: [for (var n = 0; n < t.length; n++) _lazy(n, i, () => _nav(t[n].page))]),
             Positioned(
               left: 16,
               right: 16,
@@ -118,6 +118,15 @@ class Shell extends StatelessWidget {
         );
       },
     );
+  }
+
+  // التبويب ما ينبني إلا أول مرة ينفتح (حتى ما تنطلب كل الشاشات من السيرفر وقت فتح التطبيق)
+  static final _seen = <int>{};
+  static final _built = <int, Widget>{};
+  Widget _lazy(int n, int current, Widget Function() make) {
+    if (n == current) _seen.add(n);
+    if (!_seen.contains(n)) return const SizedBox.shrink();
+    return _built[n] ??= make();
   }
 
   // كل تبويب عنده Navigator خاص، ومساحة بالأسفل للشريط العائم
