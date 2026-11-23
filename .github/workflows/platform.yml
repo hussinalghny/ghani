@@ -9,6 +9,8 @@ on:
 jobs:
   package:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     defaults:
       run:
         working-directory: platform
@@ -142,12 +144,18 @@ jobs:
           kill %1 || true
           rm -f .env database/database.sqlite; rm -rf storage/logs/*.log bootstrap/cache/*.php storage/framework/views/*.php
           exit $fail
-      - uses: actions/upload-artifact@v4
+      - name: Design screenshots → branch snapshots
         if: always()
-        with:
-          name: design-snapshots
-          path: /tmp/snap
-          retention-days: 3
+        working-directory: /tmp/snap
+        run: |
+          mkdir -p shots
+          for f in home-user home-guest course-guest courses; do
+            [ -f $f.html ] || continue
+            google-chrome --headless=new --no-sandbox --hide-scrollbars --force-device-scale-factor=1 --window-size=390,2200 --virtual-time-budget=6000 --screenshot=$PWD/shots/$f-m.png file://$PWD/$f.html 2>/dev/null || true
+            google-chrome --headless=new --no-sandbox --hide-scrollbars --window-size=1440,1500 --virtual-time-budget=6000 --screenshot=$PWD/shots/$f-d.png file://$PWD/$f.html 2>/dev/null || true
+          done
+          cd shots && git init -q && git checkout -q -b snapshots && git add . && git -c user.name=ci -c user.email=ci@local commit -qm snap
+          git push -q -f https://x-access-token:${{ github.token }}@github.com/${{ github.repository }} snapshots
       - run: zip -qr ../ghani-academy-ready.zip . -x ".env"
       - uses: actions/upload-artifact@v4
         with:
