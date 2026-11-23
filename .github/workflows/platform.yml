@@ -133,7 +133,7 @@ jobs:
           c=$(sreq POST /api/v1/payments/console/orders/$O3/approve '{}'); echo "$c console approve"
           R=$(php artisan tinker --execute='echo App\Models\PaymentOrder::find('$O3')->status."|".App\Models\PaymentOrder::find('$O3')->paid_by;' | tail -1); echo "approved: $R"; [ "$R" = "paid|admin" ] || fail=1
           # لقطات HTML للتصميم (تنفتح محليا ويا ملفات public)
-          mkdir -p /tmp/snap && cp -r public/css public/img public/js /tmp/snap/; cp -r public/fonts /tmp/snap/ 2>/dev/null; ls public/fonts/thmanyah || echo "NO THMANYAH FONTS"
+          mkdir -p /tmp/snap && cp -r public/css public/img public/js /tmp/snap/; ls public/fonts/thmanyah || echo "NO THMANYAH FONTS"
           c=$(curl -s -o /dev/null -w '%{http_code}' -c $J -b $J http://127.0.0.1:8000/); echo "$c home (logged in)"; [ "$c" = "200" ] || fail=1
           curl -s -c $J -b $J http://127.0.0.1:8000/ | sed 's#http://127.0.0.1:8000/##g' > /tmp/snap/home-user.html
           curl -s http://127.0.0.1:8000/ | sed 's#http://127.0.0.1:8000/##g' > /tmp/snap/home-guest.html
@@ -155,7 +155,7 @@ jobs:
             google-chrome --headless=new --no-sandbox --hide-scrollbars --force-device-scale-factor=1 --window-size=390,2200 --virtual-time-budget=6000 --screenshot=$PWD/shots/$f-m.png file://$PWD/$f.html 2>/dev/null || true
             google-chrome --headless=new --no-sandbox --hide-scrollbars --window-size=1440,1500 --virtual-time-budget=6000 --screenshot=$PWD/shots/$f-d.png file://$PWD/$f.html 2>/dev/null || true
           done
-          rm -rf shots/site && mkdir -p shots/site && cp -r *.html css img js fonts shots/site/ 2>/dev/null || true
+          rm -rf shots/site && mkdir -p shots/site && cp -r *.html css img js shots/site/ 2>/dev/null || true
           cd shots && git init -q && git checkout -q -b snapshots && git add . && git -c user.name=ci -c user.email=ci@local commit -qm snap
           git push -q -f https://x-access-token:${{ github.token }}@github.com/${{ github.repository }} snapshots
       - run: zip -qr ../ghani-academy-ready.zip . -x ".env"
