@@ -8,6 +8,8 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
 
+import 'ui.dart' show ResCache;
+
 /// دومين المنصة. يتغير وقت البناء: --dart-define=API_BASE=https://...
 const apiBase = String.fromEnvironment('API_BASE', defaultValue: 'https://ghaniacademy.online');
 
@@ -151,6 +153,7 @@ class Api {
   Map<String, String> get authHeaders => {if (token != null) 'Authorization': 'Bearer $token'};
 
   Future<void> _clear() async {
+    ResCache.clear();
     token = null;
     user = null;
     await _store.delete(key: 'token');

@@ -42,12 +42,14 @@ class _WalletScreenState extends State<WalletScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: Navigator.of(context).canPop() ? AppBar() : null,
       body: SafeArea(
+        top: !Navigator.of(context).canPop(),
         child: Loader<Map<String, dynamic>>(
           key: k,
           load: () async => asMap(await Api.i.req('GET', '/wallet')),
           builder: (ctx, d, _) => ListView(padding: const EdgeInsets.fromLTRB(20, 20, 20, 24), children: [
-            const Title2('المحفظة', size: 30),
+            Text('المحفظة', style: head(26)),
             const SizedBox(height: 16),
             Container(
               height: 190,
@@ -218,6 +220,24 @@ class AccountScreen extends StatelessWidget {
     }
   }
 
+  Widget _linksGroup(BuildContext ctx) => _group([
+        ListTile(
+          leading: Icon(CupertinoIcons.chat_bubble_2, color: C.accent),
+          title: const Text('الرسائل'),
+          subtitle: Text('الدعم ومدربي كورساتك', style: TextStyle(color: C.text3, fontSize: 12.5)),
+          trailing: Icon(CupertinoIcons.chevron_left, size: 16, color: C.text3),
+          onTap: () => go(ctx, const ChatsScreen()),
+        ),
+        if (!Api.storeBuild)
+          ListTile(
+            leading: Icon(CupertinoIcons.creditcard, color: C.accent),
+            title: const Text('المحفظة'),
+            subtitle: Text('الرصيد والقسائم', style: TextStyle(color: C.text3, fontSize: 12.5)),
+            trailing: Icon(CupertinoIcons.chevron_left, size: 16, color: C.text3),
+            onTap: () => go(ctx, const WalletScreen()),
+          ),
+      ]);
+
   Widget _waTile() => ListTile(
         leading: const Icon(CupertinoIcons.chat_bubble_2, color: C.success),
         title: const Text('واتساب الأكاديمية'),
@@ -230,6 +250,7 @@ class AccountScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: C.bgAlt,
       body: SafeArea(
+        bottom: false,
         child: ValueListenableBuilder<bool>(
           valueListenable: Api.i.loggedIn,
           builder: (ctx, inApp, _) => inApp ? _member(ctx) : _guest(ctx),
@@ -239,7 +260,7 @@ class AccountScreen extends StatelessWidget {
   }
 
   Widget _guest(BuildContext ctx) => ListView(padding: const EdgeInsets.fromLTRB(20, 20, 20, 24), children: [
-        const Title2('حسابي', size: 30),
+        Text('حسابي', style: head(26)),
         const SizedBox(height: 16),
         EmptyState(
           icon: CupertinoIcons.person_crop_circle,
@@ -267,7 +288,7 @@ class AccountScreen extends StatelessWidget {
           final devices = asList((r[1] as Map)['data']);
           final certs = asList((r[2] as Map)['data']);
           return ListView(padding: const EdgeInsets.fromLTRB(20, 20, 20, 24), children: [
-            const Title2('حسابي', size: 30),
+            Text('حسابي', style: head(26)),
             const SizedBox(height: 16),
             FadeSlide(
               child: _group([
@@ -278,6 +299,8 @@ class AccountScreen extends StatelessWidget {
                 ),
               ]),
             ),
+            const SizedBox(height: 12),
+            _linksGroup(ctx),
             _label('الإعدادات'),
             _group([_darkTile()]),
             _label('الشهادات'),

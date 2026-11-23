@@ -75,7 +75,7 @@ class CourseController extends Controller
         }
         $data = $request->validate(['rating' => ['required', 'integer', 'between:1,5'], 'body' => ['nullable', 'string', 'max:1000']]);
         \App\Models\CourseReview::updateOrCreate(['course_id' => $course->id, 'user_id' => $user->id], $data);
-        \App\Models\CourseReview::refresh($course);
+        \App\Models\CourseReview::syncRating($course);
 
         return redirect(route('courses.show', $course).'#reviews')->with('success', 'شكرا. تقييمك وصل.');
     }

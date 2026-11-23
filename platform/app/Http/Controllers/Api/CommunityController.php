@@ -37,7 +37,7 @@ class CommunityController extends Controller
         $data = $request->validate(['rating' => ['required', 'integer', 'between:1,5'], 'body' => ['nullable', 'string', 'max:1000']]);
 
         $r = CourseReview::updateOrCreate(['course_id' => $course->id, 'user_id' => $user->id], $data);
-        CourseReview::refresh($course);
+        CourseReview::syncRating($course);
 
         return response()->json(['message' => 'شكرا. تقييمك وصل.', 'data' => $r->load('user:id,name')->toApi()]);
     }

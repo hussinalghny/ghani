@@ -81,6 +81,7 @@ class LearnController extends Controller
             'next' => $next ? ['id' => $next->id, 'title' => $next->title, 'duration' => $next->duration] : null,
             'index' => $i === false ? null : $i + 1,
             'total' => $ordered->count(),
+            'can_ask' => $user->hasAccessTo($lesson->course),
             'title' => $lesson->title,
             'type' => $lesson->type,
             'duration' => $lesson->duration,

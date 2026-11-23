@@ -22,7 +22,7 @@ class CourseReview extends Model
     }
 
     /** يحدث متوسط التقييم وعدده بالكورس (حتى ما نحسبه بكل طلب) */
-    public static function refresh(Course $course): void
+    public static function syncRating(Course $course): void
     {
         $q = static::where('course_id', $course->id)->where('is_visible', true);
         $course->forceFill(['rating_avg' => round((float) $q->avg('rating'), 2), 'rating_count' => $q->count()])->saveQuietly();

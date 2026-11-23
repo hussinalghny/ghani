@@ -1,9 +1,11 @@
+import 'dart:convert';
 import 'dart:io';
 import 'dart:math' as math;
 
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 
 import 'api.dart';
 
@@ -13,7 +15,7 @@ final tab = ValueNotifier<int>(0);
 /// الوضع الليلي
 final darkMode = ValueNotifier<bool>(false);
 
-/// ألوان غني أكاديمي (تتبدل حسب الوضع الليلي)
+/// ألوان غني أكاديمي: نهاري أبيض نظيف (الافتراضي) وليلي رمادي غامق، والبنفسجي للأزرار والتمييز
 class C {
   static bool get dark => darkMode.value;
 
@@ -24,27 +26,25 @@ class C {
   static const lavender = Color(0xFFD2C4FF);
   static const success = Color(0xFF12805C);
   static const danger = Color(0xFFC2364A);
-
-  // الليلي: أسود فاخر وذهب شمبانيا — النهاري: أبيض وبنفسجي الأكاديمية
   static const champagne = Color(0xFFD4AF6A);
-  static Color get bg => dark ? const Color(0xFF000000) : Colors.white;
-  static Color get card => dark ? const Color(0xFF141219) : Colors.white;
-  static Color get bgAlt => dark ? const Color(0xFF0E0D12) : const Color(0xFFF7F5FC);
-  static Color get text => dark ? const Color(0xFFF5F1E8) : night;
-  static Color get text2 => dark ? const Color(0xFFA9A3B8) : const Color(0xFF5F5A7A);
-  static Color get text3 => dark ? const Color(0xFF6E6880) : const Color(0xFF8C87A6);
-  static Color get line => dark ? const Color(0x14FFFFFF) : const Color(0xFFECE8F6);
-  static Color get mist => dark ? const Color(0xFF1F1C2B) : const Color(0xFFF1EDFF);
-  static Color get accent => dark ? champagne : violet;
-  static Color get primary => dark ? champagne : violet;
-  static Color get onPrimary => dark ? const Color(0xFF1A1206) : Colors.white;
-  static List<Color> get heroColors => dark
-      ? const [Color(0xFF5B4A2A), Color(0xFF2A2316), Color(0xFF0B0A10)]
-      : const [Color(0xFF6A45E6), violet, deep];
+
+  static Color get bg => dark ? const Color(0xFF0E0E12) : Colors.white;
+  static Color get card => dark ? const Color(0xFF17171E) : Colors.white;
+  static Color get bgAlt => dark ? const Color(0xFF16161C) : const Color(0xFFF7F6FB);
+  static Color get text => dark ? const Color(0xFFF2F1F7) : const Color(0xFF1C1D1F);
+  static Color get text2 => dark ? const Color(0xFFC2C0CE) : const Color(0xFF4A4D50);
+  static Color get text3 => dark ? const Color(0xFF9895A8) : const Color(0xFF6A6F73);
+  static Color get line => dark ? const Color(0x17FFFFFF) : const Color(0xFFE6E3EE);
+  static Color get mist => dark ? const Color(0x248F72F5) : const Color(0xFFF1EDFF);
+  static Color get accent => dark ? const Color(0xFF9D85F7) : violet;
+  static Color get primary => dark ? const Color(0xFF7B5CF0) : violet;
+  static Color get onPrimary => Colors.white;
+  static Color get star => dark ? gold : const Color(0xFFC4710D);
+  static List<Color> get heroColors => const [Color(0xFF6A45E6), violet, deep];
 }
 
-/// خط ثمانية: سيريف ديسبلاي للعناوين وسانس للنص (مضمن بالتطبيق وقت البناء)
-const fontHead = 'ThmanyahSerif';
+/// خط ثمانية سانس للعناوين والنص (مضمن بالتطبيق وقت البناء)
+const fontHead = 'ThmanyahSans';
 const fontBody = 'ThmanyahSans';
 
 TextStyle _font(String family, TextStyle base) => base.copyWith(fontFamily: family == 'Alexandria' ? fontHead : fontBody);
@@ -140,34 +140,22 @@ void toast(BuildContext ctx, String msg, {bool error = false}) {
     ));
 }
 
-/// عنوان كبير بنقطة ذهبية (توقيع الأكاديمية)
+/// عنوان قسم واضح (بدون نقطة، أسلوب المنصات التعليمية)
 class Title2 extends StatelessWidget {
   final String text;
   final double size;
   const Title2(this.text, {super.key, this.size = 28});
   @override
-  Widget build(BuildContext context) => Text.rich(
-        TextSpan(children: [TextSpan(text: text), const TextSpan(text: '.', style: TextStyle(color: C.gold))]),
-        style: head(size, w: FontWeight.w800),
-      );
+  Widget build(BuildContext context) => Text(text, style: head(size, w: FontWeight.w700));
 }
 
-/// حركة دخول خفيفة: ظهور تدريجي مع صعود بسيط، متتالية حسب الترتيب
+/// كانت حركة دخول؛ صارت بدون حركة حتى تطلع الشاشات فورا وتخف على الأجهزة المتوسطة
 class FadeSlide extends StatelessWidget {
   final Widget child;
   final int index;
   const FadeSlide({super.key, required this.child, this.index = 0});
   @override
-  Widget build(BuildContext context) {
-    final ms = 380 + (index.clamp(0, 8) * 60);
-    return TweenAnimationBuilder<double>(
-      tween: Tween(begin: 0, end: 1),
-      duration: Duration(milliseconds: ms),
-      curve: Curves.easeOutCubic,
-      builder: (_, t, c) => Opacity(opacity: t, child: Transform.translate(offset: Offset(0, 14 * (1 - t)), child: c)),
-      child: child,
-    );
-  }
+  Widget build(BuildContext context) => child;
 }
 
 /// ضغطة ناعمة تصغر العنصر قليلا (مثل iOS)
@@ -223,29 +211,57 @@ IconData catIcon(String? n) => switch (n) {
 class Cover extends StatelessWidget {
   final Map c;
   final double radius;
-  const Cover(this.c, {super.key, this.radius = 0});
+  /// للقوائم: نسخة مصغرة أخف (480px)
+  final bool thumb;
+  const Cover(this.c, {super.key, this.radius = 0, this.thumb = false});
   @override
   Widget build(BuildContext context) {
-    final url = c['cover'] as String?;
+    final url = (thumb ? (c['thumb'] ?? c['cover']) : c['cover']) as String?;
     return ClipRRect(
-        borderRadius: BorderRadius.circular(radius),
-        child: Container(
-          decoration: patternBox(),
-          alignment: Alignment.center,
-          child: url != null
-              ? Image.network(url, fit: BoxFit.cover, width: double.infinity, height: double.infinity)
-              : Container(
-                  width: 58,
-                  height: 58,
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: .16),
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: Colors.white.withValues(alpha: .25)),
-                  ),
-                  child: Icon(catIcon((c['category'] as Map?)?['icon'] as String?), color: Colors.white, size: 28),
-                ),
-        ),
+      borderRadius: BorderRadius.circular(radius),
+      child: Container(
+        color: C.mist,
+        alignment: Alignment.center,
+        child: url != null
+            ? CachedNetworkImage(
+                imageUrl: url,
+                fit: BoxFit.cover,
+                width: double.infinity,
+                height: double.infinity,
+                fadeInDuration: const Duration(milliseconds: 120),
+                memCacheWidth: thumb ? 480 : 1080,
+                placeholder: (_, __) => ColoredBox(color: C.mist),
+                errorWidget: (_, __, ___) => Icon(catIcon((c['category'] as Map?)?['icon'] as String?), color: C.accent, size: 30),
+              )
+            : Icon(catIcon((c['category'] as Map?)?['icon'] as String?), color: C.accent, size: 32),
+      ),
     );
+  }
+}
+
+/// نجوم التقييم، أو «كورس جديد» إذا ما أكو تقييمات بعد
+class Stars extends StatelessWidget {
+  final Map c;
+  final double size;
+  const Stars(this.c, {super.key, this.size = 13});
+  @override
+  Widget build(BuildContext context) {
+    final n = (c['rating_count'] ?? 0) as num;
+    final r = ((c['rating'] ?? 0) as num).toDouble();
+    if (n == 0) {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 1),
+        decoration: BoxDecoration(color: C.mist, borderRadius: BorderRadius.circular(4)),
+        child: Text('كورس جديد', style: TextStyle(color: C.accent, fontSize: size - 1.5, fontWeight: FontWeight.w700)),
+      );
+    }
+    return Row(mainAxisSize: MainAxisSize.min, children: [
+      Text(r.toStringAsFixed(1), style: TextStyle(color: C.star, fontWeight: FontWeight.w700, fontSize: size)),
+      const SizedBox(width: 4),
+      for (var i = 1; i <= 5; i++) Icon(CupertinoIcons.star_fill, size: size - 1, color: i <= r.round() ? C.star : C.line),
+      const SizedBox(width: 4),
+      Text('($n)', textDirection: TextDirection.ltr, style: TextStyle(color: C.text3, fontSize: size - 1)),
+    ]);
   }
 }
 
@@ -257,10 +273,10 @@ class PriceText extends StatelessWidget {
   Widget build(BuildContext context) {
     final fp = (c['final_price'] ?? 0) as num;
     final p = (c['price'] ?? 0) as num;
-    if (Api.storeBuild) return Text('${c['lessons_count'] ?? ''} درس', style: head(size * .85, color: C.text2));
+    if (Api.storeBuild) return Text('${c['lessons_count'] ?? ''} درس', style: TextStyle(fontSize: size * .8, color: C.text2, fontWeight: FontWeight.w600));
     if (fp == 0) return Text('مجاني', style: head(size, color: C.success));
     return Row(mainAxisSize: MainAxisSize.min, children: [
-      Text('${iqd(fp)} د.ع', style: head(size)),
+      Text('${iqd(fp)} د.ع', style: head(size, w: FontWeight.w700)),
       if (fp < p) ...[
         const SizedBox(width: 6),
         Text(iqd(p), style: TextStyle(color: C.text3, decoration: TextDecoration.lineThrough, fontSize: 13)),
@@ -269,6 +285,7 @@ class PriceText extends StatelessWidget {
   }
 }
 
+/// بطاقة كورس: صورة، عنوان، مدرب، تقييم، سعر
 class CourseCard extends StatelessWidget {
   final Map c;
   final VoidCallback onTap;
@@ -276,46 +293,141 @@ class CourseCard extends StatelessWidget {
   const CourseCard(this.c, {super.key, required this.onTap, this.width});
   @override
   Widget build(BuildContext context) {
+    final inst = c['instructor'] as Map?;
     return Pressable(
       onTap: onTap,
-      child: Container(
+      child: SizedBox(
         width: width,
-        decoration: cardBox().copyWith(
-          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: C.dark ? .25 : .05), blurRadius: 18, offset: const Offset(0, 6))],
-        ),
-        clipBehavior: Clip.antiAlias,
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          AspectRatio(aspectRatio: 16 / 9, child: Cover(c)),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text((c['category'] as Map?)?['name'] ?? '', style: TextStyle(color: C.accent, fontSize: 12.5, fontWeight: FontWeight.w600)),
-              const SizedBox(height: 4),
-              Text(c['title'] ?? '', style: head(17), maxLines: 1, overflow: TextOverflow.ellipsis),
-              const SizedBox(height: 6),
-              Row(children: [
-                Icon(CupertinoIcons.play_circle, size: 15, color: C.text3),
-                const SizedBox(width: 4),
-                Text('${c['lessons_count'] ?? 0} درس', style: TextStyle(color: C.text3, fontSize: 13)),
-                const SizedBox(width: 12),
-                if (c['duration_label'] != null)
-                  Flexible(child: Text(c['duration_label'], style: TextStyle(color: C.text3, fontSize: 13), overflow: TextOverflow.ellipsis)),
-              ]),
-              const SizedBox(height: 10),
-              PriceText(c),
-            ]),
+          AspectRatio(
+            aspectRatio: 16 / 9,
+            child: DecoratedBox(
+              position: DecorationPosition.foreground,
+              decoration: BoxDecoration(borderRadius: BorderRadius.circular(12), border: Border.all(color: C.line)),
+              child: Cover(c, radius: 12, thumb: true),
+            ),
           ),
+          const SizedBox(height: 9),
+          Text(c['title'] ?? '', style: head(15.5), maxLines: 2, overflow: TextOverflow.ellipsis),
+          Text(inst?['name'] ?? (c['category'] as Map?)?['name'] ?? '', maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(color: C.text3, fontSize: 12.5)),
+          const SizedBox(height: 3),
+          Stars(c),
+          const SizedBox(height: 3),
+          PriceText(c, size: 15.5),
+          if (c['is_featured'] == true) ...[
+            const SizedBox(height: 5),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 1),
+              decoration: BoxDecoration(color: const Color(0xFFFFF2D6), borderRadius: BorderRadius.circular(4)),
+              child: const Text('الأكثر طلبا', style: TextStyle(color: Color(0xFF7A4C00), fontSize: 11.5, fontWeight: FontWeight.w700)),
+            ),
+          ],
         ]),
       ),
     );
   }
 }
 
-/// حالة تحميل/خطأ موحدة
+/// صف كورس أفقي (صورة صغيرة + تفاصيل) للقوائم
+class CourseRow extends StatelessWidget {
+  final Map c;
+  final VoidCallback onTap;
+  const CourseRow(this.c, {super.key, required this.onTap});
+  @override
+  Widget build(BuildContext context) => Pressable(
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          decoration: BoxDecoration(border: Border(bottom: BorderSide(color: C.line))),
+          child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            SizedBox(width: 116, height: 68, child: Cover(c, radius: 10, thumb: true)),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text(c['title'] ?? '', style: head(14.5), maxLines: 2, overflow: TextOverflow.ellipsis),
+                const SizedBox(height: 2),
+                Stars(c, size: 12.5),
+                const SizedBox(height: 2),
+                PriceText(c, size: 14),
+              ]),
+            ),
+          ]),
+        ),
+      );
+}
+
+/// مستطيل رمادي يحجز مكان المحتوى لحد ما يوصل (بدل الدوارة)
+class Skel extends StatelessWidget {
+  final double? w, h;
+  final double r;
+  const Skel({super.key, this.w, this.h, this.r = 8});
+  @override
+  Widget build(BuildContext context) => Container(width: w, height: h, decoration: BoxDecoration(color: C.dark ? const Color(0xFF22222A) : const Color(0xFFEFEDF4), borderRadius: BorderRadius.circular(r)));
+}
+
+/// هيكل تحميل عام: قائمة بطاقات رمادية
+class SkeletonList extends StatelessWidget {
+  final bool header;
+  const SkeletonList({super.key, this.header = true});
+  @override
+  Widget build(BuildContext context) => ListView(
+        physics: const NeverScrollableScrollPhysics(),
+        padding: const EdgeInsets.fromLTRB(18, 16, 18, 0),
+        children: [
+          if (header) ...[const Skel(w: 160, h: 26), const SizedBox(height: 16), const Skel(h: 48, r: 14), const SizedBox(height: 20)],
+          const Skel(h: 190, r: 16),
+          const SizedBox(height: 22),
+          for (var i = 0; i < 4; i++)
+            const Padding(
+              padding: EdgeInsets.only(bottom: 16),
+              child: Row(children: [
+                Skel(w: 116, h: 68, r: 10),
+                SizedBox(width: 12),
+                Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Skel(h: 14), SizedBox(height: 8), Skel(w: 120, h: 12), SizedBox(height: 8), Skel(w: 80, h: 12)])),
+              ]),
+            ),
+        ],
+      );
+}
+
+/// نسخة محفوظة من آخر رد لكل طلب: الشاشة تطلع فورا من المحفوظ وتتحدث بالخلفية
+class ResCache {
+  static final _mem = <String, dynamic>{};
+  static File _file(String k) => File('${Directory.systemTemp.path}/ga_cache_${k.hashCode.toUnsigned(32)}.json');
+
+  static dynamic peek(String k) {
+    if (_mem.containsKey(k)) return _mem[k];
+    try {
+      final f = _file(k);
+      if (f.existsSync()) return _mem[k] = jsonDecode(f.readAsStringSync());
+    } catch (_) {}
+    return null;
+  }
+
+  static void put(String k, dynamic v) {
+    _mem[k] = v;
+    try {
+      _file(k).writeAsStringSync(jsonEncode(v));
+    } catch (_) {}
+  }
+
+  static void clear() {
+    _mem.clear();
+    try {
+      for (final f in Directory.systemTemp.listSync()) {
+        if (f.path.contains('ga_cache_')) f.deleteSync();
+      }
+    } catch (_) {}
+  }
+}
+
+/// حالة تحميل/خطأ موحدة. مع cache: تعرض المحفوظ فورا وتحدث بصمت. مع skeleton: هيكل رمادي بدل الدوارة
 class Loader<T> extends StatefulWidget {
   final Future<T> Function() load;
   final Widget Function(BuildContext, T, Future<void> Function() reload) builder;
-  const Loader({super.key, required this.load, required this.builder});
+  final String? cache;
+  final Widget? skeleton;
+  const Loader({super.key, required this.load, required this.builder, this.cache, this.skeleton});
   @override
   State<Loader<T>> createState() => _LoaderState<T>();
 }
@@ -328,13 +440,31 @@ class _LoaderState<T> extends State<Loader<T>> {
   @override
   void initState() {
     super.initState();
+    if (widget.cache != null) {
+      final c = ResCache.peek(_key);
+      if (c != null) {
+        try {
+          data = _cast(c);
+        } catch (_) {}
+      }
+    }
     reload();
   }
 
+  String get _key => '${Api.i.token != null ? 'u' : 'g'}:${widget.cache}';
+
+  T _cast(dynamic c) {
+    if (c is T) return c;
+    if (c is Map) return asMap(c) as T;
+    if (c is List) return asList(c) as T;
+    return c as T;
+  }
+
   Future<void> reload() async {
-    setState(() => error = null);
+    if (mounted) setState(() => error = null);
     try {
       final d = await widget.load();
+      if (widget.cache != null) ResCache.put(_key, d);
       if (mounted) {
         setState(() {
           data = d;
@@ -353,7 +483,7 @@ class _LoaderState<T> extends State<Loader<T>> {
 
   @override
   Widget build(BuildContext context) {
-    if (busy && data == null) return const Center(child: CupertinoActivityIndicator(radius: 13));
+    if (busy && data == null) return widget.skeleton ?? const Center(child: CupertinoActivityIndicator(radius: 13));
     if (error != null && data == null) {
       return Center(
         child: Padding(
@@ -377,7 +507,7 @@ class _LoaderState<T> extends State<Loader<T>> {
     return RefreshIndicator(
       color: C.primary,
       onRefresh: reload,
-      child: AnimatedSwitcher(duration: const Duration(milliseconds: 250), child: widget.builder(context, data as T, reload)),
+      child: widget.builder(context, data as T, reload),
     );
   }
 }

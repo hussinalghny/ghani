@@ -44,7 +44,8 @@ class Push {
       });
       // فتح التطبيق من إشعار محادثة
       FirebaseMessaging.onMessageOpenedApp.listen((m) {
-        if (m.data['type'] == 'chat') tab.value = 2;
+        if (m.data['type'] == 'chat') tab.value = 3;
+        if (m.data['type'] == 'answer') tab.value = 2;
       });
 
       Api.i.loggedIn.addListener(register);

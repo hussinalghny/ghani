@@ -13,31 +13,118 @@ import '../api.dart';
 import '../desktop_guard.dart';
 import '../ui.dart';
 
-class MyCoursesScreen extends StatelessWidget {
+/// مساري: الكورسات اللي دتتعلمها، المكتملة، والشهادات
+class MyCoursesScreen extends StatefulWidget {
   const MyCoursesScreen({super.key});
+  @override
+  State<MyCoursesScreen> createState() => _MyCoursesScreenState();
+}
+
+class _MyCoursesScreenState extends State<MyCoursesScreen> {
+  int seg = 0;
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: SafeArea(
-        child: Loader<List<Map<String, dynamic>>>(
-          load: () async => asList((await Api.i.req('GET', '/me/courses'))['data']),
-          builder: (ctx, list, _) => ListView(padding: const EdgeInsets.fromLTRB(20, 20, 20, 24), children: [
-            const Title2('مساري', size: 30),
-            const SizedBox(height: 16),
-            if (list.isEmpty)
-              EmptyState(
-                icon: CupertinoIcons.play_circle,
-                title: 'ما عندك كورسات بعد',
-                text: Api.storeBuild ? 'كورساتك المفعلة على حسابك تظهر هنا.' : 'اختر كورسك الأول أو فعل قسيمة كورس من المحفظة.',
-                action: FilledButton(onPressed: () => tab.value = 0, child: const Text('تصفح الكورسات')),
+        bottom: false,
+        child: Loader<List<dynamic>>(
+          cache: 'my',
+          skeleton: const SkeletonList(),
+          load: () async => [asList((await Api.i.req('GET', '/me/courses'))['data']), asList((await Api.i.req('GET', '/me/certificates'))['data'])],
+          builder: (ctx, d, _) {
+            final all = asList(d[0]);
+            final certs = asList(d[1]);
+            final going = all.where((e) => ((e['progress'] ?? 0) as num) < 100).toList();
+            final done = all.where((e) => ((e['progress'] ?? 0) as num) >= 100).toList();
+            final shown = seg == 0 ? going : done;
+            return ListView(padding: const EdgeInsets.fromLTRB(18, 10, 18, 28), children: [
+              Text('مساري', style: head(26)),
+              const SizedBox(height: 10),
+              Container(
+                decoration: BoxDecoration(border: Border(bottom: BorderSide(color: C.line))),
+                child: Row(children: [
+                  for (final (i, l) in [(0, 'قيد التعلم'), (1, 'مكتملة'), (2, 'الشهادات')])
+                    GestureDetector(
+                      onTap: () => setState(() => seg = i),
+                      child: Container(
+                        margin: const EdgeInsetsDirectional.only(end: 22),
+                        padding: const EdgeInsets.only(bottom: 10),
+                        decoration: BoxDecoration(border: Border(bottom: BorderSide(color: seg == i ? C.text : Colors.transparent, width: 2.5))),
+                        child: Text(l, style: TextStyle(fontSize: 14.5, fontWeight: seg == i ? FontWeight.w700 : FontWeight.w500, color: seg == i ? C.text : C.text3)),
+                      ),
+                    ),
+                ]),
               ),
-            if (kDesktop)
-              AutoGrid(minItem: 420, runGap: 0, children: [for (var i = 0; i < list.length; i++) FadeSlide(index: i, child: _item(ctx, list[i]))])
-            else
-              for (var i = 0; i < list.length; i++) FadeSlide(index: i, child: _item(ctx, list[i])),
-          ]),
+              const SizedBox(height: 16),
+              Row(children: [
+                _stat('${all.length}', 'كورس'),
+                const SizedBox(width: 10),
+                _stat('${done.length}', 'مكتمل'),
+                const SizedBox(width: 10),
+                _stat('${certs.length}', 'شهادة'),
+              ]),
+              const SizedBox(height: 6),
+              if (seg == 2) ...[
+                if (certs.isEmpty) Padding(padding: const EdgeInsets.only(top: 20), child: Text('أكمل أي كورس وتصدر شهادتك هنا.', style: TextStyle(color: C.text3))),
+                for (final c in certs)
+                  ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    leading: Container(width: 44, height: 44, decoration: BoxDecoration(color: const Color(0xFFFFF2D6), borderRadius: BorderRadius.circular(12)), child: const Icon(CupertinoIcons.rosette, color: Color(0xFFB7790F))),
+                    title: Text(c['course'] ?? '', style: const TextStyle(fontWeight: FontWeight.w700)),
+                    subtitle: Text(c['code'] ?? '', textDirection: TextDirection.ltr, textAlign: TextAlign.end, style: TextStyle(color: C.text3)),
+                    trailing: Icon(CupertinoIcons.chevron_left, size: 16, color: C.text3),
+                    onTap: () => launchUrl(Uri.parse(c['url']), mode: LaunchMode.externalApplication),
+                  ),
+              ] else ...[
+                if (shown.isEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 16),
+                    child: EmptyState(
+                      icon: CupertinoIcons.play_circle,
+                      title: seg == 0 ? 'ما عندك كورسات قيد التعلم' : 'ما كملت كورس بعد',
+                      text: seg == 0 ? (Api.storeBuild ? 'كورساتك المفعلة على حسابك تظهر هنا.' : 'اختر كورسك الأول وابدأ اليوم.') : 'كمل كورساتك وتطلع هنا ويا شهادتها.',
+                      action: seg == 0 ? FilledButton(onPressed: () => tab.value = 0, child: const Text('تصفح الكورسات')) : null,
+                    ),
+                  ),
+                for (final e in shown) _item(ctx, e),
+                if (seg == 0 && going.isNotEmpty && certs.isEmpty)
+                  _hint(going.first),
+              ],
+            ]);
+          },
         ),
       ),
+    );
+  }
+
+  Widget _stat(String n, String l) => Expanded(
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          decoration: BoxDecoration(color: C.bgAlt, borderRadius: BorderRadius.circular(14)),
+          child: Column(children: [Text(n, style: head(20)), Text(l, style: TextStyle(color: C.text3, fontSize: 12))]),
+        ),
+      );
+
+  Widget _hint(Map<String, dynamic> e) {
+    final c = asMap(e['course']);
+    final total = (c['lessons_count'] ?? 0) as num;
+    final left = (total - (total * ((e['progress'] ?? 0) as num) / 100)).ceil();
+    if (c['has_certificate'] != true || left <= 0) return const SizedBox.shrink();
+    return Container(
+      margin: const EdgeInsets.only(top: 16),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(color: C.mist.withValues(alpha: .5), borderRadius: BorderRadius.circular(16), border: Border.all(color: C.lavender)),
+      child: Row(children: [
+        Container(width: 44, height: 44, decoration: BoxDecoration(color: const Color(0xFFFFF2D6), borderRadius: BorderRadius.circular(12)), child: const Icon(CupertinoIcons.rosette, color: Color(0xFFB7790F))),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            const Text('شهادتك قريبة', style: TextStyle(fontWeight: FontWeight.w700)),
+            Text('باقي $left دروس على شهادة ${c['title']}.', style: TextStyle(color: C.text2, fontSize: 13)),
+          ]),
+        ),
+      ]),
     );
   }
 
@@ -47,30 +134,21 @@ class MyCoursesScreen extends StatelessWidget {
     return Pressable(
       onTap: () => go(ctx, CurriculumScreen(slug: c['slug'], title: c['title'] ?? '')),
       child: Container(
-        margin: const EdgeInsets.only(bottom: 14),
-        decoration: cardBox(),
-        clipBehavior: Clip.antiAlias,
+        padding: const EdgeInsets.symmetric(vertical: 14),
+        decoration: BoxDecoration(border: Border(bottom: BorderSide(color: C.line))),
         child: Row(children: [
-          SizedBox(width: 110, height: 110, child: Cover(c)),
+          SizedBox(width: 120, height: 74, child: Cover(c, radius: 10, thumb: true)),
+          const SizedBox(width: 12),
           Expanded(
-            child: Padding(
-              padding: const EdgeInsets.all(14),
-              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text(c['title'] ?? '', style: head(16), maxLines: 1, overflow: TextOverflow.ellipsis),
-                const SizedBox(height: 10),
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(99),
-                  child: LinearProgressIndicator(value: p / 100, minHeight: 7, backgroundColor: C.mist, color: C.primary),
-                ),
-                const SizedBox(height: 8),
-                Row(children: [
-                  Text('$p%', style: TextStyle(color: C.text3, fontSize: 13)),
-                  const Spacer(),
-                  Text(p >= 100 ? 'مكتمل' : (p > 0 ? 'أكمل' : 'ابدأ'),
-                      style: TextStyle(color: p >= 100 ? C.success : C.accent, fontWeight: FontWeight.w600, fontSize: 13.5)),
-                ]),
-              ]),
-            ),
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text(c['title'] ?? '', style: head(14.5), maxLines: 2, overflow: TextOverflow.ellipsis),
+              Text((c['instructor'] as Map?)?['name'] ?? '', style: TextStyle(color: C.text3, fontSize: 12)),
+              const SizedBox(height: 7),
+              ClipRRect(borderRadius: BorderRadius.circular(5), child: LinearProgressIndicator(value: p / 100, minHeight: 5, backgroundColor: C.mist, color: p >= 100 ? C.success : C.primary)),
+              const SizedBox(height: 5),
+              Text(p >= 100 ? 'مكتمل' : (p > 0 ? 'مكتمل $p% · كمل' : 'ابدأ الكورس'),
+                  style: TextStyle(color: p >= 100 ? C.success : C.accent, fontWeight: FontWeight.w700, fontSize: 12.5)),
+            ]),
           ),
         ]),
       ),
@@ -467,14 +545,16 @@ p.on('ready',function(){ if($start>10)p.setCurrentTime(${start - 3});
     final att = l['attachment'] as Map?;
     final isVideo = l['type'] == 'video';
     return Scaffold(
-      backgroundColor: C.bgAlt,
       appBar: AppBar(title: Text(widget.title)),
-      body: ListView(children: [
+      body: ListView(padding: EdgeInsets.only(bottom: MediaQuery.of(context).padding.bottom + 20), children: [
         if (isVideo) AspectRatio(aspectRatio: 16 / 9, child: player()),
         Padding(
           padding: const EdgeInsets.all(20),
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text(l['title'] ?? '', style: head(22)),
+            if (l['index'] != null)
+              Text('الدرس ${l['index']} من ${l['total']} · ${asMap(l['course'])['title'] ?? ''}', style: TextStyle(color: C.accent, fontSize: 12.5, fontWeight: FontWeight.w700)),
+            const SizedBox(height: 2),
+            Text(l['title'] ?? '', style: head(21)),
             const SizedBox(height: 14),
             if (l['body'] != null && (l['body'] as String).isNotEmpty)
               Container(
@@ -500,6 +580,40 @@ p.on('ready',function(){ if($start>10)p.setCurrentTime(${start - 3});
               icon: Icon(done ? CupertinoIcons.checkmark_alt_circle_fill : CupertinoIcons.checkmark_alt),
               label: Text(done ? 'مكتمل' : 'أكملت الدرس'),
             ),
+            if (l['next'] != null) ...[
+              const SizedBox(height: 14),
+              Pressable(
+                onTap: () => Navigator.of(context).pushReplacement(CupertinoPageRoute(
+                    builder: (_) => PlayerScreen(lessonId: asMap(l['next'])['id'] as int, title: asMap(l['next'])['title'] ?? ''))),
+                child: Container(
+                  padding: const EdgeInsets.all(14),
+                  decoration: cardBox(radius: 16),
+                  child: Row(children: [
+                    Container(width: 42, height: 42, decoration: BoxDecoration(color: C.mist, borderRadius: BorderRadius.circular(12)), child: Icon(CupertinoIcons.forward_end_fill, color: C.accent, size: 18)),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                        Text('الدرس الجاي', style: TextStyle(color: C.text3, fontSize: 12)),
+                        Text(asMap(l['next'])['title'] ?? '', style: const TextStyle(fontWeight: FontWeight.w700), maxLines: 1, overflow: TextOverflow.ellipsis),
+                      ]),
+                    ),
+                    Icon(CupertinoIcons.chevron_left, size: 16, color: C.text3),
+                  ]),
+                ),
+              ),
+            ],
+            if (asMap(l['course'])['slug'] != null) ...[
+              const SizedBox(height: 10),
+              TextButton.icon(
+                onPressed: () => go(context, CurriculumScreen(slug: asMap(l['course'])['slug'], title: asMap(l['course'])['title'] ?? '')),
+                icon: const Icon(CupertinoIcons.list_bullet, size: 18),
+                label: const Text('كل دروس الكورس'),
+              ),
+            ],
+            if (l['can_ask'] == true) ...[
+              const SizedBox(height: 18),
+              LessonQA(lessonId: widget.lessonId),
+            ],
             const SizedBox(height: 10),
             Row(children: [
               Icon(CupertinoIcons.lock_shield, size: 16, color: C.text3),
@@ -510,6 +624,108 @@ p.on('ready',function(){ if($start>10)p.setCurrentTime(${start - 3});
         ),
       ]),
     );
+  }
+}
+
+/// أسئلة الدرس: الطالب يسأل والمدرب يجاوب (يظهر الأسئلة المجاوبة وأسئلتك)
+class LessonQA extends StatefulWidget {
+  final int lessonId;
+  const LessonQA({super.key, required this.lessonId});
+  @override
+  State<LessonQA> createState() => _LessonQAState();
+}
+
+class _LessonQAState extends State<LessonQA> {
+  List<Map<String, dynamic>>? list;
+  final ctl = TextEditingController();
+  bool sending = false;
+
+  @override
+  void initState() {
+    super.initState();
+    load();
+  }
+
+  Future<void> load() async {
+    try {
+      final d = await Api.i.req('GET', '/lessons/${widget.lessonId}/questions');
+      if (mounted) setState(() => list = asList(d['data']));
+    } catch (_) {
+      if (mounted) setState(() => list = []);
+    }
+  }
+
+  Future<void> send() async {
+    final b = ctl.text.trim();
+    if (b.length < 5) {
+      toast(context, 'اكتب سؤالك بشكل أوضح.', error: true);
+      return;
+    }
+    setState(() => sending = true);
+    try {
+      final r = await Api.i.req('POST', '/lessons/${widget.lessonId}/questions', body: {'body': b});
+      ctl.clear();
+      FocusScope.of(context).unfocus();
+      if (mounted) {
+        toast(context, r['message'] ?? 'وصل سؤالك.');
+        setState(() => list = [asMap(r['data']), ...?list]);
+      }
+    } catch (e) {
+      if (mounted) toast(context, err(e), error: true);
+    } finally {
+      if (mounted) setState(() => sending = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+      Text('أسئلة الدرس', style: head(18)),
+      const SizedBox(height: 10),
+      TextField(controller: ctl, minLines: 1, maxLines: 4, maxLength: 1500, decoration: const InputDecoration(hintText: 'عندك سؤال عن هذا الدرس؟ اكتبه والمدرب يجاوبك', counterText: '')),
+      const SizedBox(height: 8),
+      Align(
+        alignment: AlignmentDirectional.centerStart,
+        child: FilledButton(
+          style: FilledButton.styleFrom(minimumSize: const Size(140, 44)),
+          onPressed: sending ? null : send,
+          child: sending ? const CupertinoActivityIndicator(color: Colors.white) : const Text('إرسال السؤال'),
+        ),
+      ),
+      const SizedBox(height: 6),
+      if (list == null)
+        const Padding(padding: EdgeInsets.all(16), child: CupertinoActivityIndicator())
+      else if (list!.isEmpty)
+        Padding(padding: const EdgeInsets.symmetric(vertical: 10), child: Text('ما أكو أسئلة بعد. كن أول من يسأل.', style: TextStyle(color: C.text3, fontSize: 13)))
+      else
+        for (final q in list!)
+          Container(
+            padding: const EdgeInsets.symmetric(vertical: 12),
+            decoration: BoxDecoration(border: Border(top: BorderSide(color: C.line))),
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Row(children: [
+                Expanded(child: Text(q['mine'] == true ? 'سؤالك' : (q['name'] ?? ''), style: const TextStyle(fontWeight: FontWeight.w700))),
+                Text(q['date'] ?? '', style: TextStyle(color: C.text3, fontSize: 11.5)),
+              ]),
+              const SizedBox(height: 4),
+              Text(q['body'] ?? '', style: const TextStyle(height: 1.6)),
+              if (q['answer'] != null)
+                Container(
+                  width: double.infinity,
+                  margin: const EdgeInsets.only(top: 8),
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(color: C.mist, borderRadius: BorderRadius.circular(12)),
+                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    Text('جواب المدرب', style: TextStyle(color: C.accent, fontWeight: FontWeight.w700, fontSize: 12.5)),
+                    const SizedBox(height: 2),
+                    Text(q['answer'], style: const TextStyle(height: 1.6)),
+                  ]),
+                )
+              else
+                Padding(padding: const EdgeInsets.only(top: 4), child: Text('بانتظار جواب المدرب', style: TextStyle(color: C.text3, fontSize: 12))),
+            ]),
+          ),
+    ]);
   }
 }
 

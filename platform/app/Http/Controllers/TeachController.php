@@ -84,7 +84,7 @@ class TeachController extends Controller
     {
         abort_unless($request->user()->isAdmin(), 403);
         $review->forceFill(['is_visible' => ! $review->is_visible])->save();
-        \App\Models\CourseReview::refresh($review->course);
+        \App\Models\CourseReview::syncRating($review->course);
 
         return back()->with('success', $review->is_visible ? 'التقييم ظاهر.' : 'التقييم مخفي.');
     }

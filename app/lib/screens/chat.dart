@@ -33,7 +33,9 @@ class _ChatsScreenState extends State<ChatsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: Navigator.of(context).canPop() ? AppBar() : null,
       body: SafeArea(
+        top: !Navigator.of(context).canPop(),
         child: Loader<Map<String, dynamic>>(
           key: k,
           load: () async => asMap(await Api.i.req('GET', '/chats')),

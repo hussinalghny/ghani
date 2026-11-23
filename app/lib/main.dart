@@ -10,7 +10,6 @@ import 'api.dart';
 import 'push.dart';
 import 'screens/account.dart';
 import 'screens/auth.dart';
-import 'screens/chat.dart';
 import 'screens/home.dart';
 import 'screens/learn.dart';
 import 'ui.dart';
@@ -23,7 +22,7 @@ Future<void> main() async {
   // Android: FLAG_SECURE بـ MainActivity — iOS: طبقة آمنة بـ AppDelegate (tool/prepare.sh)
   SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
   final saved = await _prefs.read(key: 'theme');
-  darkMode.value = saved == null ? true : saved == 'dark'; // الافتراضي: الأسود الذهبي
+  darkMode.value = saved == 'dark'; // الافتراضي: النهاري الأبيض
   darkMode.addListener(() => _prefs.write(key: 'theme', value: darkMode.value ? 'dark' : 'light'));
   await Api.i.init();
   await Push.init();
@@ -72,13 +71,9 @@ class Shell extends StatelessWidget {
 
   List<_Tab> get tabs => [
         const _Tab(CupertinoIcons.house, CupertinoIcons.house_fill, 'الرئيسية', HomeScreen()),
+        const _Tab(CupertinoIcons.search, CupertinoIcons.search, 'بحث', CoursesScreen(tabRoot: true)),
         const _Tab(CupertinoIcons.play_rectangle, CupertinoIcons.play_rectangle_fill, 'مساري',
             AuthGate(title: 'مساري', icon: CupertinoIcons.play_circle, text: 'سجل دخولك حتى تشوف كورساتك وتكمل من حيث توقفت.', child: MyCoursesScreen())),
-        const _Tab(CupertinoIcons.chat_bubble_2, CupertinoIcons.chat_bubble_2_fill, 'الرسائل',
-            AuthGate(title: 'الرسائل', icon: CupertinoIcons.chat_bubble_2, text: 'سجل دخولك حتى تراسل الدعم أو مدرب كورسك مباشرة.', child: ChatsScreen())),
-        if (!Api.storeBuild)
-          const _Tab(CupertinoIcons.creditcard, CupertinoIcons.creditcard_fill, 'المحفظة',
-              AuthGate(title: 'المحفظة', icon: CupertinoIcons.creditcard, text: 'سجل دخولك حتى تشحن رصيدك بقسيمة.', child: WalletScreen())),
         const _Tab(CupertinoIcons.person, CupertinoIcons.person_fill, 'حسابي', AccountScreen()),
       ];
 
@@ -156,7 +151,7 @@ class _SideBar extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.only(bottom: 6),
             child: Material(
-              color: k == index ? (C.dark ? C.champagne.withValues(alpha: .14) : C.mist) : Colors.transparent,
+              color: k == index ? C.mist : Colors.transparent,
               borderRadius: BorderRadius.circular(14),
               child: InkWell(
                 borderRadius: BorderRadius.circular(14),
@@ -200,6 +195,7 @@ class _SideBar extends StatelessWidget {
   }
 }
 
+/// شريط التبويبات: زجاج عائم بأسلوب آبل (ضبابية خفيفة واحدة فقط حتى ما يثقل)
 class _TabBar extends StatelessWidget {
   final List<_Tab> tabs;
   final int index;
@@ -207,61 +203,57 @@ class _TabBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(40),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
-        child: Container(
-          height: 68,
-          decoration: BoxDecoration(
-            color: (C.dark ? const Color(0xFF15131D) : Colors.white).withValues(alpha: .78),
-            borderRadius: BorderRadius.circular(40),
-            border: Border.all(color: C.dark ? const Color(0x24FFFFFF) : const Color(0x1A1B1446)),
-          ),
-          padding: const EdgeInsets.all(6),
-          child: LayoutBuilder(builder: (ctx, box) {
-            final w = box.maxWidth / tabs.length;
-            return Stack(children: [
-              // الكبسولة المتزحلقة خلف التبويب الفعال
-              AnimatedPositionedDirectional(
-                duration: const Duration(milliseconds: 420),
-                curve: Curves.easeOutBack,
-                start: w * index,
-                top: 0,
-                bottom: 0,
-                width: w,
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: C.dark ? C.champagne.withValues(alpha: .14) : C.mist,
-                    borderRadius: BorderRadius.circular(34),
-                  ),
-                ),
+    final dark = C.dark;
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(34),
+        boxShadow: [BoxShadow(color: (dark ? Colors.black : const Color(0xFF1C1446)).withValues(alpha: dark ? .45 : .16), blurRadius: 30, offset: const Offset(0, 10))],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(34),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 22, sigmaY: 22),
+          child: Container(
+            height: 66,
+            padding: const EdgeInsets.all(5),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(34),
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: dark
+                    ? [const Color(0xFF2A2A34).withValues(alpha: .72), const Color(0xFF1E1E26).withValues(alpha: .62)]
+                    : [Colors.white.withValues(alpha: .78), Colors.white.withValues(alpha: .58)],
               ),
-              Row(children: [
-                for (var k = 0; k < tabs.length; k++)
-                  Expanded(
-                    child: GestureDetector(
-                      behavior: HitTestBehavior.opaque,
-                      onTap: () {
-                        HapticFeedback.selectionClick();
-                        tab.value = k;
-                      },
+              border: Border.all(color: dark ? Colors.white.withValues(alpha: .12) : Colors.white.withValues(alpha: .8)),
+            ),
+            child: Row(children: [
+              for (var k = 0; k < tabs.length; k++)
+                Expanded(
+                  child: GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTap: () {
+                      HapticFeedback.selectionClick();
+                      tab.value = k;
+                    },
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 220),
+                      curve: Curves.easeOut,
+                      decoration: BoxDecoration(
+                        color: k == index ? C.violet.withValues(alpha: dark ? .28 : .11) : Colors.transparent,
+                        borderRadius: BorderRadius.circular(29),
+                      ),
                       child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-                        AnimatedScale(
-                          scale: k == index ? 1.1 : 1,
-                          duration: const Duration(milliseconds: 300),
-                          curve: Curves.easeOutBack,
-                          child: Icon(k == index ? tabs[k].active : tabs[k].icon, size: 23, color: k == index ? C.accent : C.text3),
-                        ),
-                        const SizedBox(height: 2),
+                        Icon(k == index ? tabs[k].active : tabs[k].icon, size: 23, color: k == index ? C.accent : C.text2),
+                        const SizedBox(height: 1),
                         Text(tabs[k].label,
-                            style: TextStyle(fontSize: 10.5, color: k == index ? C.accent : C.text3, fontWeight: k == index ? FontWeight.w600 : FontWeight.w400)),
+                            style: TextStyle(fontSize: 11, color: k == index ? C.accent : C.text2, fontWeight: k == index ? FontWeight.w700 : FontWeight.w500)),
                       ]),
                     ),
                   ),
-              ]),
-            ]);
-          }),
+                ),
+            ]),
+          ),
         ),
       ),
     );
