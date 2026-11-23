@@ -11,4 +11,14 @@ class LessonProgress extends Model
     protected $guarded = ['id'];
 
     protected $casts = ['completed_at' => 'datetime'];
+
+    public function lesson(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    {
+        return $this->belongsTo(Lesson::class);
+    }
+
+    public function course(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    {
+        return $this->belongsTo(Course::class);
+    }
 }

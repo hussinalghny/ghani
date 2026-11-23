@@ -145,6 +145,10 @@ jobs:
           c=$(curl -s -o /dev/null -w '%{http_code}' -c $J -b $J -X POST -d "_token=$X&answer=نزل VirtualBox وكمل الخطوات بالدرس." http://127.0.0.1:8000/teach/questions/$QID); echo "$c answer question"; [ "$c" = "302" ] || fail=1
           c=$(curl -s -o /tmp/out -w '%{http_code}' -H 'Accept: application/json' -H "Authorization: Bearer $T" http://127.0.0.1:8000/api/v1/lessons/$L/questions); echo "$c api questions $(head -c 160 /tmp/out)"
           c=$(curl -s -o /tmp/out -w '%{http_code}' http://127.0.0.1:8000/course/smart-defense); echo "$c course page with review"; grep -q 'كورس عملي ومرتب' /tmp/out || fail=1
+          # «كمل التعلم» للمسجل اللي عنده تقدم بدرس
+          php artisan tinker --execute='$u=App\Models\User::where("role","admin")->first(); $l=App\Models\Lesson::first(); App\Models\LessonProgress::updateOrCreate(["user_id"=>$u->id,"lesson_id"=>$l->id],["course_id"=>$l->course_id,"position"=>30]);'
+          c=$(curl -s -o /tmp/out -w '%{http_code}' -c $J -b $J http://127.0.0.1:8000/); echo "$c home with continue"; [ "$c" = "200" ] && grep -q 'كمل التعلم' /tmp/out || { fail=1; grep -o 'class="exception-message[^<]*<[^<]*' /tmp/out | head -2; }
+          c=$(curl -s -o /tmp/out -w '%{http_code}' -H 'Accept: application/json' -H "Authorization: Bearer $T" http://127.0.0.1:8000/api/v1/home); echo "$c api home (token)"; [ "$c" = "200" ] || fail=1
           # الصور المصغرة للأغلفة (قرص public = public/storage)
           php artisan tinker --execute='@mkdir(public_path("storage/covers"),0755,true); $i=imagecreatetruecolor(1200,675); imagejpeg($i, public_path("storage/covers/ci.jpg")); App\Models\Course::where("slug","smart-defense")->update(["cover"=>"covers/ci.jpg"]);'
           CID=$(php artisan tinker --execute='echo App\Models\Course::where("slug","smart-defense")->value("id");' | tail -1)
