@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'dart:ui';
 
 import 'package:flutter/cupertino.dart';
@@ -108,12 +109,15 @@ class Shell extends StatelessWidget {
           extendBody: true,
           body: Stack(children: [
             IndexedStack(index: i, children: [for (var n = 0; n < t.length; n++) _lazy(n, i, () => _nav(t[n].page))]),
-            Positioned(
-              left: 16,
-              right: 16,
-              bottom: bottom > 0 ? bottom : 14,
-              child: _TabBar(tabs: t, index: i),
-            ),
+            if (Platform.isIOS)
+              Positioned(left: 0, right: 0, bottom: 0, height: bottom + (_ios26 ? 64 : 49), child: _NativeTabBar(tabs: t, index: i))
+            else
+              Positioned(
+                left: 16,
+                right: 16,
+                bottom: bottom > 0 ? bottom : 14,
+                child: _TabBar(tabs: t, index: i),
+              ),
           ]),
         );
       },
@@ -200,6 +204,59 @@ class _SideBar extends StatelessWidget {
           Expanded(child: Text('المحتوى محمي من تسجيل الشاشة', style: TextStyle(color: C.text3, fontSize: 12))),
         ]),
       ]),
+    );
+  }
+}
+
+final bool _ios26 = Platform.isIOS && (int.tryParse(RegExp(r'(\d+)').firstMatch(Platform.operatingSystemVersion)?.group(1) ?? '') ?? 0) >= 26;
+
+/// آيفون: شريط التبويبات الأصلي مال النظام (UITabBar)، نفس شريط غني باي وزجاج iOS 26
+class _NativeTabBar extends StatefulWidget {
+  final List<_Tab> tabs;
+  final int index;
+  const _NativeTabBar({required this.tabs, required this.index});
+  @override
+  State<_NativeTabBar> createState() => _NativeTabBarState();
+}
+
+class _NativeTabBarState extends State<_NativeTabBar> {
+  static const _icons = [
+    ['house', 'house.fill'],
+    ['magnifyingglass', 'magnifyingglass'],
+    ['play.rectangle', 'play.rectangle.fill'],
+    ['person', 'person.fill'],
+  ];
+  MethodChannel? ch;
+
+  @override
+  void didUpdateWidget(covariant _NativeTabBar old) {
+    super.didUpdateWidget(old);
+    if (old.index != widget.index) ch?.invokeMethod('select', widget.index);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return UiKitView(
+      viewType: 'ghani/tabbar',
+      layoutDirection: TextDirection.rtl,
+      creationParamsCodec: const StandardMessageCodec(),
+      creationParams: {
+        'index': widget.index,
+        'dark': C.dark,
+        'items': [
+          for (var k = 0; k < widget.tabs.length; k++)
+            {'title': widget.tabs[k].label, 'icon': _icons[k % _icons.length][0], 'selected': _icons[k % _icons.length][1]},
+        ],
+      },
+      onPlatformViewCreated: (id) {
+        ch = MethodChannel('ghani/tabbar_$id')
+          ..setMethodCallHandler((call) async {
+            if (call.method == 'tap') {
+              HapticFeedback.selectionClick();
+              tab.value = call.arguments as int;
+            }
+          });
+      },
     );
   }
 }
