@@ -72,8 +72,8 @@ class Shell extends StatelessWidget {
 
   List<_Tab> get tabs => [
         const _Tab(CupertinoIcons.house, CupertinoIcons.house_fill, 'الرئيسية', HomeScreen()),
-        const _Tab(CupertinoIcons.play_rectangle, CupertinoIcons.play_rectangle_fill, 'كورساتي',
-            AuthGate(title: 'كورساتي', icon: CupertinoIcons.play_circle, text: 'سجل دخولك حتى تشوف كورساتك وتكمل من حيث توقفت.', child: MyCoursesScreen())),
+        const _Tab(CupertinoIcons.play_rectangle, CupertinoIcons.play_rectangle_fill, 'مساري',
+            AuthGate(title: 'مساري', icon: CupertinoIcons.play_circle, text: 'سجل دخولك حتى تشوف كورساتك وتكمل من حيث توقفت.', child: MyCoursesScreen())),
         const _Tab(CupertinoIcons.chat_bubble_2, CupertinoIcons.chat_bubble_2_fill, 'الرسائل',
             AuthGate(title: 'الرسائل', icon: CupertinoIcons.chat_bubble_2, text: 'سجل دخولك حتى تراسل الدعم أو مدرب كورسك مباشرة.', child: ChatsScreen())),
         if (!Api.storeBuild)

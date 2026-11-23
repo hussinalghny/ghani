@@ -37,10 +37,18 @@ class HomeScreen extends StatelessWidget {
               FadeSlide(
                 child: Padding(
                   padding: const EdgeInsets.fromLTRB(20, 14, 20, 16),
-                  child: Text(_greeting(), style: head(26, w: FontWeight.w800)),
+                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    Text(_greeting(), style: TextStyle(color: C.text3, fontSize: 13.5, fontWeight: FontWeight.w600)),
+                    const SizedBox(height: 2),
+                    Text.rich(TextSpan(children: [
+                      TextSpan(text: 'اكتشف', style: head(34, w: FontWeight.w800)),
+                      TextSpan(text: '.', style: head(34, w: FontWeight.w800).copyWith(color: C.gold)),
+                    ])),
+                  ]),
                 ),
               ),
-              if (featured.isNotEmpty) FadeSlide(index: 1, child: _Hero(c: featured.first, onTap: () => go(ctx, CourseScreen(slug: featured.first['slug'])))),
+              if (featured.isNotEmpty) FadeSlide(index: 1, child: _Hero(c: featured.first, onTap: () => goRoot(ctx, CourseScreen(slug: featured.first['slug'])))),
+              FadeSlide(index: 2, child: _Banner(onTap: () => go(ctx, const CoursesScreen()))),
               if (cats.isNotEmpty) ...[
                 const SizedBox(height: 18),
                 SizedBox(
@@ -69,7 +77,7 @@ class HomeScreen extends StatelessWidget {
                 ),
               ],
               if (featured.length > 1) ...[
-                const Padding(padding: EdgeInsets.fromLTRB(20, 26, 20, 12), child: Title2('مختارات للنخبة', size: 22)),
+                const Padding(padding: EdgeInsets.fromLTRB(20, 26, 20, 12), child: Title2('كورسات مختارة', size: 22)),
                 SizedBox(
                   height: 316,
                   child: ListView.separated(
@@ -79,7 +87,7 @@ class HomeScreen extends StatelessWidget {
                     separatorBuilder: (_, __) => const SizedBox(width: 14),
                     itemBuilder: (_, i) => FadeSlide(
                       index: i + 2,
-                      child: CourseCard(featured[i + 1], width: 260, onTap: () => go(ctx, CourseScreen(slug: featured[i + 1]['slug']))),
+                      child: CourseCard(featured[i + 1], width: 260, onTap: () => goRoot(ctx, CourseScreen(slug: featured[i + 1]['slug']))),
                     ),
                   ),
                 ),
@@ -91,14 +99,14 @@ class HomeScreen extends StatelessWidget {
                     padding: const EdgeInsets.symmetric(horizontal: 20),
                     child: AutoGrid(children: [
                       for (var i = 0; i < latest.length; i++)
-                        FadeSlide(index: i + 3, child: CourseCard(latest[i], onTap: () => go(ctx, CourseScreen(slug: latest[i]['slug'])))),
+                        FadeSlide(index: i + 3, child: CourseCard(latest[i], onTap: () => goRoot(ctx, CourseScreen(slug: latest[i]['slug'])))),
                     ]),
                   )
                 else
                   for (var i = 0; i < latest.length; i++)
                     Padding(
                       padding: const EdgeInsets.fromLTRB(20, 0, 20, 14),
-                      child: FadeSlide(index: i + 3, child: CourseCard(latest[i], onTap: () => go(ctx, CourseScreen(slug: latest[i]['slug'])))),
+                      child: FadeSlide(index: i + 3, child: CourseCard(latest[i], onTap: () => goRoot(ctx, CourseScreen(slug: latest[i]['slug'])))),
                     ),
               ],
             ]);
@@ -110,7 +118,47 @@ class HomeScreen extends StatelessWidget {
 
   String _greeting() {
     final n = (Api.i.user?['name'] as String?)?.split(' ').first;
-    return n != null && n.isNotEmpty ? 'أهلا $n' : 'تعلم. طبق. اشتغل';
+    return n != null && n.isNotEmpty ? 'أهلا $n' : 'غني أكاديمي';
+  }
+}
+
+/// بطاقة «تعلم. طبق. اشتغل.» مثل البروتوتايب
+class _Banner extends StatelessWidget {
+  final VoidCallback onTap;
+  const _Banner({required this.onTap});
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
+      child: Pressable(
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.all(22),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(26),
+            gradient: LinearGradient(
+              begin: Alignment.topRight,
+              end: Alignment.bottomLeft,
+              colors: C.dark ? const [Color(0xFF1B1446), Color(0xFF0B0A10)] : const [Color(0xFF6A45E6), Color(0xFF3A1F9A)],
+            ),
+          ),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text.rich(TextSpan(children: [
+              TextSpan(text: 'تعلم. طبق. اشتغل', style: head(22, w: FontWeight.w700).copyWith(color: Colors.white)),
+              TextSpan(text: '.', style: head(22, w: FontWeight.w700).copyWith(color: C.gold)),
+            ])),
+            const SizedBox(height: 6),
+            const Text('كل كورس شهر واحد، 12 جلسة، ومشروع حقيقي تضيفه لأعمالك.', style: TextStyle(color: Colors.white70, height: 1.6)),
+            const SizedBox(height: 14),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              decoration: BoxDecoration(color: C.gold, borderRadius: BorderRadius.circular(99)),
+              child: const Text('تصفح الكورسات', style: TextStyle(color: Color(0xFF120C33), fontWeight: FontWeight.w600)),
+            ),
+          ]),
+        ),
+      ),
+    );
   }
 }
 
@@ -239,14 +287,14 @@ class _CoursesScreenState extends State<CoursesScreen> {
                     ? ListView(padding: const EdgeInsets.all(20), children: [
                         AutoGrid(children: [
                           for (var i = 0; i < list.length; i++)
-                            FadeSlide(index: i, child: CourseCard(list[i], onTap: () => go(ctx, CourseScreen(slug: list[i]['slug'])))),
+                            FadeSlide(index: i, child: CourseCard(list[i], onTap: () => goRoot(ctx, CourseScreen(slug: list[i]['slug'])))),
                         ]),
                       ])
                     : ListView.separated(
                     padding: const EdgeInsets.all(16),
                     itemCount: list.length,
                     separatorBuilder: (_, __) => const SizedBox(height: 14),
-                    itemBuilder: (_, i) => FadeSlide(index: i, child: CourseCard(list[i], onTap: () => go(ctx, CourseScreen(slug: list[i]['slug'])))),
+                    itemBuilder: (_, i) => FadeSlide(index: i, child: CourseCard(list[i], onTap: () => goRoot(ctx, CourseScreen(slug: list[i]['slug'])))),
                   ),
           ),
         ),

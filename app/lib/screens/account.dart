@@ -33,7 +33,7 @@ class _WalletScreenState extends State<WalletScreen> {
       toast(context, r['message'] ?? 'تم.');
       setState(() => k = UniqueKey());
       final c = r['course'];
-      if (c is Map && c['slug'] != null) go(context, CourseScreen(slug: c['slug']));
+      if (c is Map && c['slug'] != null) goRoot(context, CourseScreen(slug: c['slug']));
     } catch (e) {
       if (mounted) toast(context, err(e), error: true);
     }

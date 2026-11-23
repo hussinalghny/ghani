@@ -22,7 +22,7 @@ class MyCoursesScreen extends StatelessWidget {
         child: Loader<List<Map<String, dynamic>>>(
           load: () async => asList((await Api.i.req('GET', '/me/courses'))['data']),
           builder: (ctx, list, _) => ListView(padding: const EdgeInsets.fromLTRB(20, 20, 20, 24), children: [
-            const Title2('كورساتي', size: 30),
+            const Title2('مساري', size: 30),
             const SizedBox(height: 16),
             if (list.isEmpty)
               EmptyState(

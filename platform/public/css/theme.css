@@ -148,3 +148,82 @@ html.dark .course-hero, html.dark .section-alt { background: var(--bg-alt); }
 @media (min-width: 961px) { .course-hero-grid { grid-template-columns: minmax(0, 1fr) 400px; } }
 .buy-card .buy-price { font-family: var(--font-head); }
 .section h2, .head h2 { font-size: clamp(28px, 3.6vw, 40px); }
+
+/* =========================================================
+   v3 — أسلوب آبل: أسود صافي، زجاج، عناوين كبيرة، قوائم مجمعة
+   ========================================================= */
+html.dark { --bg: #000000; --bg-alt: #0E0D12; --card: #141219; --nav-bg: rgba(20, 18, 25, .72); --line: rgba(255, 255, 255, .09); --line-2: rgba(255, 255, 255, .14); }
+:root { --nav-bg: rgba(255, 255, 255, .72); --r-xl: 28px; --r-lg: 20px; }
+.nav { backdrop-filter: saturate(180%) blur(22px); -webkit-backdrop-filter: saturate(180%) blur(22px); border-bottom: .5px solid var(--line); }
+.btn { border-radius: 99px; }
+.btn-primary, .btn-gold { box-shadow: none; }
+.input { border-radius: 14px; }
+.panel, .card { border-radius: var(--r-lg); }
+html.dark .panel { border: .5px solid var(--line); }
+
+/* الرئيسية */
+.ga-home { padding: 28px 0 40px; }
+.ga-eyebrow { font-size: 13.5px; font-weight: 600; color: var(--text-3); }
+.ga-title { font-size: clamp(34px, 5vw, 52px); font-weight: 800; line-height: 1.25; margin: 2px 0 18px; }
+.ga-hero-grid { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 24px; align-items: stretch; }
+.ga-hero { position: relative; display: block; border-radius: var(--r-xl); overflow: hidden; min-height: 520px; background: #0B0A10; color: #fff; box-shadow: var(--shadow-lg); }
+.ga-hero img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; transform: scale(1.03); transition: transform 6s ease; }
+.ga-hero:hover img { transform: scale(1.08); opacity: 1; }
+.ga-hero::after { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(0,0,0,0) 30%, rgba(0,0,0,.92) 100%); }
+.ga-hero:not(:has(img)) { background: url(../img/pattern-night.svg), linear-gradient(160deg, #2A2238, #0B0A10 70%); background-size: 320px 320px, auto; }
+.ga-hero .body { position: absolute; inset: auto 0 0 0; z-index: 2; padding: 26px; display: flex; flex-direction: column; gap: 10px; }
+.ga-hero .tag { align-self: flex-start; padding: 6px 12px; border-radius: 99px; background: rgba(255,255,255,.16); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); font-size: 12.5px; font-weight: 600; }
+.ga-hero h2 { color: #fff; font-size: clamp(28px, 3.4vw, 38px); font-weight: 800; }
+.ga-hero p { margin: 0; color: rgba(255,255,255,.78); }
+.ga-hero .row { display: flex; align-items: center; gap: 14px; margin-top: 6px; flex-wrap: wrap; }
+.pill-gold { display: inline-flex; align-items: center; height: 44px; padding: 0 22px; border-radius: 99px; background: #F5B83D; color: #120C33; font-weight: 600; }
+.ga-side { display: flex; flex-direction: column; gap: 24px; }
+.ga-banner { border-radius: var(--r-xl); padding: 26px; background: linear-gradient(135deg, #1B1446, #0B0A10 70%); color: #fff; position: relative; overflow: hidden; display: flex; flex-direction: column; gap: 12px; flex: 1; justify-content: center; }
+html:not(.dark) .ga-banner { background: linear-gradient(135deg, #6A45E6, #3A1F9A); }
+.ga-banner::after { content: ""; position: absolute; width: 260px; height: 260px; border-radius: 50%; left: -80px; top: -90px; background: radial-gradient(closest-side, rgba(212,175,106,.35), transparent); }
+.ga-banner h3 { color: #fff; font-size: 26px; position: relative; z-index: 1; margin: 0; }
+.ga-banner p { margin: 0; color: rgba(255,255,255,.75); position: relative; z-index: 1; }
+.ga-banner .pill-gold { align-self: flex-start; position: relative; z-index: 1; height: 38px; font-size: 14.5px; }
+.ga-group { background: var(--card); border-radius: var(--r-lg); overflow: hidden; }
+html.dark .ga-group { border: .5px solid var(--line); }
+html:not(.dark) .ga-group { box-shadow: 0 8px 30px rgba(27,20,70,.06), 0 0 0 .5px var(--line); }
+.ga-cell { display: flex; align-items: center; gap: 14px; padding: 14px 16px; position: relative; min-height: 60px; color: var(--text); }
+.ga-cell + .ga-cell::before { content: ""; position: absolute; top: 0; left: 0; right: 64px; height: .5px; background: var(--line); }
+.ga-cell:hover { background: var(--mist); opacity: 1; }
+.ga-cell .ic { width: 34px; height: 34px; border-radius: 10px; display: grid; place-items: center; color: #fff; flex: none; }
+.ga-cell .ic .icon { width: 18px; height: 18px; }
+.ga-cell .t { flex: 1; min-width: 0; }
+.ga-cell .t b { display: block; font-weight: 500; }
+.ga-cell .t small { display: block; color: var(--text-3); font-size: 13px; }
+.ga-cell .chev { color: var(--text-3); }
+.ic-violet { background: linear-gradient(135deg, #7B5CF0, #4A2BC0); } .ic-gold { background: linear-gradient(135deg, #F5C96A, #C8912C); } .ic-night { background: linear-gradient(135deg, #3A3350, #1B1446); }
+.ga-sec { display: flex; align-items: baseline; justify-content: space-between; margin: 44px 0 14px; }
+.ga-sec h3 { font-size: 22px; margin: 0; }
+.ga-sec a { color: var(--violet); font-size: 15px; font-weight: 500; }
+.ga-chips { display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; }
+.ga-chips::-webkit-scrollbar { display: none; }
+.ga-chip { flex: none; height: 38px; padding: 0 16px; border-radius: 99px; background: var(--mist); color: var(--text); font-size: 14.5px; font-weight: 500; display: inline-flex; align-items: center; gap: 8px; }
+.ga-chip .icon { width: 17px; height: 17px; color: var(--violet); }
+.ga-chip:hover { background: var(--text); color: var(--bg); opacity: 1; }
+.ga-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px; }
+
+/* الموبايل: بتن بار زجاجي طاير */
+@media (max-width: 760px) {
+  .ga-home { padding-top: 18px; }
+  .ga-hero-grid { grid-template-columns: 1fr; }
+  .ga-hero { min-height: 0; aspect-ratio: 4 / 5; }
+  .ga-grid { grid-template-columns: 1fr; }
+  .ga-chips { margin: 0 -20px; padding: 0 20px; }
+  .tabbar { left: 12px; right: 12px; bottom: calc(10px + env(safe-area-inset-bottom)); border-radius: 99px; background: var(--nav-bg) !important; backdrop-filter: saturate(180%) blur(24px); -webkit-backdrop-filter: saturate(180%) blur(24px); border: .5px solid var(--line); box-shadow: 0 12px 40px rgba(0,0,0,.25); padding: 6px; height: auto; }
+  .tabbar a { border-radius: 99px; padding: 7px 0; }
+  .tabbar a.active { background: var(--mist); }
+  body.has-tabbar { padding-bottom: calc(96px + env(safe-area-inset-bottom)); }
+  /* صفحة الكورس: البتن بار ينزل وشريط الشراء ياخذ مكانه، فما يختفي زر الاشتراك */
+  body.is-course .tabbar { display: none; }
+  body.is-course { padding-bottom: calc(90px + env(safe-area-inset-bottom)); }
+  .ga-buybar { display: flex !important; }
+}
+.ga-buybar { display: none; position: fixed; left: 0; right: 0; bottom: 0; z-index: 60; padding: 12px 20px calc(12px + env(safe-area-inset-bottom)); background: var(--nav-bg); backdrop-filter: saturate(180%) blur(24px); -webkit-backdrop-filter: saturate(180%) blur(24px); border-top: .5px solid var(--line); align-items: center; gap: 14px; }
+.ga-buybar small { display: block; font-size: 12px; color: var(--text-3); }
+.ga-buybar b { font-family: var(--font-head); font-size: 19px; }
+.ga-buybar .btn { flex: 1; height: 52px; font-size: 17px; }

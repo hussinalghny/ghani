@@ -1,6 +1,7 @@
 @extends('layouts.app')
 @section('title', $course->title)
 @section('description', $course->subtitle)
+@section('body_class', 'is-course')
 
 @section('content')
 <section class="course-hero">
@@ -22,7 +23,7 @@
             </div>
         </div>
 
-        <aside class="buy-card">
+        <aside class="buy-card" id="buy">
             @include('partials.cover', ['course' => $course, 'showTag' => false])
             <div class="buy-body">
                 @if ($enrolled)
@@ -155,4 +156,11 @@
         </div>
     </div>
 </section>
+
+@unless ($enrolled)
+<div class="ga-buybar">
+    <div><small>سعر الكورس</small><b>@if ($course->isFree())مجاني@else<span class="ltr">{{ iqd($course->finalPrice(), false) }}</span> د.ع@endif</b></div>
+    <a class="btn btn-gold" href="#buy">{{ $course->isFree() ? 'سجل مجانا' : 'اشترك الآن' }}</a>
+</div>
+@endunless
 @endsection

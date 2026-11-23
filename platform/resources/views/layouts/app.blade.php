@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <meta name="theme-color" content="#0B0A10">
+    <meta name="theme-color" content="#000000">
     <script>try{if(localStorage.getItem('ga-theme')==='light')document.documentElement.classList.remove('dark')}catch(e){}</script>
     <title>@hasSection('title')@yield('title') · @endif غني أكاديمي</title>
     <meta name="description" content="@yield('description', 'غني أكاديمي: كورسات تقنية عملية في الأمن السيبراني وبرمجة المواقع والتطبيقات. تعلم. طبق. اشتغل.')">
@@ -14,7 +14,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Alexandria:wght@700;800&family=Readex+Pro:wght@400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{{ asset('css/app.css') }}?v=3">
-    <link rel="stylesheet" href="{{ asset('css/theme.css') }}?v=2">
+    <link rel="stylesheet" href="{{ asset('css/theme.css') }}?v=3">
     @stack('head')
 </head>
 @php($user = auth()->user())
@@ -34,7 +34,7 @@
                 <a href="{{ route('courses.index') }}" @class(['active' => request()->routeIs('courses.*')])>الكورسات</a>
                 <a href="{{ route('app') }}" @class(['active' => request()->routeIs('app')])>التطبيق</a>
                 @auth
-                    <a href="{{ route('account') }}" @class(['active' => request()->routeIs('account')])>كورساتي</a>
+                    <a href="{{ route('account') }}" @class(['active' => request()->routeIs('account')])>مساري</a>
                     <a href="{{ route('wallet') }}" @class(['active' => request()->routeIs('wallet')])>المحفظة</a>
                     <a href="{{ route('chat.index') }}" @class(['active' => request()->routeIs('chat.*')])>الرسائل @if ($unread = $user->conversations()->sum('student_unread'))<span class="badge ltr">{{ $unread }}</span>@endif</a>
                 @endauth
@@ -61,7 +61,7 @@
                             @if ($user->isReseller())
                                 <a href="{{ route('reseller.index') }}">@include('partials.icon', ['n' => 'ticket']) بوابة الموزعين</a>
                             @endif
-                            <a href="{{ route('account') }}">@include('partials.icon', ['n' => 'play-circle']) كورساتي</a>
+                            <a href="{{ route('account') }}">@include('partials.icon', ['n' => 'play-circle']) مساري</a>
                             <a href="{{ route('wallet') }}">@include('partials.icon', ['n' => 'wallet']) المحفظة والقسائم</a>
                             <a href="{{ route('certificates.index') }}">@include('partials.icon', ['n' => 'award']) شهاداتي</a>
                             <a href="{{ route('account.settings') }}">@include('partials.icon', ['n' => 'settings']) الإعدادات والأجهزة</a>
@@ -118,9 +118,9 @@
 
     @auth
     <nav class="tabbar" aria-label="التنقل السريع">
-        <a href="{{ route('home') }}" @class(['active' => request()->routeIs('home')])>@include('partials.icon', ['n' => 'home'])الرئيسية</a>
-        <a href="{{ route('courses.index') }}" @class(['active' => request()->routeIs('courses.*')])>@include('partials.icon', ['n' => 'search'])تصفح</a>
-        <a href="{{ route('account') }}" @class(['active' => request()->routeIs('account', 'learn.*')])>@include('partials.icon', ['n' => 'play-circle'])كورساتي</a>
+        <a href="{{ route('home') }}" @class(['active' => request()->routeIs('home')])>@include('partials.icon', ['n' => 'home'])اكتشف</a>
+        <a href="{{ route('courses.index') }}" @class(['active' => request()->routeIs('courses.*')])>@include('partials.icon', ['n' => 'search'])الكورسات</a>
+        <a href="{{ route('account') }}" @class(['active' => request()->routeIs('account', 'learn.*')])>@include('partials.icon', ['n' => 'play-circle'])مساري</a>
         <a href="{{ route('wallet') }}" @class(['active' => request()->routeIs('wallet')])>@include('partials.icon', ['n' => 'wallet'])المحفظة</a>
         <a href="{{ route('account.settings') }}" @class(['active' => request()->routeIs('account.settings', 'certificates.*')])>@include('partials.icon', ['n' => 'user'])حسابي</a>
     </nav>
@@ -130,7 +130,7 @@
     document.getElementById('themeBtn').addEventListener('click', function () {
         var dark = document.documentElement.classList.toggle('dark');
         try { localStorage.setItem('ga-theme', dark ? 'dark' : 'light'); } catch (e) {}
-        document.querySelector('meta[name=theme-color]').content = dark ? '#0B0A10' : '#FFFFFF';
+        document.querySelector('meta[name=theme-color]').content = dark ? '#000000' : '#FFFFFF';
     });
     </script>
     <script src="{{ asset('js/app.js') }}?v=1" defer></script>

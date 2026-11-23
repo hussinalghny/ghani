@@ -28,9 +28,9 @@ class C {
 
   // الليلي: أسود فاخر وذهب شمبانيا — النهاري: أبيض وبنفسجي الأكاديمية
   static const champagne = Color(0xFFD4AF6A);
-  static Color get bg => dark ? const Color(0xFF0B0A10) : Colors.white;
-  static Color get card => dark ? const Color(0xFF15131D) : Colors.white;
-  static Color get bgAlt => dark ? const Color(0xFF111018) : const Color(0xFFF7F5FC);
+  static Color get bg => dark ? const Color(0xFF000000) : Colors.white;
+  static Color get card => dark ? const Color(0xFF141219) : Colors.white;
+  static Color get bgAlt => dark ? const Color(0xFF0E0D12) : const Color(0xFFF7F5FC);
   static Color get text => dark ? const Color(0xFFF5F1E8) : night;
   static Color get text2 => dark ? const Color(0xFFA9A3B8) : const Color(0xFF5F5A7A);
   static Color get text3 => dark ? const Color(0xFF6E6880) : const Color(0xFF8C87A6);

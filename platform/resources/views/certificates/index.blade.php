@@ -18,7 +18,7 @@
             <div class="ic">@include('partials.icon', ['n' => 'award'])</div>
             <h3>لا توجد شهادات بعد<span class="dot">.</span></h3>
             <p>أكمل دروس أي كورس وتصدر شهادتك هنا.</p>
-            <a href="{{ route('account') }}" class="btn btn-primary">كورساتي</a>
+            <a href="{{ route('account') }}" class="btn btn-primary">مساري</a>
         </div>
     @endforelse
     <div style="height:64px"></div>
