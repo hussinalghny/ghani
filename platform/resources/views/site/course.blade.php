@@ -23,7 +23,7 @@
             @if ($students)<span><span class="ltr">{{ number_format($students) }}</span> طالب</span>@endif
         </div>
         @if ($course->instructor)<div class="u-ins-line">المدرب: <a href="#instructor">{{ $course->instructor->name }}</a></div>@endif
-        <div class="u-meta tiny"><span>آخر تحديث {{ $course->updated_at?->translatedFormat('F Y') }}</span><span>عربي</span></div>
+        <div class="u-meta tiny"><span>آخر تحديث {{ ['','كانون الثاني','شباط','آذار','نيسان','أيار','حزيران','تموز','آب','أيلول','تشرين الأول','تشرين الثاني','كانون الأول'][$course->updated_at?->month ?? 0] }} <span class="ltr">{{ $course->updated_at?->year }}</span></span><span>عربي</span></div>
 
         @if ($course->outcomesList())
             <div class="u-box">

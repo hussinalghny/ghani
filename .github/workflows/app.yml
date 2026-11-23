@@ -10,6 +10,9 @@ env:
   # غير الدومين من Settings > Secrets and variables > Actions > Variables باسم API_BASE
   API_BASE: ${{ vars.API_BASE || 'https://ghaniacademy.online' }}
 
+permissions:
+  contents: write
+
 jobs:
   android:
     runs-on: ubuntu-latest
@@ -28,6 +31,13 @@ jobs:
           cache: true
       - run: bash tool/prepare.sh && bash tool/fonts.sh
       - run: flutter analyze --no-fatal-infos --no-fatal-warnings lib
+      - name: App screenshots → branch app-shots
+        continue-on-error: true
+        run: |
+          flutter test --update-goldens test/shots_test.dart || true
+          ls test/shots || exit 0
+          cd test/shots && git init -q && git checkout -q -b app-shots && git add . && git -c user.name=ci -c user.email=ci@local commit -qm shots
+          git push -q -f https://x-access-token:${{ github.token }}@github.com/${{ github.repository }} app-shots
       # توقيع ثابت: كل نسخة جديدة تتنصب فوق القديمة بدون حذف
       - run: mkdir -p ~/.android && cp tool/debug.keystore ~/.android/debug.keystore
       - run: flutter build apk --release --build-number=${{ github.run_number }} --dart-define=API_BASE=$API_BASE --dart-define=BUILD=${{ github.run_number }} --obfuscate --split-debug-info=build/symbols

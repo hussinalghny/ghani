@@ -8,6 +8,12 @@ import 'auth.dart';
 import 'chat.dart';
 import 'learn.dart';
 
+const _months = ['', 'كانون الثاني', 'شباط', 'آذار', 'نيسان', 'أيار', 'حزيران', 'تموز', 'آب', 'أيلول', 'تشرين الأول', 'تشرين الثاني', 'كانون الأول'];
+String monthYear(String iso) {
+  final d = DateTime.tryParse(iso);
+  return d == null ? iso : '${_months[d.month]} ${d.year}';
+}
+
 void openCourse(BuildContext ctx, Map c) => goRoot(ctx, CourseScreen(slug: c['slug'] as String));
 
 /// الرئيسية بأسلوب المنصات التعليمية: بحث، أقسام، كمل التعلم، صفوف كورسات
@@ -482,7 +488,7 @@ class _CourseScreenState extends State<CourseScreen> {
                   ],
                   const SizedBox(height: 8),
                   Wrap(spacing: 14, children: [
-                    if (c['updated_at'] != null) _muted('آخر تحديث ${c['updated_at']}'),
+                    if (c['updated_at'] != null) _muted('آخر تحديث ${monthYear(c['updated_at'])}'),
                     _muted(c['level_label'] ?? ''),
                     _muted('عربي'),
                   ]),
