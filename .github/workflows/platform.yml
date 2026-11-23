@@ -133,7 +133,7 @@ jobs:
           c=$(sreq POST /api/v1/payments/console/orders/$O3/approve '{}'); echo "$c console approve"
           R=$(php artisan tinker --execute='echo App\Models\PaymentOrder::find('$O3')->status."|".App\Models\PaymentOrder::find('$O3')->paid_by;' | tail -1); echo "approved: $R"; [ "$R" = "paid|admin" ] || fail=1
           # لقطات HTML للتصميم (تنفتح محليا ويا ملفات public)
-          mkdir -p /tmp/snap && cp -r public/css public/img public/js /tmp/snap/
+          mkdir -p /tmp/snap && cp -r public/css public/img public/js /tmp/snap/; cp -r public/fonts /tmp/snap/ 2>/dev/null; ls public/fonts/thmanyah || echo "NO THMANYAH FONTS"
           c=$(curl -s -o /dev/null -w '%{http_code}' -c $J -b $J http://127.0.0.1:8000/); echo "$c home (logged in)"; [ "$c" = "200" ] || fail=1
           curl -s -c $J -b $J http://127.0.0.1:8000/ | sed 's#http://127.0.0.1:8000/##g' > /tmp/snap/home-user.html
           curl -s http://127.0.0.1:8000/ | sed 's#http://127.0.0.1:8000/##g' > /tmp/snap/home-guest.html
