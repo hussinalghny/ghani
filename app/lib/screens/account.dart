@@ -248,7 +248,6 @@ class AccountScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: C.bgAlt,
       body: SafeArea(
         bottom: false,
         child: ValueListenableBuilder<bool>(
@@ -367,7 +366,7 @@ class AccountScreen extends StatelessWidget {
   Widget _label(String t) => Padding(padding: const EdgeInsets.fromLTRB(6, 22, 6, 8), child: Text(t, style: TextStyle(color: C.text3, fontWeight: FontWeight.w600, fontSize: 13)));
 
   Widget _group(List<Widget> children) => Container(
-        decoration: BoxDecoration(color: C.card, borderRadius: BorderRadius.circular(16)),
+        decoration: BoxDecoration(color: C.card, borderRadius: BorderRadius.circular(16), border: Border.all(color: C.line)),
         clipBehavior: Clip.antiAlias,
         child: Column(children: children),
       );

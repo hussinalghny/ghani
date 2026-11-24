@@ -107,12 +107,40 @@ SWIFT
   grep -q "ScreenGuard.start()" "$APPDEL" || echo "WARNING: ScreenGuard.start() not inserted"
 fi
 
-# شريط التبويبات الأصلي مال iOS (UITabBar): نفس شريط النظام وزجاجه بـ iOS 26
-if ! grep -q "GhaniTabBar.register" "$APPDEL"; then
-  perl -0pi -e 's/(GeneratedPluginRegistrant\.register\(with: ([^)]+)\))/$1\n    GhaniTabBar.register(with: $2)/' "$APPDEL"
-  grep -v '^import ' tool/swift/GhaniTabBar.swift >> "$APPDEL"
+# ---------- شاشة التحميل الأصلية بالشعار ----------
+RES=android/app/src/main/res
+mkdir -p "$RES/drawable-xxxhdpi" "$RES/values-v31"
+cp tool/splash/splash_logo.png "$RES/drawable-xxxhdpi/splash_logo.png"
+for d in drawable drawable-v21; do
+  [ -d "$RES/$d" ] && cat > "$RES/$d/launch_background.xml" <<'XML'
+<?xml version="1.0" encoding="utf-8"?>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:drawable="@android:color/white" />
+    <item><bitmap android:gravity="center" android:src="@drawable/splash_logo" /></item>
+</layer-list>
+XML
+done
+cat > "$RES/values-v31/styles.xml" <<'XML'
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="LaunchTheme" parent="@android:style/Theme.Light.NoTitleBar">
+        <item name="android:windowSplashScreenBackground">#FFFFFF</item>
+        <item name="android:windowSplashScreenAnimatedIcon">@mipmap/ic_launcher</item>
+        <item name="android:windowBackground">@drawable/launch_background</item>
+    </style>
+    <style name="NormalTheme" parent="@android:style/Theme.Light.NoTitleBar">
+        <item name="android:windowBackground">@android:color/white</item>
+        <item name="android:navigationBarColor">@android:color/white</item>
+    </style>
+</resources>
+XML
+LI=ios/Runner/Assets.xcassets/LaunchImage.imageset
+if [ -d "$LI" ]; then
+  cp tool/splash/LaunchImage.png tool/splash/LaunchImage@2x.png tool/splash/LaunchImage@3x.png "$LI/"
 fi
-grep -q "GhaniTabBar.register(with" "$APPDEL" || echo "WARNING: GhaniTabBar not registered"
+SB=ios/Runner/Base.lproj/LaunchScreen.storyboard
+# خلفية بيضاء ثابتة حتى بالوضع الليلي للنظام
+[ -f "$SB" ] && perl -pi -e 's#<color key="backgroundColor"[^>]*/>#<color key="backgroundColor" red="1" green="1" blue="1" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>#g' "$SB"
 
 # ---------- الأيقونة ----------
 dart run flutter_launcher_icons

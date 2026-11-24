@@ -9,6 +9,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:ghani_academy/api.dart';
 import 'package:ghani_academy/main.dart';
 import 'package:ghani_academy/screens/home.dart';
+import 'package:ghani_academy/screens/welcome.dart';
 import 'package:ghani_academy/ui.dart';
 
 Future<void> _font(String family, List<String> files) async {
@@ -93,6 +94,8 @@ void main() {
       ],
       'continue': null,
     });
+    await shot(t, app(WelcomeScreen(onDone: () {})), 'welcome');
+    await shot(t, app(const SplashScreen()), 'splash');
     await shot(t, app(const Shell()), 'home');
 
     ResCache.put('g:course:c1', {

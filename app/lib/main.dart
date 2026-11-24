@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'dart:ui';
 
 import 'package:flutter/cupertino.dart';
@@ -13,6 +12,7 @@ import 'screens/account.dart';
 import 'screens/auth.dart';
 import 'screens/home.dart';
 import 'screens/learn.dart';
+import 'screens/welcome.dart';
 import 'ui.dart';
 
 const _prefs = FlutterSecureStorage(aOptions: AndroidOptions(encryptedSharedPreferences: true));
@@ -25,10 +25,17 @@ Future<void> main() async {
   final saved = await _prefs.read(key: 'theme');
   darkMode.value = saved == 'dark'; // الافتراضي: النهاري الأبيض
   darkMode.addListener(() => _prefs.write(key: 'theme', value: darkMode.value ? 'dark' : 'light'));
-  await Api.i.init();
-  await Push.init();
+  welcomed.value = await _prefs.read(key: 'welcomed') == '1';
   runApp(const GhaniApp());
+  // التطبيق يطلع فورا بشاشة الشعار، والتهيئة تكمل وراها
+  await Api.i.init();
+  ready.value = true;
+  await Push.init();
 }
+
+/// جاهزية التطبيق (بعد قراءة الجلسة) وهل شاف شاشة الترحيب
+final ready = ValueNotifier<bool>(false);
+final welcomed = ValueNotifier<bool>(true);
 
 class GhaniApp extends StatelessWidget {
   const GhaniApp({super.key});
@@ -37,7 +44,15 @@ class GhaniApp extends StatelessWidget {
     return ValueListenableBuilder<bool>(
       valueListenable: darkMode,
       builder: (_, dark, __) {
-        SystemChrome.setSystemUIOverlayStyle(dark ? SystemUiOverlayStyle.light : SystemUiOverlayStyle.dark);
+        // لون موحد: شريط النظام السفلي (أندرويد) والعلوي بنفس لون التطبيق
+        SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+        SystemChrome.setSystemUIOverlayStyle((dark ? SystemUiOverlayStyle.light : SystemUiOverlayStyle.dark).copyWith(
+          statusBarColor: Colors.transparent,
+          systemNavigationBarColor: dark ? const Color(0xFF0E0E12) : Colors.white,
+          systemNavigationBarDividerColor: Colors.transparent,
+          systemNavigationBarIconBrightness: dark ? Brightness.light : Brightness.dark,
+          systemNavigationBarContrastEnforced: false,
+        ));
         return MaterialApp(
           key: ValueKey(dark),
           title: 'غني أكاديمي',
@@ -51,7 +66,20 @@ class GhaniApp extends StatelessWidget {
             GlobalWidgetsLocalizations.delegate,
             GlobalCupertinoLocalizations.delegate,
           ],
-          home: const Shell(),
+          home: AnimatedBuilder(
+            animation: Listenable.merge([ready, welcomed]),
+            builder: (_, __) => AnimatedSwitcher(
+              duration: const Duration(milliseconds: 280),
+              child: !ready.value
+                  ? const SplashScreen()
+                  : !welcomed.value
+                      ? WelcomeScreen(onDone: () {
+                          welcomed.value = true;
+                          _prefs.write(key: 'welcomed', value: '1');
+                        })
+                      : const Shell(),
+            ),
+          ),
 
         );
       },
@@ -109,10 +137,7 @@ class Shell extends StatelessWidget {
           extendBody: true,
           body: Stack(children: [
             IndexedStack(index: i, children: [for (var n = 0; n < t.length; n++) _lazy(n, i, () => _nav(t[n].page))]),
-            if (Platform.isIOS)
-              Positioned(left: 0, right: 0, bottom: 0, height: bottom + (_ios26 ? 64 : 49), child: _NativeTabBar(tabs: t, index: i))
-            else
-              Positioned(
+            Positioned(
                 left: 16,
                 right: 16,
                 bottom: bottom > 0 ? bottom : 14,
@@ -204,59 +229,6 @@ class _SideBar extends StatelessWidget {
           Expanded(child: Text('المحتوى محمي من تسجيل الشاشة', style: TextStyle(color: C.text3, fontSize: 12))),
         ]),
       ]),
-    );
-  }
-}
-
-final bool _ios26 = Platform.isIOS && (int.tryParse(RegExp(r'(\d+)').firstMatch(Platform.operatingSystemVersion)?.group(1) ?? '') ?? 0) >= 26;
-
-/// آيفون: شريط التبويبات الأصلي مال النظام (UITabBar)، نفس شريط غني باي وزجاج iOS 26
-class _NativeTabBar extends StatefulWidget {
-  final List<_Tab> tabs;
-  final int index;
-  const _NativeTabBar({required this.tabs, required this.index});
-  @override
-  State<_NativeTabBar> createState() => _NativeTabBarState();
-}
-
-class _NativeTabBarState extends State<_NativeTabBar> {
-  static const _icons = [
-    ['house', 'house.fill'],
-    ['magnifyingglass', 'magnifyingglass'],
-    ['play.rectangle', 'play.rectangle.fill'],
-    ['person', 'person.fill'],
-  ];
-  MethodChannel? ch;
-
-  @override
-  void didUpdateWidget(covariant _NativeTabBar old) {
-    super.didUpdateWidget(old);
-    if (old.index != widget.index) ch?.invokeMethod('select', widget.index);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return UiKitView(
-      viewType: 'ghani/tabbar',
-      layoutDirection: TextDirection.rtl,
-      creationParamsCodec: const StandardMessageCodec(),
-      creationParams: {
-        'index': widget.index,
-        'dark': C.dark,
-        'items': [
-          for (var k = 0; k < widget.tabs.length; k++)
-            {'title': widget.tabs[k].label, 'icon': _icons[k % _icons.length][0], 'selected': _icons[k % _icons.length][1]},
-        ],
-      },
-      onPlatformViewCreated: (id) {
-        ch = MethodChannel('ghani/tabbar_$id')
-          ..setMethodCallHandler((call) async {
-            if (call.method == 'tap') {
-              HapticFeedback.selectionClick();
-              tab.value = call.arguments as int;
-            }
-          });
-      },
     );
   }
 }
