@@ -249,7 +249,7 @@ class _TabBar extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(34),
-        boxShadow: [BoxShadow(color: (dark ? Colors.black : const Color(0xFF1C1446)).withValues(alpha: dark ? .45 : .16), blurRadius: 30, offset: const Offset(0, 10))],
+        boxShadow: [BoxShadow(color: (dark ? Colors.black : const Color(0xFF1C1446)).withValues(alpha: dark ? .35 : .08), blurRadius: 24, offset: const Offset(0, 4))],
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(34),
