@@ -135,6 +135,7 @@ class Shell extends StatelessWidget {
         final bottom = MediaQuery.of(ctx).padding.bottom;
         return Scaffold(
           extendBody: true,
+          backgroundColor: C.bg,
           body: Stack(children: [
             IndexedStack(index: i, children: [for (var n = 0; n < t.length; n++) _lazy(n, i, () => _nav(t[n].page))]),
             Positioned(
@@ -160,7 +161,10 @@ class Shell extends StatelessWidget {
 
   // كل تبويب عنده Navigator خاص، ومساحة بالأسفل للشريط العائم
   Widget _nav(Widget root, {double pad = 84}) => Navigator(
-        onGenerateRoute: (_) => CupertinoPageRoute(builder: (c) => Padding(padding: EdgeInsets.only(bottom: pad), child: root)),
+        onGenerateRoute: (_) => CupertinoPageRoute(
+          // المساحة تحت الشريط العائم بنفس لون التطبيق
+          builder: (c) => ColoredBox(color: C.bg, child: Padding(padding: EdgeInsets.only(bottom: pad), child: root)),
+        ),
       );
 }
 
