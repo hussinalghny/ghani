@@ -36,6 +36,13 @@ class HomeController extends Controller
             }
         }
 
+        // الزائر يشوف صفحة الهبوط، والمسجل يشوف رئيسية الكورسات
+        if (! auth()->check()) {
+            $stats['lessons'] = cache()->remember('home.lessons', 600, fn () => \App\Models\Lesson::count());
+
+            return view('site.landing', compact('popular', 'categories', 'stats'));
+        }
+
         return view('site.home', compact('featured', 'latest', 'categories', 'stats', 'popular', 'continue'));
     }
 }
