@@ -322,7 +322,7 @@ h1, h2, h3, h4 { font-weight: 700; }
 .ch-form .input { width: 100%; min-height: 48px; }
 .ch-form .input:focus { border-color: var(--violet); box-shadow: 0 0 0 3px rgba(90, 53, 214, .15); outline: none; }
 .ch-levels { border: 0; padding: 0; margin: 0; }
-.ch-levels label { display: inline-block; margin: 0 0 0 6px; font-weight: 500; }
+.ch-form .ch-levels label { display: inline-block; margin: 0 0 6px 6px; font-weight: 500; }
 .ch-levels input { position: absolute; opacity: 0; pointer-events: none; }
 .ch-levels span { display: inline-block; padding: 9px 16px; border: 1px solid var(--line-2); border-radius: 12px; cursor: pointer; font-size: 14px; }
 .ch-levels input:checked + span { border-color: var(--violet); background: var(--mist); color: var(--violet); font-weight: 700; }
