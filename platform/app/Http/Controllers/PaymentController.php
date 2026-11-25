@@ -33,8 +33,10 @@ class PaymentController extends Controller
             return redirect()->route('cohort.ticket', $reg);
         }
         // للكورس أو المقعد: نطلب الفرق بس إذا عنده رصيد
-        $price = $reg ? $reg->cohort->price : ($course ? $course->finalPrice() : null);
-        $base = $price !== null ? max(1000, $price - (int) $user->balance) : (int) ($data['amount'] ?? 0);
+        // المقعد الحضوري: المبلغ كامل دائما (الرصيد يدفع بزر «من رصيدي» إذا يكفي)
+        // الكورس الإلكتروني: نطلب الفرق بس إذا عنده رصيد
+        $base = $reg ? max(1000, $reg->cohort->price)
+            : ($course ? max(1000, $course->finalPrice() - (int) $user->balance) : (int) ($data['amount'] ?? 0));
 
         try {
             $order = $this->payments->create($user, $data['method'], $base, $reg ? null : $course, $reg);
