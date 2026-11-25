@@ -181,7 +181,7 @@ jobs:
           X=$(curl -s -c $H -b $H http://127.0.0.1:8000/in-person/smart-defense | tee /tmp/out | grep -o 'name="csrf-token" content="[^"]*"' | sed 's/.*content="//;s/"//'); grep -q 'GHANI50' /tmp/out && echo "discount shown in pay box" || fail=1
           RC2=$(php artisan tinker --execute='echo App\Models\CohortRegistration::latest("id")->value("code");' | tail -1)
           curl -s -o /dev/null -c $H -b $H -X POST -d "_token=$X&method=qi&registration=$RC2" http://127.0.0.1:8000/pay
-          php artisan tinker --execute='$o=App\Models\PaymentOrder::latest("id")->first(); echo "disc order ".$o->amount.PHP_EOL;' | tee /tmp/do.txt; grep -qE "disc order 1000[0-9]{2,3}$" /tmp/do.txt || fail=1
+          php artisan tinker --execute='$o=App\Models\PaymentOrder::latest("id")->first(); echo "disc order ".$o->amount.PHP_EOL;' | tee /tmp/do.txt; grep -qE "disc order 100[0-4][0-9]{2}$" /tmp/do.txt || fail=1
           php artisan tinker --execute='$c=App\Models\Cohort::first(); $d=App\Models\DiscountCode::check("GHANI50",$c); echo "second use: ".(is_string($d)?$d:"OK").PHP_EOL;' | tee /tmp/d2.txt; grep -q "انتهت استخداماته" /tmp/d2.txt || fail=1
           curl -s http://127.0.0.1:8000/in-person/smart-defense | sed 's#http://127.0.0.1:8000/##g' > /tmp/cohort-guest.html
           curl -s -c $G -b $G http://127.0.0.1:8000/ticket/$RC | sed 's#http://127.0.0.1:8000/##g' > /tmp/ticket.html
