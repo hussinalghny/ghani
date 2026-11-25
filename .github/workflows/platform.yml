@@ -171,6 +171,18 @@ jobs:
           c=$(curl -s -o /dev/null -w '%{http_code}' -c $J -b $J http://127.0.0.1:8000/admin/cohorts); echo "$c admin cohorts"; [ "$c" = "200" ] || fail=1
           c=$(curl -s -o /tmp/out -w '%{http_code}' -c $J -b $J http://127.0.0.1:8000/admin/cohorts/smart-defense); echo "$c admin cohort"; [ "$c" = "200" ] && grep -q "$RC" /tmp/out || fail=1
           c=$(curl -s -o /tmp/out -w '%{http_code}' -c $J -b $J http://127.0.0.1:8000/admin/cohorts/smart-defense/csv); echo "$c admin csv"; [ "$c" = "200" ] && grep -q "علي حسن" /tmp/out || fail=1
+          # كود الخصم: الإدارة تضيف كود 50% لاستخدام واحد ← طالب جديد يسجل بيه ← الطلب نص السعر ← الكود ما يشتغل مرة ثانية
+          X=$(curl -s -c $J -b $J http://127.0.0.1:8000/admin/cohorts/smart-defense | grep -o 'name="csrf-token" content="[^"]*"' | sed 's/.*content="//;s/"//')
+          c=$(curl -s -o /dev/null -w '%{http_code}' -c $J -b $J -X POST -d "_token=$X&code=ghani50&type=percent&value=50&max_uses=1" http://127.0.0.1:8000/admin/cohorts/smart-defense/discounts); echo "$c admin add discount"; [ "$c" = "302" ] || fail=1
+          H=/tmp/h.txt; rm -f $H
+          X=$(curl -s -c $H -b $H "http://127.0.0.1:8000/in-person/smart-defense?code=GHANI50" | tee /tmp/out | grep -o 'name="csrf-token" content="[^"]*"' | sed 's/.*content="//;s/"//'); grep -q 'value="GHANI50"' /tmp/out && echo "code prefilled" || { echo "code not prefilled"; fail=1; }
+          c=$(curl -s -o /dev/null -w '%{http_code}' -c $H -b $H -X POST --data-urlencode "_token=$X" --data-urlencode "name=سارة أحمد" --data-urlencode "phone=07811112222" --data-urlencode "level=none" --data-urlencode "password=secret123" --data-urlencode "agree=1" --data-urlencode "discount=ghani50" http://127.0.0.1:8000/in-person/smart-defense/register); echo "$c register with code"
+          php artisan tinker --execute='$r=App\Models\CohortRegistration::latest("id")->first(); echo "disc price ".$r->finalPrice()." code ".$r->discount?->code.PHP_EOL;' | tee /tmp/dc.txt; grep -q "disc price 100000 code GHANI50" /tmp/dc.txt || fail=1
+          X=$(curl -s -c $H -b $H http://127.0.0.1:8000/in-person/smart-defense | tee /tmp/out | grep -o 'name="csrf-token" content="[^"]*"' | sed 's/.*content="//;s/"//'); grep -q 'GHANI50' /tmp/out && echo "discount shown in pay box" || fail=1
+          RC2=$(php artisan tinker --execute='echo App\Models\CohortRegistration::latest("id")->value("code");' | tail -1)
+          curl -s -o /dev/null -c $H -b $H -X POST -d "_token=$X&method=qi&registration=$RC2" http://127.0.0.1:8000/pay
+          php artisan tinker --execute='$o=App\Models\PaymentOrder::latest("id")->first(); echo "disc order ".$o->amount.PHP_EOL;' | tee /tmp/do.txt; grep -qE "disc order 1000[0-9]{2,3}$" /tmp/do.txt || fail=1
+          php artisan tinker --execute='$c=App\Models\Cohort::first(); $d=App\Models\DiscountCode::check("GHANI50",$c); echo "second use: ".(is_string($d)?$d:"OK").PHP_EOL;' | tee /tmp/d2.txt; grep -q "انتهت استخداماته" /tmp/d2.txt || fail=1
           curl -s http://127.0.0.1:8000/in-person/smart-defense | sed 's#http://127.0.0.1:8000/##g' > /tmp/cohort-guest.html
           curl -s -c $G -b $G http://127.0.0.1:8000/ticket/$RC | sed 's#http://127.0.0.1:8000/##g' > /tmp/ticket.html
           # لقطات HTML للتصميم (تنفتح محليا ويا ملفات public)

@@ -150,26 +150,46 @@
                 <div><span>الكورس</span><b>{{ $cohort->title }} · حضوري</b></div>
                 <div><span>يبدأ</span><b>{{ $date }}</b></div>
                 <div><span>المكان</span><b>{{ $cohort->location ?: 'بغداد' }}</b></div>
-                <div><span>المبلغ</span><b><span class="ltr">{{ number_format($cohort->price) }}</span> د.ع</b></div>
+                <div><span>المبلغ</span><b><span class="ltr">{{ number_format($mine ? $mine->finalPrice() : $cohort->price) }}</span> د.ع</b></div>
             </div>
         </div>
 
         <div class="ch-reg-main" id="pay">
             @if ($mine && $mine->status === 'pending')
                 <div class="ch-state"><span class="badge badge-gold">بانتظار الدفع</span><span class="tiny">رمز التسجيل <b class="ltr">{{ $mine->code }}</b></span></div>
+                <div class="ch-total">
+                    <div><span>سعر المقعد</span><b><span class="ltr">{{ number_format($cohort->price) }}</span> د.ع</b></div>
+                    @if ($mine->discount)
+                        <div class="ch-off"><span>خصم <b class="ltr">{{ $mine->discount->code }}</b> ({{ $mine->discount->label() }})</span><b>− <span class="ltr">{{ number_format($cohort->price - $mine->finalPrice()) }}</span> د.ع</b></div>
+                    @endif
+                    <div class="ch-sum-final"><span>المطلوب</span><b><span class="ltr">{{ number_format($mine->finalPrice()) }}</span> د.ع</b></div>
+                </div>
+                <form method="POST" action="{{ route('cohort.discount', $mine) }}" class="ch-disc">@csrf
+                    <label class="sr-only" for="p-disc">كود الخصم</label>
+                    <input class="input ltr" id="p-disc" name="discount" dir="ltr" placeholder="كود الخصم" value="{{ $mine->discount?->code }}" autocomplete="off" style="text-transform:uppercase">
+                    <button class="btn btn-plain" type="submit">{{ $mine->discount ? 'تحديث' : 'تطبيق' }}</button>
+                </form>
+                @error('discount')<small class="ch-err">{{ $message }}</small>@enderror
                 <h3>اختار طريقة الدفع</h3>
-                @if ((int) $user->balance >= $cohort->price && $cohort->price > 0)
+                @if ($mine->finalPrice() === 0)
+                    <form method="POST" action="{{ route('cohort.wallet', $mine) }}" class="ch-method">@csrf
+                        <button type="submit">@include('partials.icon', ['n' => 'check-circle'])<span><b>أكد مقعدي مجانا</b><small>الخصم يغطي المبلغ كامل</small></span>@include('partials.icon', ['n' => 'chev-left'])</button>
+                    </form>
+                @endif
+                @if ($mine->finalPrice() > 0 && (int) $user->balance >= $mine->finalPrice())
                     <form method="POST" action="{{ route('cohort.wallet', $mine) }}" class="ch-method">@csrf
                         <button type="submit">@include('partials.icon', ['n' => 'wallet'])<span><b>من رصيدي</b><small>رصيدك <span class="ltr">{{ number_format($user->balance) }}</span> د.ع</small></span>@include('partials.icon', ['n' => 'chev-left'])</button>
                     </form>
                 @endif
-                @forelse ($methods as $key => $m)
+                @forelse ($mine->finalPrice() > 0 ? $methods : [] as $key => $m)
                     <form method="POST" action="{{ route('pay.store') }}" class="ch-method">@csrf
                         <input type="hidden" name="method" value="{{ $key }}"><input type="hidden" name="registration" value="{{ $mine->code }}">
                         <button type="submit">@include('partials.icon', ['n' => 'wallet'])<span><b>{{ $m['label'] }}</b><small>تحويل مباشر · تأكيد تلقائي</small></span>@include('partials.icon', ['n' => 'chev-left'])</button>
                     </form>
                 @empty
+                    @if ($mine->finalPrice() > 0)
                     <p class="muted small">الدفع الإلكتروني متوقف مؤقتا. راسلنا على الواتساب <a class="ltr" href="https://wa.me/9647766637444">0776 663 7444</a> ونأكد مقعدك.</p>
+                    @endif
                 @endforelse
                 <p class="tiny" style="margin-top:12px">مقعدك محجوز لحد {{ $mine->created_at->addHours(\App\Services\PaymentService::HOURS)->timezone('Asia/Baghdad')->format('Y/m/d H:i') }}.</p>
             @elseif ($mine)
@@ -193,6 +213,7 @@
                             <label><input type="radio" name="level" value="{{ $k }}" @checked(old('level', 'basic') === $k)><span>{{ $v }}</span></label>
                         @endforeach
                     </fieldset>
+                    <div class="field"><label for="f-disc">كود الخصم <small class="muted">(إذا عندك)</small></label><input class="input ltr ch-code" id="f-disc" name="discount" dir="ltr" value="{{ old('discount', request('code')) }}" autocomplete="off" placeholder="CODE" style="text-transform:uppercase">@error('discount')<small class="ch-err">{{ $message }}</small>@enderror</div>
                     <div class="field"><label for="f-notes">ملاحظة <small class="muted">(اختياري)</small></label><textarea class="input" id="f-notes" name="notes" rows="2" maxlength="500">{{ old('notes') }}</textarea></div>
                     @guest
                         <div class="field"><label for="f-pass">كلمة مرور لحسابك</label><input class="input ltr" id="f-pass" name="password" type="password" dir="ltr" minlength="8" required autocomplete="new-password"><small class="tiny">نسويلك حساب بغني أكاديمي حتى تتابع تسجيلك وتذكرتك. عندك حساب؟ <a href="{{ route('login') }}">سجل دخولك</a>.</small></div>

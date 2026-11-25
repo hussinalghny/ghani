@@ -25,6 +25,17 @@ class CohortRegistration extends Model
         return $this->belongsTo(Cohort::class);
     }
 
+    public function discount(): BelongsTo
+    {
+        return $this->belongsTo(DiscountCode::class, 'discount_code_id');
+    }
+
+    /** السعر النهائي لهالتسجيل (بعد الخصم إن وجد) */
+    public function finalPrice(): int
+    {
+        return $this->price ?? $this->cohort->price;
+    }
+
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);

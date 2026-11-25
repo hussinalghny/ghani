@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Exceptions\AcademyException;
 use App\Models\Cohort;
 use App\Models\CohortRegistration;
+use App\Models\DiscountCode;
 use App\Models\User;
 use App\Services\CohortService;
 use App\Services\DeviceGuard;
@@ -42,6 +43,7 @@ class CohortController extends Controller
             'job' => ['nullable', 'string', 'max:80'],
             'level' => ['required', Rule::in(array_keys(CohortRegistration::LEVELS))],
             'notes' => ['nullable', 'string', 'max:500'],
+            'discount' => ['nullable', 'string', 'max:40'],
             'password' => $guest ? ['required', 'string', 'min:8'] : ['nullable'],
             'agree' => ['accepted'],
         ], [
@@ -49,6 +51,11 @@ class CohortController extends Controller
             'phone.unique' => 'هذا الرقم عنده حساب. سجل دخولك أولا وكمل التسجيل.',
             'agree.accepted' => 'لازم توافق على شروط التسجيل.',
         ], ['name' => 'الاسم', 'phone' => 'رقم الهاتف', 'password' => 'كلمة المرور', 'level' => 'مستواك', 'email' => 'الإيميل']);
+
+        $discount = DiscountCode::check($data['discount'] ?? null, $cohort);
+        if (is_string($discount)) {
+            return back()->withInput($request->except('password'))->withErrors(['discount' => $discount]);
+        }
 
         if ($guest) {
             $user = User::create(['name' => $data['name'], 'phone' => $data['phone'], 'password' => $data['password']]);
@@ -65,6 +72,9 @@ class CohortController extends Controller
         $user = $request->user();
 
         $reg = $this->cohorts->register($cohort, $user, collect($data)->only(['name', 'phone', 'email', 'job', 'level', 'notes'])->all());
+        if ($discount && $reg->status === 'pending') {
+            $this->cohorts->applyDiscount($reg, $discount->code);
+        }
 
         if ($reg->status === 'waitlist') {
             return redirect()->route('cohort.ticket', $reg)->with('success', 'المقاعد اكتملت، وسجلناك بقائمة الانتظار. نتواصل وياك أول ما يتوفر مقعد.');
@@ -74,6 +84,17 @@ class CohortController extends Controller
         }
 
         return redirect(route('cohort.show', $cohort).'#pay')->with('success', 'انحجز مقعدك 48 ساعة. كمل الدفع حتى يتأكد.');
+    }
+
+    public function discount(Request $request, CohortRegistration $registration)
+    {
+        abort_unless($registration->user_id === $request->user()->id && $registration->status === 'pending', 404);
+        $err = $this->cohorts->applyDiscount($registration, $request->input('discount'));
+        if ($err) {
+            return redirect(route('cohort.show', $registration->cohort).'#pay')->withErrors(['discount' => $err]);
+        }
+
+        return redirect(route('cohort.show', $registration->cohort).'#pay')->with('success', $request->filled('discount') ? 'انطبق كود الخصم.' : 'انشال كود الخصم.');
     }
 
     public function wallet(Request $request, CohortRegistration $registration)

@@ -34,7 +34,7 @@ class PaymentController extends Controller
         }
         // المقعد الحضوري: المبلغ كامل دائما (الرصيد يدفع بزر «من رصيدي» إذا يكفي)
         // الكورس الإلكتروني: نطلب الفرق بس إذا عنده رصيد
-        $base = $reg ? max(1000, $reg->cohort->price)
+        $base = $reg ? max(1000, $reg->finalPrice())
             : ($course ? max(1000, $course->finalPrice() - (int) $user->balance) : (int) ($data['amount'] ?? 0));
 
         try {

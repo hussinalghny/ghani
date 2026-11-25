@@ -27,7 +27,7 @@ class CohortController extends Controller
     {
         $status = $request->query('status', 'all');
         $q = $request->query('q');
-        $regs = $cohort->registrations()->with('user:id,name,phone,balance')
+        $regs = $cohort->registrations()->with(['user:id,name,phone,balance', 'discount', 'cohort'])
             ->when($status !== 'all', fn ($w) => $w->where('status', $status))
             ->when($q, fn ($w) => $w->where(fn ($x) => $x->where('name', 'like', "%$q%")->orWhere('phone', 'like', "%$q%")->orWhere('code', 'like', "%$q%")))
             ->orderByRaw("case status when 'paid' then 0 when 'pending' then 1 when 'waitlist' then 2 else 3 end")->latest()->paginate(60)->withQueryString();
@@ -39,8 +39,10 @@ class CohortController extends Controller
             'revenue' => $cohort->paidCount() * $cohort->price,
         ];
         $courses = Course::orderBy('title')->get(['id', 'title']);
+        $discounts = \App\Models\DiscountCode::where(fn ($q) => $q->whereNull('cohort_id')->orWhere('cohort_id', $cohort->id))->latest()->get();
+        $stats['revenue'] = (int) $cohort->registrations()->where('status', 'paid')->get()->sum(fn ($r) => $r->finalPrice());
 
-        return view('admin.cohorts.show', compact('cohort', 'regs', 'stats', 'status', 'courses'));
+        return view('admin.cohorts.show', compact('cohort', 'regs', 'stats', 'status', 'courses', 'discounts'));
     }
 
     public function update(Request $request, Cohort $cohort)
@@ -84,6 +86,29 @@ class CohortController extends Controller
         return back()->with('success', 'تم الحفظ.');
     }
 
+    public function storeDiscount(Request $request, Cohort $cohort)
+    {
+        $request->merge(['code' => strtoupper(trim((string) $request->input('code')))]);
+        $data = $request->validate([
+            'code' => ['required', 'string', 'min:3', 'max:40', 'regex:/^[A-Z0-9_-]+$/', 'unique:discount_codes,code'],
+            'type' => ['required', 'in:percent,fixed'],
+            'value' => ['required', 'integer', 'min:1', $request->input('type') === 'percent' ? 'max:100' : 'max:100000000'],
+            'max_uses' => ['nullable', 'integer', 'min:1'],
+            'expires_at' => ['nullable', 'date'],
+            'note' => ['nullable', 'string', 'max:120'],
+        ], ['code.regex' => 'الكود حروف إنكليزية وأرقام فقط.'], ['code' => 'الكود', 'value' => 'قيمة الخصم']);
+        \App\Models\DiscountCode::create($data + ['cohort_id' => $request->boolean('all') ? null : $cohort->id]);
+
+        return back()->with('success', 'انضاف كود الخصم '.$data['code'].'.');
+    }
+
+    public function toggleDiscount(\App\Models\DiscountCode $discount)
+    {
+        $discount->update(['is_active' => ! $discount->is_active]);
+
+        return back()->with('success', $discount->is_active ? 'الكود مفعل.' : 'الكود متوقف.');
+    }
+
     public function act(Request $request, CohortRegistration $registration, string $action, CohortService $svc)
     {
         match ($action) {
@@ -98,15 +123,15 @@ class CohortController extends Controller
 
     public function csv(Cohort $cohort)
     {
-        $rows = $cohort->registrations()->orderBy('status')->orderBy('created_at')->get();
+        $rows = $cohort->registrations()->with('discount', 'cohort')->orderBy('status')->orderBy('created_at')->get();
 
         return response()->streamDownload(function () use ($rows) {
             $out = fopen('php://output', 'w');
             fwrite($out, "\xEF\xBB\xBF");
-            fputcsv($out, ['الرمز', 'الاسم', 'الهاتف', 'الإيميل', 'العمل/الدراسة', 'المستوى', 'الحالة', 'تاريخ التسجيل', 'تاريخ الدفع', 'الحضور', 'ملاحظات']);
+            fputcsv($out, ['الرمز', 'الاسم', 'الهاتف', 'الإيميل', 'العمل/الدراسة', 'المستوى', 'الحالة', 'كود الخصم', 'المبلغ', 'تاريخ التسجيل', 'تاريخ الدفع', 'الحضور', 'ملاحظات']);
             foreach ($rows as $r) {
                 fputcsv($out, [$r->code, $r->name, $r->phone, $r->email, $r->job, CohortRegistration::LEVELS[$r->level] ?? $r->level,
-                    CohortRegistration::STATUSES[$r->status] ?? $r->status, $r->created_at?->format('Y-m-d H:i'), $r->paid_at?->format('Y-m-d H:i'),
+                    CohortRegistration::STATUSES[$r->status] ?? $r->status, $r->discount?->code, $r->finalPrice(), $r->created_at?->format('Y-m-d H:i'), $r->paid_at?->format('Y-m-d H:i'),
                     $r->checked_in_at ? 'حضر' : '', $r->notes]);
             }
             fclose($out);

@@ -22,7 +22,7 @@
     <form method="GET" class="row" style="margin-top:12px;gap:8px"><input type="hidden" name="status" value="{{ $status }}"><input class="input" name="q" value="{{ request('q') }}" placeholder="ابحث بالاسم أو الهاتف أو رمز التذكرة" aria-label="بحث" style="flex:1"><button class="btn btn-plain" type="submit">بحث</button></form>
     <div class="table-wrap" style="border:0;margin-top:12px">
         <table class="table">
-            <thead><tr><th>الرمز</th><th>الاسم</th><th>الهاتف</th><th>المستوى</th><th>الحالة</th><th>التسجيل</th><th>حضور</th><th></th></tr></thead>
+            <thead><tr><th>الرمز</th><th>الاسم</th><th>الهاتف</th><th>المستوى</th><th>المبلغ</th><th>الحالة</th><th>التسجيل</th><th>حضور</th><th></th></tr></thead>
             <tbody>
             @forelse ($regs as $r)
                 <tr>
@@ -30,6 +30,7 @@
                     <td><strong>{{ $r->name }}</strong>@if ($r->job)<div class="tiny muted">{{ $r->job }}</div>@endif @if ($r->notes)<div class="tiny muted">{{ \Illuminate\Support\Str::limit($r->notes, 60) }}</div>@endif</td>
                     <td class="ltr"><a href="https://wa.me/964{{ ltrim($r->phone, '0') }}" target="_blank" rel="noopener">{{ $r->phone }}</a></td>
                     <td class="tiny">{{ \App\Models\CohortRegistration::LEVELS[$r->level] ?? '—' }}</td>
+                    <td class="ltr">{{ number_format($r->finalPrice()) }}@if ($r->discount)<div class="tiny muted">{{ $r->discount->code }}</div>@endif</td>
                     <td><span @class(['badge', 'badge-green' => $r->status === 'paid', 'badge-gold' => $r->status === 'pending', 'badge-gray' => in_array($r->status, ['cancelled', 'waitlist'])])>{{ \App\Models\CohortRegistration::STATUSES[$r->status] }}{{ $r->paid_by === 'auto' ? ' · تلقائي' : '' }}</span></td>
                     <td class="tiny ltr">{{ $r->created_at->timezone('Asia/Baghdad')->format('m/d H:i') }}</td>
                     <td>@if ($r->status === 'paid')<form method="POST" action="{{ route('admin.cohorts.act', [$r, 'checkin']) }}">@csrf<button class="btn btn-sm {{ $r->checked_in_at ? 'btn-primary' : 'btn-plain' }}" type="submit">{{ $r->checked_in_at ? 'حضر' : 'تسجيل حضور' }}</button></form>@endif</td>
@@ -40,12 +41,47 @@
                     </td>
                 </tr>
             @empty
-                <tr><td colspan="8" class="muted">ما أكو تسجيلات بعد.</td></tr>
+                <tr><td colspan="9" class="muted">ما أكو تسجيلات بعد.</td></tr>
             @endforelse
             </tbody>
         </table>
     </div>
     {{ $regs->links() }}
+</div>
+
+<div class="panel" style="margin-bottom:16px" id="discounts">
+    <h2>أكواد الخصم</h2>
+    <form method="POST" action="{{ route('admin.cohorts.discounts.store', $cohort) }}" class="grid" style="grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;align-items:end">
+        @csrf
+        <div class="field"><label for="d-code">الكود</label><input class="input ltr" id="d-code" name="code" dir="ltr" required placeholder="GHANI20" value="{{ old('code') }}" style="text-transform:uppercase"></div>
+        <div class="field"><label for="d-type">النوع</label><select class="input" id="d-type" name="type"><option value="percent">نسبة %</option><option value="fixed">مبلغ ثابت (د.ع)</option></select></div>
+        <div class="field"><label for="d-val">قيمة الخصم</label><input class="input ltr" id="d-val" name="value" type="number" dir="ltr" required min="1" value="{{ old('value') }}"></div>
+        <div class="field"><label for="d-max">عدد الاستخدامات</label><input class="input ltr" id="d-max" name="max_uses" type="number" dir="ltr" min="1" placeholder="بلا حد" value="{{ old('max_uses') }}"></div>
+        <div class="field"><label for="d-exp">ينتهي</label><input class="input ltr" id="d-exp" name="expires_at" type="date" dir="ltr" value="{{ old('expires_at') }}"></div>
+        <div class="field"><label for="d-note">ملاحظة</label><input class="input" id="d-note" name="note" placeholder="مثلا: لطلاب جامعة..." value="{{ old('note') }}"></div>
+        <label class="row tiny" style="gap:6px"><input type="checkbox" name="all" value="1"> لكل الكورسات الحضورية</label>
+        <button class="btn btn-primary" type="submit">إضافة كود</button>
+    </form>
+    <div class="table-wrap" style="border:0;margin-top:14px">
+        <table class="table">
+            <thead><tr><th>الكود</th><th>الخصم</th><th>الاستخدام</th><th>ينتهي</th><th>ملاحظة</th><th>رابط جاهز</th><th></th></tr></thead>
+            <tbody>
+            @forelse ($discounts as $d)
+                <tr>
+                    <td class="ltr"><strong>{{ $d->code }}</strong></td>
+                    <td>{{ $d->label() }}@if (! $d->cohort_id)<div class="tiny muted">كل الكورسات</div>@endif</td>
+                    <td class="ltr">{{ $d->uses() }}{{ $d->max_uses ? ' / '.$d->max_uses : '' }}</td>
+                    <td class="tiny ltr">{{ $d->expires_at?->format('Y/m/d') ?? '—' }}</td>
+                    <td class="tiny">{{ $d->note }}</td>
+                    <td><button class="btn btn-plain btn-sm copy-btn" type="button" data-copy="{{ route('cohort.show', $cohort) }}?code={{ $d->code }}#register">نسخ الرابط</button></td>
+                    <td><form method="POST" action="{{ route('admin.cohorts.discounts.toggle', $d) }}">@csrf<button class="btn btn-sm {{ $d->is_active ? 'btn-plain' : 'btn-primary' }}" type="submit">{{ $d->is_active ? 'إيقاف' : 'تفعيل' }}</button></form></td>
+                </tr>
+            @empty
+                <tr><td colspan="7" class="muted">ما أكو أكواد بعد.</td></tr>
+            @endforelse
+            </tbody>
+        </table>
+    </div>
 </div>
 
 <form class="panel stack" method="POST" action="{{ route('admin.cohorts.update', $cohort) }}" enctype="multipart/form-data">
@@ -78,3 +114,14 @@
     <button class="btn btn-primary" type="submit">حفظ</button>
 </form>
 @endsection
+@push('scripts')
+<script>
+document.querySelectorAll('[data-copy]').forEach(function (b) {
+  b.addEventListener('click', function () {
+    var v = b.dataset.copy, t0 = b.textContent;
+    function done() { b.textContent = 'انسخ'; setTimeout(function () { b.textContent = t0; }, 1400); }
+    if (navigator.clipboard) { navigator.clipboard.writeText(v).then(done, done); } else { var t = document.createElement('textarea'); t.value = v; document.body.appendChild(t); t.select(); try { document.execCommand('copy'); } catch (e) {} t.remove(); done(); }
+  });
+});
+</script>
+@endpush

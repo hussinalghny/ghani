@@ -24,6 +24,7 @@ Route::post('/in-person/{cohort}/register', [App\Http\Controllers\CohortControll
 Route::get('/smart-defense', fn () => redirect()->route('cohort.show', 'smart-defense'));
 Route::middleware('auth')->group(function () {
     Route::get('/ticket/{registration}', [App\Http\Controllers\CohortController::class, 'ticket'])->name('cohort.ticket');
+    Route::post('/ticket/{registration}/discount', [App\Http\Controllers\CohortController::class, 'discount'])->name('cohort.discount')->middleware('throttle:15,1,discount');
     Route::post('/ticket/{registration}/wallet', [App\Http\Controllers\CohortController::class, 'wallet'])->name('cohort.wallet');
 });
 Route::get('/thumb/{id}', App\Http\Controllers\ThumbController::class)->name('thumb')->whereNumber('id')->middleware('throttle:120,1');
@@ -158,6 +159,8 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
     Route::get('cohorts', [Admin\CohortController::class, 'index'])->name('cohorts');
     Route::get('cohorts/{cohort}', [Admin\CohortController::class, 'show'])->name('cohorts.show');
     Route::put('cohorts/{cohort}', [Admin\CohortController::class, 'update'])->name('cohorts.update');
+    Route::post('cohorts/{cohort}/discounts', [Admin\CohortController::class, 'storeDiscount'])->name('cohorts.discounts.store');
+    Route::post('discounts/{discount}/toggle', [Admin\CohortController::class, 'toggleDiscount'])->name('cohorts.discounts.toggle');
     Route::get('cohorts/{cohort}/csv', [Admin\CohortController::class, 'csv'])->name('cohorts.csv');
     Route::post('cohort-registrations/{registration}/{action}', [Admin\CohortController::class, 'act'])->name('cohorts.act')->whereIn('action', ['paid', 'cancel', 'checkin', 'pending']);
 

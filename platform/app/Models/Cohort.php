@@ -23,6 +23,11 @@ class Cohort extends Model
         return $this->belongsTo(Course::class);
     }
 
+    public function discounts(): HasMany
+    {
+        return $this->hasMany(DiscountCode::class);
+    }
+
     public function registrations(): HasMany
     {
         return $this->hasMany(CohortRegistration::class);

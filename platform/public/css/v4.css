@@ -375,3 +375,11 @@ h1, h2, h3, h4 { font-weight: 700; }
 .tk-code b { font-family: var(--font-head); font-size: 30px; letter-spacing: 2px; display: block; }
 .tk-code small { font-size: 12.5px; color: var(--text-3); }
 @media print { .nav, .tabbar, .footer, .site-footer, .row, .ga-buybar { display: none !important; } .tk { box-shadow: none; } }
+.ch-total { border: 1px solid var(--line); border-radius: 16px; padding: 6px 14px; margin: 8px 0 12px; background: var(--bg-alt); }
+.ch-total > div { display: flex; justify-content: space-between; gap: 10px; padding: 9px 0; font-size: 14.5px; }
+.ch-total > div + div { border-top: 1px solid var(--line); }
+.ch-off { color: var(--success); }
+.ch-sum-final b { font-family: var(--font-head); font-size: 20px; }
+.ch-disc { display: flex; gap: 8px; margin-bottom: 4px; }
+.ch-disc .input { flex: 1; min-height: 46px; }
+.ch-err { display: block; color: var(--danger, #C2364A); font-size: 13px; margin-top: 4px; }

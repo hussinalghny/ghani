@@ -43,7 +43,7 @@ class CohortService
             if ($r->status === 'paid') {
                 return false;
             }
-            $price = $r->cohort->price;
+            $price = $r->finalPrice();
             if ($price > 0) {
                 if ((int) $r->user->refresh()->balance < $price) {
                     return false;
@@ -68,6 +68,20 @@ class CohortService
     public function markPaid(CohortRegistration $reg): void
     {
         $reg->update(['status' => 'paid', 'paid_at' => now(), 'paid_by' => 'admin']);
+    }
+
+    /** يطبق كود خصم على تسجيل بانتظار الدفع، أو يشيله إذا الكود فارغ */
+    public function applyDiscount(CohortRegistration $reg, ?string $code): ?string
+    {
+        $d = \App\Models\DiscountCode::check($code, $reg->cohort, $reg->id);
+        if (is_string($d)) {
+            return $d;
+        }
+        $reg->update(['discount_code_id' => $d?->id, 'price' => $d ? $d->apply($reg->cohort->price) : null]);
+        // طلبات الدفع المفتوحة بالسعر القديم تنلغي حتى ما يحول مبلغ غلط
+        \App\Models\PaymentOrder::where('registration_id', $reg->id)->where('status', 'pending')->update(['status' => 'cancelled']);
+
+        return null;
     }
 
     public function payFromWallet(CohortRegistration $reg): void
