@@ -155,6 +155,24 @@ jobs:
           c=$(curl -s -o /tmp/th.jpg -w '%{http_code} %{content_type}' http://127.0.0.1:8000/thumb/$CID); echo "$c thumb"; case "$c" in "200 image/jpeg"*) ;; *) fail=1;; esac
           c=$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8000/storage/covers/ci.jpg); echo "$c cover file"; [ "$c" = "200" ] || fail=1
           curl -s http://127.0.0.1:8000/ | grep -q "storage/thumbs/c$CID-" && echo "home uses thumb file" || { echo "home does not use thumb file"; fail=1; }
+          # الكورس الحضوري: تسجيل زائر جديد ← طلب دفع غني باي ← تأكيد تلقائي ← تذكرة
+          php artisan tinker --execute='App\Models\Setting::put(["pay_enabled"=>"1","pay_qi_number"=>"07700000000","pay_qi_name"=>"Ghani"]);'
+          G=/tmp/g.txt; rm -f $G
+          c=$(curl -s -o /tmp/out -w '%{http_code}' -c $G -b $G http://127.0.0.1:8000/in-person/smart-defense); echo "$c cohort page"; [ "$c" = "200" ] && grep -q 'احجز مقعدك' /tmp/out || fail=1
+          X=$(grep -o 'name="csrf-token" content="[^"]*"' /tmp/out | sed 's/.*content="//;s/"//')
+          c=$(curl -s -o /dev/null -w '%{http_code}' -c $G -b $G -X POST --data-urlencode "_token=$X" --data-urlencode "name=علي حسن" --data-urlencode "phone=07801234567" --data-urlencode "level=basic" --data-urlencode "password=secret123" --data-urlencode "agree=1" http://127.0.0.1:8000/in-person/smart-defense/register); echo "$c cohort register"; [ "$c" = "302" ] || fail=1
+          RC=$(php artisan tinker --execute='echo App\Models\CohortRegistration::latest("id")->value("code");' | tail -1); echo "reg $RC"
+          c=$(curl -s -o /tmp/out -w '%{http_code}' -c $G -b $G http://127.0.0.1:8000/in-person/smart-defense); grep -q 'اختار طريقة الدفع' /tmp/out && echo "pay box shown" || { echo "pay box missing"; fail=1; }
+          X=$(grep -o 'name="csrf-token" content="[^"]*"' /tmp/out | sed 's/.*content="//;s/"//')
+          c=$(curl -s -o /dev/null -w '%{http_code} %{redirect_url}' -c $G -b $G -X POST -d "_token=$X&method=qi&registration=$RC" http://127.0.0.1:8000/pay); echo "$c pay order"
+          php artisan tinker --execute='$o=App\Models\PaymentOrder::latest("id")->first(); echo "order ".$o->id." reg ".$o->registration_id." amount ".$o->amount.PHP_EOL; app(App\Services\PaymentService::class)->fulfill($o, null, "auto"); $r=App\Models\CohortRegistration::find($o->registration_id); echo "status ".$r->status." by ".$r->paid_by." balance ".$r->user->fresh()->balance.PHP_EOL;' | tee /tmp/fl.txt
+          grep -q "status paid" /tmp/fl.txt || fail=1
+          c=$(curl -s -o /tmp/out -w '%{http_code}' -c $G -b $G http://127.0.0.1:8000/ticket/$RC); echo "$c ticket"; [ "$c" = "200" ] && grep -q "$RC" /tmp/out || fail=1
+          c=$(curl -s -o /dev/null -w '%{http_code}' -c $J -b $J http://127.0.0.1:8000/admin/cohorts); echo "$c admin cohorts"; [ "$c" = "200" ] || fail=1
+          c=$(curl -s -o /tmp/out -w '%{http_code}' -c $J -b $J http://127.0.0.1:8000/admin/cohorts/smart-defense); echo "$c admin cohort"; [ "$c" = "200" ] && grep -q "$RC" /tmp/out || fail=1
+          c=$(curl -s -o /tmp/out -w '%{http_code}' -c $J -b $J http://127.0.0.1:8000/admin/cohorts/smart-defense/csv); echo "$c admin csv"; [ "$c" = "200" ] && grep -q "علي حسن" /tmp/out || fail=1
+          curl -s http://127.0.0.1:8000/in-person/smart-defense | sed 's#http://127.0.0.1:8000/##g' > /tmp/cohort-guest.html
+          curl -s -c $G -b $G http://127.0.0.1:8000/ticket/$RC | sed 's#http://127.0.0.1:8000/##g' > /tmp/ticket.html
           # لقطات HTML للتصميم (تنفتح محليا ويا ملفات public)
           mkdir -p /tmp/snap && cp -r public/css public/img public/js /tmp/snap/; ls public/fonts/thmanyah || echo "NO THMANYAH FONTS"
           c=$(curl -s -o /dev/null -w '%{http_code}' -c $J -b $J http://127.0.0.1:8000/); echo "$c home (logged in)"; [ "$c" = "200" ] || fail=1
@@ -175,7 +193,8 @@ jobs:
         working-directory: /tmp/snap
         run: |
           mkdir -p shots
-          for f in home-user home-guest course-guest course-user courses learn; do
+          cp /tmp/cohort-guest.html /tmp/ticket.html /tmp/snap/ 2>/dev/null || true
+          for f in home-user home-guest course-guest course-user courses learn cohort-guest ticket; do
             [ -f $f.html ] || continue
             google-chrome --headless=new --no-sandbox --hide-scrollbars --force-device-scale-factor=1 --window-size=390,2200 --virtual-time-budget=6000 --screenshot=$PWD/shots/$f-m.png file://$PWD/$f.html 2>/dev/null || true
             google-chrome --headless=new --no-sandbox --hide-scrollbars --window-size=1440,1500 --virtual-time-budget=6000 --screenshot=$PWD/shots/$f-d.png file://$PWD/$f.html 2>/dev/null || true

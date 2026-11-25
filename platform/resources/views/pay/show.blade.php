@@ -4,21 +4,26 @@
 @section('content')
 <div class="container container-sm" style="padding-top:40px;padding-bottom:80px">
     <div class="page-head">
-        <h1>{{ $order->course ? 'ادفع واشترك' : 'شحن المحفظة' }}<span class="dot">.</span></h1>
-        <p>{{ $order->course ? 'كورس '.$order->course->title : 'شحن مباشر لرصيدك' }}</p>
+        <h1>{{ $order->registration ? 'ادفع وأكد مقعدك' : ($order->course ? 'ادفع واشترك' : 'شحن المحفظة') }}<span class="dot">.</span></h1>
+        <p>{{ $order->registration ? 'مقعد حضوري · '.$order->registration->cohort->title : ($order->course ? 'كورس '.$order->course->title : 'شحن مباشر لرصيدك') }}</p>
     </div>
 
     @if ($order->status === 'paid')
         <div class="panel" style="text-align:center;padding:40px 24px">
             <h2>وصل تحويلك<span class="dot">.</span></h2>
+            @if ($order->registration)
+                <p class="muted">مقعدك بكورس {{ $order->registration->cohort->title }} الحضوري صار مؤكد.</p>
+                <a class="btn btn-primary" href="{{ route('cohort.ticket', $order->registration) }}">عرض تذكرتي</a>
+            @else
             <p class="muted">انضاف <span class="ltr">{{ iqd($order->amount) }}</span> لحسابك{{ $order->course ? ' وانفتح الكورس' : '' }}.</p>
             <a class="btn btn-primary" href="{{ $order->course ? route('learn.show', $order->course) : route('wallet') }}">{{ $order->course ? 'ابدأ التعلم' : 'المحفظة' }}</a>
+            @endif
         </div>
     @elseif (! $order->isOpen() || ! $method)
         <div class="panel" style="text-align:center;padding:40px 24px">
             <h2>انتهى هذا الطلب<span class="dot">.</span></h2>
             <p class="muted">إذا حولت المبلغ قبل انتهائه، راسل الدعم ونأكده لك.</p>
-            <a class="btn btn-primary" href="{{ $order->course ? route('courses.show', $order->course) : route('wallet') }}">طلب جديد</a>
+            <a class="btn btn-primary" href="{{ $order->registration ? route('cohort.show', $order->registration->cohort) : ($order->course ? route('courses.show', $order->course) : route('wallet')) }}">طلب جديد</a>
         </div>
     @else
         <div class="panel stack" id="payBox" data-status="{{ route('pay.status', $order) }}">

@@ -49,7 +49,7 @@ class PaymentService
         PaymentOrder::where('status', 'pending')->where('expires_at', '<', now())->update(['status' => 'expired']);
     }
 
-    public function create(User $user, string $method, int $base, ?Course $course = null): PaymentOrder
+    public function create(User $user, string $method, int $base, ?Course $course = null, ?\App\Models\CohortRegistration $registration = null): PaymentOrder
     {
         if (! self::enabled() || ! isset(self::methods()[$method])) {
             throw new AcademyException('الدفع المباشر غير متاح حاليا.', 'payments_disabled');
@@ -61,12 +61,12 @@ class PaymentService
 
         // نفس الطلب المفتوح يرجع بدل ما نسوي واحد جديد
         $open = PaymentOrder::where('user_id', $user->id)->where('status', 'pending')
-            ->where('method', $method)->where('base_amount', $base)->where('course_id', $course?->id)->first();
+            ->where('method', $method)->where('base_amount', $base)->where('course_id', $course?->id)->where('registration_id', $registration?->id)->first();
         if ($open) {
             return $open;
         }
 
-        return DB::transaction(function () use ($user, $method, $base, $course) {
+        return DB::transaction(function () use ($user, $method, $base, $course, $registration) {
             $taken = PaymentOrder::where('status', 'pending')->lockForUpdate()->pluck('amount')->flip();
             $amount = null;
             for ($i = 0; $i < 60; $i++) {
@@ -81,7 +81,7 @@ class PaymentService
             }
 
             return PaymentOrder::create([
-                'user_id' => $user->id, 'course_id' => $course?->id, 'method' => $method,
+                'user_id' => $user->id, 'course_id' => $course?->id, 'registration_id' => $registration?->id, 'method' => $method,
                 'base_amount' => $base, 'amount' => $amount, 'expires_at' => now()->addHours(self::HOURS),
             ]);
         });
@@ -174,6 +174,12 @@ class PaymentService
         }
 
         $msg = 'وصل تحويلك وانضاف '.number_format($done->amount).' د.ع لمحفظتك.';
+        if ($done->registration) {
+            // مقعد حضوري: يتأكد ويرسل إشعاره الخاص
+            app(CohortService::class)->confirm($done->registration, $by === 'auto' ? 'auto' : 'payment');
+
+            return $done;
+        }
         if ($done->course) {
             try {
                 $this->enrollments->purchase($done->user->refresh(), $done->course);

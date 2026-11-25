@@ -18,6 +18,14 @@ Route::get('/category/{category}', [CourseController::class, 'category'])->name(
 Route::get('/course/{course}', [CourseController::class, 'show'])->name('courses.show');
 // رابط موقع لمدة 10 دقائق يحمل رقم الطالب، يشتغل للموقع والتطبيق
 Route::get('/file/{lesson}', [LearnController::class, 'download'])->name('learn.file')->middleware(['signed', 'throttle:30,1']);
+// الكورسات الحضورية (تسجيل بمقاعد محدودة + الدفع المباشر)
+Route::get('/in-person/{cohort}', [App\Http\Controllers\CohortController::class, 'show'])->name('cohort.show');
+Route::post('/in-person/{cohort}/register', [App\Http\Controllers\CohortController::class, 'register'])->name('cohort.register')->middleware('throttle:8,1');
+Route::get('/smart-defense', fn () => redirect()->route('cohort.show', 'smart-defense'));
+Route::middleware('auth')->group(function () {
+    Route::get('/ticket/{registration}', [App\Http\Controllers\CohortController::class, 'ticket'])->name('cohort.ticket');
+    Route::post('/ticket/{registration}/wallet', [App\Http\Controllers\CohortController::class, 'wallet'])->name('cohort.wallet');
+});
 Route::get('/thumb/{id}', App\Http\Controllers\ThumbController::class)->name('thumb')->whereNumber('id')->middleware('throttle:120,1');
 Route::get('/app', [App\Http\Controllers\AppDownloadController::class, 'show'])->name('app');
 Route::get('/app/download/{platform}', [App\Http\Controllers\AppDownloadController::class, 'download'])->name('app.download')->middleware('throttle:20,1');
@@ -146,6 +154,12 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
     Route::get('notifications', [Admin\NotificationController::class, 'create'])->name('notifications');
     Route::post('notifications', [Admin\NotificationController::class, 'send'])->name('notifications.send');
     Route::post('notifications/credentials', [Admin\NotificationController::class, 'credentials'])->name('notifications.credentials');
+
+    Route::get('cohorts', [Admin\CohortController::class, 'index'])->name('cohorts');
+    Route::get('cohorts/{cohort}', [Admin\CohortController::class, 'show'])->name('cohorts.show');
+    Route::put('cohorts/{cohort}', [Admin\CohortController::class, 'update'])->name('cohorts.update');
+    Route::get('cohorts/{cohort}/csv', [Admin\CohortController::class, 'csv'])->name('cohorts.csv');
+    Route::post('cohort-registrations/{registration}/{action}', [Admin\CohortController::class, 'act'])->name('cohorts.act')->whereIn('action', ['paid', 'cancel', 'checkin', 'pending']);
 
     Route::get('settings', [Admin\SettingsController::class, 'edit'])->name('settings');
     Route::put('settings', [Admin\SettingsController::class, 'update'])->name('settings.update');

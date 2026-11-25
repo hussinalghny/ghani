@@ -19,6 +19,7 @@ class PaymentController extends Controller
         $data = $request->validate([
             'method' => ['required', Rule::in(array_keys(PaymentService::methods()))],
             'course' => ['nullable', 'integer', 'exists:courses,id'],
+            'registration' => ['nullable', 'string', 'exists:cohort_registrations,code'],
             'amount' => ['nullable', 'integer', 'min:1000', 'max:5000000'],
         ], [], ['method' => 'طريقة الدفع', 'amount' => 'المبلغ']);
 
@@ -27,11 +28,16 @@ class PaymentController extends Controller
         if ($course && $user->hasAccessTo($course)) {
             return redirect()->route('learn.show', $course)->with('success', 'أنت مشترك بهذا الكورس.');
         }
-        // للكورس: نطلب الفرق بس إذا عنده رصيد
-        $base = $course ? max(1000, $course->finalPrice() - (int) $user->balance) : (int) ($data['amount'] ?? 0);
+        $reg = isset($data['registration']) ? \App\Models\CohortRegistration::where('code', $data['registration'])->where('user_id', $user->id)->firstOrFail() : null;
+        if ($reg && $reg->status !== 'pending') {
+            return redirect()->route('cohort.ticket', $reg);
+        }
+        // للكورس أو المقعد: نطلب الفرق بس إذا عنده رصيد
+        $price = $reg ? $reg->cohort->price : ($course ? $course->finalPrice() : null);
+        $base = $price !== null ? max(1000, $price - (int) $user->balance) : (int) ($data['amount'] ?? 0);
 
         try {
-            $order = $this->payments->create($user, $data['method'], $base, $course);
+            $order = $this->payments->create($user, $data['method'], $base, $reg ? null : $course, $reg);
         } catch (AcademyException $e) {
             return back()->with('error', $e->getMessage());
         }
@@ -54,7 +60,7 @@ class PaymentController extends Controller
 
         return response()->json([
             'status' => $order->status,
-            'redirect' => $order->status === 'paid' ? ($order->course ? route('learn.show', $order->course) : route('wallet')) : null,
+            'redirect' => $order->status === 'paid' ? ($order->registration ? route('cohort.ticket', $order->registration) : ($order->course ? route('learn.show', $order->course) : route('wallet'))) : null,
         ])->header('Cache-Control', 'no-store');
     }
 
@@ -62,6 +68,10 @@ class PaymentController extends Controller
     {
         abort_unless($order->user_id === $request->user()->id && $order->status === 'pending', 404);
         $order->update(['status' => 'cancelled']);
+
+        if ($order->registration) {
+            return redirect()->route('cohort.show', $order->registration->cohort)->with('success', 'تم إلغاء طلب الدفع. مقعدك محجوز 48 ساعة.');
+        }
 
         return redirect()->route($order->course ? 'courses.show' : 'wallet', $order->course ?? [])->with('success', 'تم إلغاء الطلب.');
     }

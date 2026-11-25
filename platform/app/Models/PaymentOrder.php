@@ -23,6 +23,11 @@ class PaymentOrder extends Model
         return $this->belongsTo(Course::class);
     }
 
+    public function registration(): BelongsTo
+    {
+        return $this->belongsTo(CohortRegistration::class, 'registration_id');
+    }
+
     public function isOpen(): bool
     {
         return $this->status === 'pending' && $this->expires_at->isFuture();

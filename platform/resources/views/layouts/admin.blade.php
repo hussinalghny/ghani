@@ -29,6 +29,7 @@
         <a href="{{ route('admin.instructors.index') }}" @class(['active' => request()->routeIs('admin.instructors.*')])>@include('partials.icon', ['n' => 'mic']) المدربون</a>
         <div class="grp">المبيعات</div>
         <a href="{{ route('admin.payments') }}" @class(['active' => request()->routeIs('admin.payments*')])>@include('partials.icon', ['n' => 'wallet']) الدفع المباشر @if ($pp = \App\Models\PaymentNotification::where('status', 'review')->count())<span class="badge badge-gold ltr" style="margin-inline-start:auto">{{ $pp }}</span>@endif</a>
+        <a href="{{ route('admin.cohorts') }}" @class(['active' => request()->routeIs('admin.cohorts*')])>@include('partials.icon', ['n' => 'users']) الكورسات الحضورية</a>
         <a href="{{ route('admin.vouchers.index') }}" @class(['active' => request()->routeIs('admin.vouchers.*')])>@include('partials.icon', ['n' => 'ticket']) القسائم</a>
         <a href="{{ route('admin.students.index') }}" @class(['active' => request()->routeIs('admin.students.*') && request('role') !== 'reseller'])>@include('partials.icon', ['n' => 'users']) الطلاب</a>
         <a href="{{ route('admin.students.index', ['role' => 'reseller']) }}" @class(['active' => request('role') === 'reseller'])>@include('partials.icon', ['n' => 'wallet']) الموزعون</a>
