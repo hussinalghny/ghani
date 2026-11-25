@@ -32,7 +32,6 @@ class PaymentController extends Controller
         if ($reg && $reg->status !== 'pending') {
             return redirect()->route('cohort.ticket', $reg);
         }
-        // للكورس أو المقعد: نطلب الفرق بس إذا عنده رصيد
         // المقعد الحضوري: المبلغ كامل دائما (الرصيد يدفع بزر «من رصيدي» إذا يكفي)
         // الكورس الإلكتروني: نطلب الفرق بس إذا عنده رصيد
         $base = $reg ? max(1000, $reg->cohort->price)
