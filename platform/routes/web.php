@@ -20,7 +20,7 @@ Route::get('/course/{course}', [CourseController::class, 'show'])->name('courses
 Route::get('/file/{lesson}', [LearnController::class, 'download'])->name('learn.file')->middleware(['signed', 'throttle:30,1']);
 // الكورسات الحضورية (تسجيل بمقاعد محدودة + الدفع المباشر)
 Route::get('/in-person/{cohort}', [App\Http\Controllers\CohortController::class, 'show'])->name('cohort.show');
-Route::post('/in-person/{cohort}/register', [App\Http\Controllers\CohortController::class, 'register'])->name('cohort.register')->middleware('throttle:8,1');
+Route::post('/in-person/{cohort}/register', [App\Http\Controllers\CohortController::class, 'register'])->name('cohort.register')->middleware('throttle:20,1,cohort');
 Route::get('/smart-defense', fn () => redirect()->route('cohort.show', 'smart-defense'));
 Route::middleware('auth')->group(function () {
     Route::get('/ticket/{registration}', [App\Http\Controllers\CohortController::class, 'ticket'])->name('cohort.ticket');
