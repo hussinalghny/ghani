@@ -106,7 +106,7 @@ class CurriculumController extends Controller
             'section_id' => ['required', Rule::exists('sections', 'id')->where('course_id', $course->id)],
             'type' => ['required', Rule::in(array_keys(Lesson::TYPES))],
             'bunny_video_id' => ['nullable', 'string', 'max:64', 'regex:/^[A-Za-z0-9\-]+$/'],
-            'video_path' => ['nullable', 'string', 'max:200', 'regex:/^videos\/[0-9]{4}-[0-9]{2}\/[a-z0-9]+\.(mp4|m4v|webm|mov)$/'],
+            'video_path' => ['nullable', 'string', 'max:200', 'regex:/^(r2:)?videos\/[0-9]{4}-[0-9]{2}\/[a-z0-9]+\.(mp4|m4v|webm|mov)$/'],
             'duration_min' => ['nullable', 'numeric', 'min:0'],
             'body' => ['nullable', 'string'],
             'attachment' => ['nullable', 'file', 'max:51200', 'mimes:pdf,zip,rar,docx,pptx,xlsx,txt,png,jpg'],
@@ -115,11 +115,11 @@ class CurriculumController extends Controller
         $data['is_free_preview'] = $request->boolean('is_free_preview');
 
         // فيديو مرفوع على سيرفرنا: نتأكد إنه موجود، ونحذف القديم إذا تبدل
-        if (! empty($data['video_path']) && ! is_file(storage_path('app/private/'.$data['video_path']))) {
+        if (! empty($data['video_path']) && ! \App\Services\R2::isR2($data['video_path']) && ! is_file(storage_path('app/private/'.$data['video_path']))) {
             unset($data['video_path']);
         }
         if ($lesson && $lesson->video_path && (($data['video_path'] ?? $lesson->video_path) !== $lesson->video_path || $request->boolean('remove_video'))) {
-            @unlink(storage_path('app/private/'.$lesson->video_path));
+            self::dropVideo($lesson->video_path);
         }
         if ($request->boolean('remove_video')) {
             $data['video_path'] = null;
@@ -154,10 +154,25 @@ class CurriculumController extends Controller
         return $data;
     }
 
+    /** يحذف ملف الفيديو من سيرفرنا أو من R2 */
+    public static function dropVideo(string $path): void
+    {
+        if (\App\Services\R2::isR2($path)) {
+            try {
+                \App\Services\R2::delete(\App\Services\R2::key($path));
+            } catch (\Throwable $e) {
+                report($e);
+            }
+
+            return;
+        }
+        @unlink(storage_path('app/private/'.$path));
+    }
+
     private function deleteAttachment(Lesson $lesson): void
     {
         if ($lesson->video_path && ! request()->isMethod('put')) {
-            @unlink(storage_path('app/private/'.$lesson->video_path));
+            self::dropVideo($lesson->video_path);
         }
         if ($lesson->attachment) {
             Storage::disk('local')->delete($lesson->attachment);

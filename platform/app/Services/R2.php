@@ -1,0 +1,167 @@
+<?php
+
+namespace App\Services;
+
+use App\Models\Setting;
+use Illuminate\Support\Facades\Crypt;
+
+/**
+ * Cloudflare R2 (متوافق ويا S3) بدون مكتبات إضافية:
+ * توقيع AWS SigV4 للروابط المؤقتة والرفع، حتى يشتغل على Hostinger بدون composer.
+ */
+class R2
+{
+    public const PREFIX = 'r2:';
+
+    public static function enabled(): bool
+    {
+        return Setting::get('r2_enabled') === '1' && static::conf() !== null;
+    }
+
+    /** [account, key, secret, bucket] أو null إذا ناقص */
+    public static function conf(): ?array
+    {
+        $acc = trim((string) Setting::get('r2_account_id'));
+        $ak = trim((string) Setting::get('r2_access_key'));
+        $bucket = trim((string) Setting::get('r2_bucket'));
+        $enc = (string) Setting::get('r2_secret');
+        if ($acc === '' || $ak === '' || $bucket === '' || $enc === '') {
+            return null;
+        }
+        try {
+            $sk = Crypt::decryptString($enc);
+        } catch (\Throwable) {
+            return null;
+        }
+
+        return [$acc, $ak, $sk, $bucket];
+    }
+
+    public static function isR2(?string $path): bool
+    {
+        return $path !== null && str_starts_with($path, self::PREFIX);
+    }
+
+    public static function key(string $path): string
+    {
+        return substr($path, strlen(self::PREFIX));
+    }
+
+    private static function uri(string $bucket, string $key): string
+    {
+        return '/'.rawurlencode($bucket).'/'.implode('/', array_map('rawurlencode', explode('/', $key)));
+    }
+
+    private static function signingKey(string $secret, string $date): string
+    {
+        $k = hash_hmac('sha256', $date, 'AWS4'.$secret, true);
+        $k = hash_hmac('sha256', 'auto', $k, true);
+        $k = hash_hmac('sha256', 's3', $k, true);
+
+        return hash_hmac('sha256', 'aws4_request', $k, true);
+    }
+
+    /** رابط GET مؤقت (موقّع) لملف خاص على R2 */
+    public static function presign(string $key, int $ttl = 10800, ?array $conf = null, ?int $now = null, string $method = 'GET'): string
+    {
+        [$acc, $ak, $sk, $bucket] = $conf ?? static::conf() ?? throw new \RuntimeException('R2 غير مضبوط');
+        $now ??= time();
+        $t = gmdate('Ymd\THis\Z', $now);
+        $d = substr($t, 0, 8);
+        $scope = "$d/auto/s3/aws4_request";
+        $host = "$acc.r2.cloudflarestorage.com";
+        $uri = static::uri($bucket, $key);
+        $q = [
+            'X-Amz-Algorithm' => 'AWS4-HMAC-SHA256',
+            'X-Amz-Credential' => "$ak/$scope",
+            'X-Amz-Date' => $t,
+            'X-Amz-Expires' => (string) $ttl,
+            'X-Amz-SignedHeaders' => 'host',
+        ];
+        ksort($q);
+        $qs = http_build_query($q, '', '&', PHP_QUERY_RFC3986);
+        $canonical = "$method\n$uri\n$qs\nhost:$host\n\nhost\nUNSIGNED-PAYLOAD";
+        $sts = "AWS4-HMAC-SHA256\n$t\n$scope\n".hash('sha256', $canonical);
+        $sig = hash_hmac('sha256', $sts, static::signingKey($sk, $d));
+
+        return "https://$host$uri?$qs&X-Amz-Signature=$sig";
+    }
+
+    /** يرفع ملف محلي لـ R2 (يتدفق من القرص بدون ما يتحمل كامل بالذاكرة) */
+    public static function put(string $localPath, string $key, ?array $conf = null): void
+    {
+        $url = static::presign($key, 3600, $conf, null, 'PUT');
+        $size = filesize($localPath);
+        $fh = fopen($localPath, 'rb');
+        $ext = strtolower(pathinfo($key, PATHINFO_EXTENSION));
+        $type = ['webm' => 'video/webm', 'mov' => 'video/quicktime', 'txt' => 'text/plain'][$ext] ?? 'video/mp4';
+        $ch = curl_init($url);
+        curl_setopt_array($ch, [
+            CURLOPT_UPLOAD => true,
+            CURLOPT_INFILE => $fh,
+            CURLOPT_INFILESIZE => $size,
+            CURLOPT_HTTPHEADER => ['Content-Type: '.$type],
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_TIMEOUT => 0,
+            CURLOPT_CONNECTTIMEOUT => 20,
+        ]);
+        $body = curl_exec($ch);
+        $code = curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
+        $err = curl_error($ch);
+        curl_close($ch);
+        fclose($fh);
+        if ($code < 200 || $code >= 300) {
+            throw new \RuntimeException('فشل الرفع لـ R2 ('.$code.') '.($err ?: mb_substr(strip_tags((string) $body), 0, 200)));
+        }
+    }
+
+    public static function delete(string $key, ?array $conf = null): void
+    {
+        $ch = curl_init(static::presign($key, 600, $conf, null, 'DELETE'));
+        curl_setopt_array($ch, [CURLOPT_CUSTOMREQUEST => 'DELETE', CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 30]);
+        curl_exec($ch);
+        curl_close($ch);
+    }
+
+    /** اختبار: يرفع ملف صغير، يقراه برابط مؤقت، ويحذفه */
+    public static function test(?array $conf = null): string
+    {
+        $conf ??= static::conf();
+        if (! $conf) {
+            return 'المعلومات ناقصة.';
+        }
+        $tmp = tempnam(sys_get_temp_dir(), 'r2');
+        file_put_contents($tmp, 'ghani-ok');
+        try {
+            static::put($tmp, 'ghani-test.txt', $conf);
+            $ch = curl_init(static::presign('ghani-test.txt', 120, $conf));
+            curl_setopt_array($ch, [CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 20]);
+            $got = curl_exec($ch);
+            curl_close($ch);
+            static::delete('ghani-test.txt', $conf);
+            if ($got !== 'ghani-ok') {
+                return 'الرفع نجح بس القراءة فشلت.';
+            }
+        } catch (\Throwable $e) {
+            return $e->getMessage();
+        } finally {
+            @unlink($tmp);
+        }
+
+        return 'ok';
+    }
+
+    /** ينقل فيديو درس من سيرفرنا لـ R2 ويحذف النسخة المحلية */
+    public static function moveLesson(\App\Models\Lesson $lesson): string
+    {
+        abort_if(static::isR2($lesson->video_path) || ! $lesson->video_path, 422, 'الفيديو مو على السيرفر.');
+        $local = storage_path('app/private/'.$lesson->video_path);
+        abort_unless(is_file($local), 404, 'ملف الفيديو غير موجود على السيرفر.');
+        @set_time_limit(0);
+        static::put($local, $lesson->video_path);
+        $lesson->forceFill(['video_path' => static::PREFIX.$lesson->video_path])->save();
+        @unlink($local);
+
+        return $lesson->video_path;
+    }
+}

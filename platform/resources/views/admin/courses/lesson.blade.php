@@ -19,7 +19,7 @@
                 <h2>الفيديو</h2>
                 <input type="hidden" name="video_path" id="video_path" value="{{ old('video_path') }}">
                 @if ($lesson->video_path)
-                    <div class="list-row" style="padding-top:0">@include('partials.icon', ['n' => 'play-circle']) <span style="flex:1">فيديو مرفوع على السيرفر</span>
+                    <div class="list-row" style="padding-top:0">@include('partials.icon', ['n' => 'play-circle']) <span style="flex:1">{{ \App\Services\R2::isR2($lesson->video_path) ? 'فيديو على Cloudflare R2' : 'فيديو مرفوع على السيرفر' }}</span>
                         <label class="switch"><input type="checkbox" name="remove_video" value="1"> حذف</label></div>
                 @endif
                 <div class="dropzone" id="drop">

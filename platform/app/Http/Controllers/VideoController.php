@@ -72,8 +72,16 @@ class VideoController extends Controller
         abort_unless($access->channelAllowed($request->attributes->get('video_channel', 'app')), 403);
         $access->authorize($user, $lesson);
 
+        abort_unless($lesson->video_path, 404);
+        // الفيديو على Cloudflare R2: رابط مؤقت (3 ساعات) يتحمل مباشرة من R2 بدل سيرفرنا
+        if (\App\Services\R2::isR2($lesson->video_path)) {
+            return redirect()->away(\App\Services\R2::presign(\App\Services\R2::key($lesson->video_path), 10800), 302, [
+                'Cache-Control' => 'private, no-store',
+                'Referrer-Policy' => 'no-referrer',
+            ]);
+        }
         $path = storage_path('app/private/'.$lesson->video_path);
-        abort_unless($lesson->video_path && is_file($path), 404);
+        abort_unless(is_file($path), 404);
 
         $type = match (strtolower(pathinfo($path, PATHINFO_EXTENSION))) {
             'webm' => 'video/webm',
@@ -115,9 +123,23 @@ class VideoController extends Controller
         }
 
         $rel = 'videos/'.now()->format('Y-m').'/'.Str::lower(Str::random(24)).'.'.$ext;
-        @mkdir(dirname(storage_path('app/private/'.$rel)), 0755, true);
-        rename($part, storage_path('app/private/'.$rel));
+        $full = storage_path('app/private/'.$rel);
+        @mkdir(dirname($full), 0755, true);
+        rename($part, $full);
+        $size = round(filesize($full) / 1048576, 1);
 
-        return response()->json(['ok' => true, 'path' => $rel, 'size' => round(filesize(storage_path('app/private/'.$rel)) / 1048576, 1)]);
+        // إذا R2 مفعل: الفيديو يروح لـ Cloudflare مباشرة وينحذف من السيرفر
+        if (\App\Services\R2::enabled()) {
+            try {
+                @set_time_limit(0);
+                \App\Services\R2::put($full, $rel);
+                @unlink($full);
+                $rel = \App\Services\R2::PREFIX.$rel;
+            } catch (\Throwable $e) {
+                report($e); // يبقى على السيرفر، وتكدر تنقله بعدين من صفحة التخزين
+            }
+        }
+
+        return response()->json(['ok' => true, 'path' => $rel, 'size' => $size]);
     }
 }

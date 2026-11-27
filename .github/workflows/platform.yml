@@ -185,6 +185,12 @@ jobs:
           php artisan tinker --execute='$c=App\Models\Cohort::first(); $d=App\Models\DiscountCode::check("GHANI50",$c); echo "second use: ".(is_string($d)?$d:"OK").PHP_EOL;' | tee /tmp/d2.txt; grep -q "انتهت استخداماته" /tmp/d2.txt || fail=1
           curl -s http://127.0.0.1:8000/in-person/smart-defense | sed 's#http://127.0.0.1:8000/##g' > /tmp/cohort-guest.html
           curl -s -c $G -b $G http://127.0.0.1:8000/ticket/$RC | sed 's#http://127.0.0.1:8000/##g' > /tmp/ticket.html
+          # Cloudflare R2: الإعداد ينحفظ مشفر، والفيديو على R2 يتحول لرابط مؤقت موقّع (302)
+          php artisan tinker --execute='App\Models\Setting::put(["video_app"=>1,"r2_enabled"=>"1","r2_account_id"=>str_repeat("a",32),"r2_access_key"=>"AKIDTEST","r2_bucket"=>"ghani-videos","r2_secret"=>Illuminate\Support\Facades\Crypt::encryptString("secret")]); App\Models\Lesson::find('$L')->update(["video_path"=>"r2:videos/2026-11/test.mp4"]);'
+          c=$(curl -s -o /dev/null -w '%{http_code} %{redirect_url}' -H "Authorization: Bearer $T" -H 'Accept: application/json' "$V"); echo "$c app video on R2" | cut -c1-160
+          echo "$c" | grep -qE "^302 https://a{32}\.r2\.cloudflarestorage\.com/ghani-videos/videos/2026-11/test\.mp4\?X-Amz-Algorithm=AWS4-HMAC-SHA256.*X-Amz-Signature=[0-9a-f]{64}$" || fail=1
+          c=$(curl -s -o /tmp/out -w '%{http_code}' -c $J -b $J http://127.0.0.1:8000/admin/storage); echo "$c admin storage"; [ "$c" = "200" ] && grep -q "AKIDTEST" /tmp/out && ! grep -q 'value="secret"' /tmp/out || fail=1
+          php artisan tinker --execute='App\Models\Setting::put(["r2_enabled"=>"0"]); App\Models\Lesson::find('$L')->update(["video_path"=>"videos/2026-11/test.mp4"]);'
           # لقطات HTML للتصميم (تنفتح محليا ويا ملفات public)
           mkdir -p /tmp/snap && cp -r public/css public/img public/js /tmp/snap/; ls public/fonts/thmanyah || echo "NO THMANYAH FONTS"
           c=$(curl -s -o /dev/null -w '%{http_code}' -c $J -b $J http://127.0.0.1:8000/); echo "$c home (logged in)"; [ "$c" = "200" ] || fail=1

@@ -156,6 +156,9 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
     Route::post('notifications', [Admin\NotificationController::class, 'send'])->name('notifications.send');
     Route::post('notifications/credentials', [Admin\NotificationController::class, 'credentials'])->name('notifications.credentials');
 
+    Route::get('storage', [Admin\StorageController::class, 'index'])->name('storage');
+    Route::put('storage', [Admin\StorageController::class, 'update'])->name('storage.update');
+    Route::post('storage/move/{lesson}', [Admin\StorageController::class, 'move'])->name('storage.move');
     Route::get('cohorts', [Admin\CohortController::class, 'index'])->name('cohorts');
     Route::get('cohorts/{cohort}', [Admin\CohortController::class, 'show'])->name('cohorts.show');
     Route::put('cohorts/{cohort}', [Admin\CohortController::class, 'update'])->name('cohorts.update');
