@@ -190,6 +190,21 @@ jobs:
           c=$(curl -s -o /dev/null -w '%{http_code} %{redirect_url}' -H "Authorization: Bearer $T" -H 'Accept: application/json' "$V"); echo "$c app video on R2" | cut -c1-160
           echo "$c" | grep -qE "^302 https://a{32}\.r2\.cloudflarestorage\.com/ghani-videos/videos/2026-11/test\.mp4\?X-Amz-Algorithm=AWS4-HMAC-SHA256.*X-Amz-Signature=[0-9a-f]{64}$" || fail=1
           c=$(curl -s -o /tmp/out -w '%{http_code}' -c $J -b $J http://127.0.0.1:8000/admin/storage); echo "$c admin storage"; [ "$c" = "200" ] && grep -q "AKIDTEST" /tmp/out && ! grep -q 'value="secret"' /tmp/out || fail=1
+          # استيراد من R2 (خادم S3 وهمي): يقرا المجلدات ويسوي الفصول والدروس بالمدة
+          php -S 127.0.0.1:9000 tests/fake/s3.php > /tmp/s3.log 2>&1 &
+          sleep 1
+          php artisan tinker --execute='App\Models\Setting::put(["r2_endpoint"=>"http://127.0.0.1:9000"]);'
+          c=$(curl -s -o /tmp/out -w '%{http_code}' -c $J -b $J "http://127.0.0.1:8000/admin/storage/import"); echo "$c import root"; grep -q 'smart-defense' /tmp/out || { fail=1; grep -o 'ما كدرت[^<]*' /tmp/out | head -2; }
+          c=$(curl -s -o /tmp/out -w '%{http_code}' -c $J -b $J "http://127.0.0.1:8000/admin/storage/import?folder=smart-defense/"); echo "$c import folder"; grep -q 'كيف يفكر المهاجم' /tmp/out && ! grep -q 'notes.txt' /tmp/out || fail=1
+          X=$(grep -o 'name="csrf-token" content="[^"]*"' /tmp/out | sed 's/.*content="//;s/"//')
+          CID=$(php artisan tinker --execute='echo App\Models\Course::where("slug","smart-defense")->value("id");' | tail -1)
+          c=$(curl -s -o /dev/null -w '%{http_code}' -c $J -b $J -X POST --data-urlencode "_token=$X" --data-urlencode "folder=smart-defense/" --data-urlencode "course_id=$CID" \
+            --data-urlencode "items[0][on]=1" --data-urlencode "items[0][key]=smart-defense/01 الأساسيات/01 - مقدمة الكورس.mp4" --data-urlencode "items[0][size]=3000000" --data-urlencode "items[0][title]=مقدمة الكورس" --data-urlencode "items[0][section]=الأساسيات R2" --data-urlencode "items[0][free]=1" \
+            --data-urlencode "items[1][on]=1" --data-urlencode "items[1][key]=smart-defense/02 فحص الشبكات/01 - تنصيب الأدوات.mp4" --data-urlencode "items[1][size]=3000000" --data-urlencode "items[1][title]=تنصيب الأدوات" --data-urlencode "items[1][section]=فحص الشبكات R2" \
+            http://127.0.0.1:8000/admin/storage/import); echo "$c import store"
+          php artisan tinker --execute='$ls=App\Models\Lesson::where("video_path","like","r2:smart-defense/%")->with("section")->get(); foreach($ls as $l) echo "imported ".$l->title." | ".$l->section->title." | ".$l->duration." | ".($l->is_free_preview?"free":"paid").PHP_EOL;' | tee /tmp/imp.txt
+          grep -q "imported مقدمة الكورس | الأساسيات R2 | 83 | free" /tmp/imp.txt && grep -q "imported تنصيب الأدوات | فحص الشبكات R2 | 83 | paid" /tmp/imp.txt || fail=1
+          php artisan tinker --execute='App\Models\Setting::put(["r2_endpoint"=>""]);'
           php artisan tinker --execute='App\Models\Setting::put(["r2_enabled"=>"0"]); App\Models\Lesson::find('$L')->update(["video_path"=>"videos/2026-11/test.mp4"]);'
           # لقطات HTML للتصميم (تنفتح محليا ويا ملفات public)
           mkdir -p /tmp/snap && cp -r public/css public/img public/js /tmp/snap/; ls public/fonts/thmanyah || echo "NO THMANYAH FONTS"
