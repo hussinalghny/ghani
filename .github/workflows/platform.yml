@@ -236,6 +236,23 @@ jobs:
           c=$(curl -s -o /dev/null -w '%{http_code}' -c $S -b $S -X POST -d "_token=$X&_method=PUT&name=Student&phone=$(php artisan tinker --execute='echo App\Models\User::find('$SID')->phone;' | tail -1)&role=admin&is_active=1" http://127.0.0.1:8000/admin/students/$SID); echo "$c support edit student"; [ "$c" = "302" ] || fail=1
           R=$(php artisan tinker --execute='echo App\Models\User::find('$SID')->role;' | tail -1); echo "student role after: $R"; [ "$R" = "student" ] || fail=1
           c=$(curl -s -o /dev/null -w '%{http_code}' -c $J -b $J http://127.0.0.1:8000/admin/students/create); echo "$c admin students/create"; [ "$c" = "200" ] || fail=1
+          # لقطات دليل الدعم الفني
+          mkdir -p /tmp/snap
+          php artisan tinker --execute='App\Models\User::where("phone","07700000011")->update(["name"=>"فريق الدعم"]); $s=App\Models\User::find('$SID'); $s->update(["name"=>"أحمد علي"]); $chat=app(App\Services\ChatService::class); $c=$chat->support($s); $chat->send($s,$c,"السلام عليكم، الكورس ما دا يفتح بالموبايل، يكول تجاوزت عدد الأجهزة"); $sup=App\Models\User::where("phone","07700000011")->first(); $chat->send($sup,$c,"هلا بيك بغني أكاديمي. صفرنالك الأجهزة، سجل دخول من جديد وراح يشتغل."); $chat->send($s,$c,"اشتغل، شكرا الكم"); $u2=new App\Models\User; $u2->forceFill(["name"=>"زينب حسن","phone"=>"07812345678","password"=>Illuminate\Support\Facades\Hash::make("Zz@123456"),"role"=>"student"])->save(); $c2=$chat->support($u2); $chat->send($u2,$c2,"حولت فلوس الكورس من ساعة وبعده ما تفعل");'
+          SUPID=$(php artisan tinker --execute='echo App\Models\User::where("phone","07700000011")->value("id");' | tail -1)
+          CID2=$(php artisan tinker --execute='echo App\Models\Conversation::where("user_id",'$SID')->where("type","support")->value("id");' | tail -1)
+          snap() { curl -s -c $2 -b $2 "http://127.0.0.1:8000$3" | sed 's#http://127.0.0.1:8000/##g' > /tmp/snap/$1.html; }
+          snap g-admin-create $J "/admin/students/create?role=support"
+          snap g-admin-user $J "/admin/students/$SUPID"
+          snap g-admin-list $J "/admin/students?role=support"
+          snap g-sup-inbox $S "/inbox"
+          snap g-sup-students $S "/admin/students"
+          snap g-sup-chat $S "/messages/$CID2"
+          snap g-sup-student $S "/admin/students/$SID"
+          snap g-sup-cohorts $S "/admin/cohorts"
+          snap g-sup-cohort $S "/admin/cohorts/smart-defense"
+          snap g-sup-checkin $S "/admin/cohorts/smart-defense/checkin"
+          snap g-login $S "/login"
           # لقطات HTML للتصميم (تنفتح محليا ويا ملفات public)
           mkdir -p /tmp/snap && cp -r public/css public/img public/js /tmp/snap/; ls public/fonts/thmanyah || echo "NO THMANYAH FONTS"
           c=$(curl -s -o /dev/null -w '%{http_code}' -c $J -b $J http://127.0.0.1:8000/); echo "$c home (logged in)"; [ "$c" = "200" ] || fail=1
@@ -261,6 +278,14 @@ jobs:
             [ -f $f.html ] || continue
             google-chrome --headless=new --no-sandbox --hide-scrollbars --force-device-scale-factor=1 --window-size=390,2200 --virtual-time-budget=6000 --screenshot=$PWD/shots/$f-m.png file://$PWD/$f.html 2>/dev/null || true
             google-chrome --headless=new --no-sandbox --hide-scrollbars --window-size=1440,1500 --virtual-time-budget=6000 --screenshot=$PWD/shots/$f-d.png file://$PWD/$f.html 2>/dev/null || true
+          done
+          for f in g-admin-create g-admin-user g-admin-list g-sup-inbox g-sup-students g-sup-chat g-sup-student g-sup-cohorts g-sup-cohort; do
+            [ -f $f.html ] || continue
+            google-chrome --headless=new --no-sandbox --hide-scrollbars --window-size=1280,860 --virtual-time-budget=6000 --screenshot=$PWD/shots/$f.png file://$PWD/$f.html 2>/dev/null || true
+          done
+          for f in g-sup-checkin g-login g-sup-chat g-sup-student; do
+            [ -f $f.html ] || continue
+            google-chrome --headless=new --no-sandbox --hide-scrollbars --force-device-scale-factor=2 --window-size=390,844 --virtual-time-budget=6000 --screenshot=$PWD/shots/$f-m.png file://$PWD/$f.html 2>/dev/null || true
           done
           rm -rf shots/site && mkdir -p shots/site && cp -r *.html css img js shots/site/ 2>/dev/null || true
           cd shots && git init -q && git checkout -q -b snapshots && git add . && git -c user.name=ci -c user.email=ci@local commit -qm snap
