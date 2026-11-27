@@ -62,16 +62,19 @@ class R2
     }
 
     /** رابط GET مؤقت (موقّع) لملف خاص على R2 */
-    public static function presign(string $key, int $ttl = 10800, ?array $conf = null, ?int $now = null, string $method = 'GET'): string
+    public static function presign(string $key, int $ttl = 10800, ?array $conf = null, ?int $now = null, string $method = 'GET', array $query = []): string
     {
         [$acc, $ak, $sk, $bucket] = $conf ?? static::conf() ?? throw new \RuntimeException('R2 غير مضبوط');
         $now ??= time();
         $t = gmdate('Ymd\THis\Z', $now);
         $d = substr($t, 0, 8);
         $scope = "$d/auto/s3/aws4_request";
-        $host = "$acc.r2.cloudflarestorage.com";
-        $uri = static::uri($bucket, $key);
-        $q = [
+        // r2_endpoint: للاختبار أو لخدمة متوافقة ويا S3 (الافتراضي R2)
+        $base = rtrim((string) Setting::get('r2_endpoint'), '/') ?: "https://$acc.r2.cloudflarestorage.com";
+        $host = parse_url($base, PHP_URL_HOST).(parse_url($base, PHP_URL_PORT) ? ':'.parse_url($base, PHP_URL_PORT) : '');
+        $scheme = parse_url($base, PHP_URL_SCHEME) ?: 'https';
+        $uri = $key === '' ? '/'.rawurlencode($bucket) : static::uri($bucket, $key);
+        $q = $query + [
             'X-Amz-Algorithm' => 'AWS4-HMAC-SHA256',
             'X-Amz-Credential' => "$ak/$scope",
             'X-Amz-Date' => $t,
@@ -84,7 +87,106 @@ class R2
         $sts = "AWS4-HMAC-SHA256\n$t\n$scope\n".hash('sha256', $canonical);
         $sig = hash_hmac('sha256', $sts, static::signingKey($sk, $d));
 
-        return "https://$host$uri?$qs&X-Amz-Signature=$sig";
+        return "$scheme://$host$uri?$qs&X-Amz-Signature=$sig";
+    }
+
+    private static function get(string $url, array $headers = []): array
+    {
+        $ch = curl_init($url);
+        curl_setopt_array($ch, [CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 60, CURLOPT_CONNECTTIMEOUT => 15, CURLOPT_HTTPHEADER => $headers]);
+        $body = curl_exec($ch);
+        $code = curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
+        $err = curl_error($ch);
+        curl_close($ch);
+        if ($code < 200 || $code >= 300) {
+            throw new \RuntimeException('R2 ('.$code.') '.($err ?: mb_substr(strip_tags((string) $body), 0, 200)));
+        }
+
+        return [$code, (string) $body];
+    }
+
+    /** محتوى مجلد: ['folders' => [...], 'files' => [['key'=>..,'size'=>..], ...]] */
+    public static function list(string $prefix = '', bool $recursive = false, ?array $conf = null): array
+    {
+        $folders = [];
+        $files = [];
+        $token = null;
+        do {
+            $q = ['list-type' => '2', 'prefix' => $prefix, 'max-keys' => '1000'];
+            if (! $recursive) {
+                $q['delimiter'] = '/';
+            }
+            if ($token) {
+                $q['continuation-token'] = $token;
+            }
+            [, $xml] = static::get(static::presign('', 300, $conf, null, 'GET', $q));
+            $x = simplexml_load_string($xml);
+            if (! $x) {
+                throw new \RuntimeException('رد غير مفهوم من R2.');
+            }
+            foreach ($x->CommonPrefixes ?? [] as $p) {
+                $folders[] = (string) $p->Prefix;
+            }
+            foreach ($x->Contents ?? [] as $c) {
+                $files[] = ['key' => (string) $c->Key, 'size' => (int) $c->Size];
+            }
+            $token = ((string) ($x->IsTruncated ?? 'false')) === 'true' ? (string) $x->NextContinuationToken : null;
+        } while ($token);
+
+        return ['folders' => $folders, 'files' => $files];
+    }
+
+    /** مدة فيديو MP4 بالثواني من الـ moov atom (بدون تنزيل الفيديو كامل) */
+    public static function mp4Duration(string $key, int $size, ?array $conf = null): int
+    {
+        $url = static::presign($key, 300, $conf);
+        foreach ([[0, 524287], [max(0, $size - 2097152), $size - 1]] as [$a, $b]) {
+            try {
+                [, $buf] = static::get($url, ['Range: bytes='.$a.'-'.$b]);
+            } catch (\Throwable) {
+                continue;
+            }
+            $sec = static::parseMvhd($buf);
+            if ($sec > 0) {
+                return $sec;
+            }
+        }
+
+        return 0;
+    }
+
+    public static function parseMvhd(string $buf): int
+    {
+        $i = strpos($buf, 'mvhd');
+        if ($i === false || strlen($buf) < $i + 32) {
+            return 0;
+        }
+        $v = ord($buf[$i + 4]);
+        if ($v === 1) {
+            $scale = unpack('N', substr($buf, $i + 24, 4))[1];
+            $hi = unpack('N', substr($buf, $i + 28, 4))[1];
+            $lo = unpack('N', substr($buf, $i + 32, 4))[1];
+            $dur = $hi * 4294967296 + $lo;
+        } else {
+            $scale = unpack('N', substr($buf, $i + 16, 4))[1];
+            $dur = unpack('N', substr($buf, $i + 20, 4))[1];
+        }
+
+        return $scale > 0 ? (int) round($dur / $scale) : 0;
+    }
+
+    /** «03 - عنوان الدرس.mp4» ← [3, 'عنوان الدرس'] */
+    public static function titleFromKey(string $key): array
+    {
+        $name = pathinfo(basename($key), PATHINFO_FILENAME);
+        $name = str_replace(['_'], ' ', $name);
+        $n = null;
+        if (preg_match('/^\s*(\d{1,3})\s*[-.)_ ]*\s*(.*)$/u', $name, $m)) {
+            $n = (int) $m[1];
+            $name = $m[2] !== '' ? $m[2] : $name;
+        }
+
+        return [$n, trim(preg_replace('/\s+/u', ' ', $name))];
     }
 
     /** يرفع ملف محلي لـ R2 (يتدفق من القرص بدون ما يتحمل كامل بالذاكرة) */

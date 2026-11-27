@@ -27,6 +27,15 @@
     <p class="tiny muted" style="margin:0">المفتاح السري ينحفظ مشفر بقاعدة البيانات وما ينعرض مرة ثانية.</p>
 </form>
 
+@if ($conf['has_secret'])
+<div class="panel" style="margin-bottom:16px">
+    <div class="row-between" style="flex-wrap:wrap;gap:10px">
+        <div><h2 style="margin:0">استيراد فيديوهات رفعتها على R2</h2><p class="muted small" style="margin:4px 0 0">ارفع من لوحة كلاودفلير بمجلدات، والمنصة تسوي الفصول والدروس وتقرا مدة كل فيديو.</p></div>
+        <a class="btn btn-primary" href="{{ route('admin.storage.import') }}">استيراد من R2</a>
+    </div>
+</div>
+@endif
+
 <div class="panel">
     <div class="row-between" style="flex-wrap:wrap;gap:10px">
         <h2 style="margin:0">نقل الفيديوهات الحالية لـ R2</h2>

@@ -158,6 +158,8 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
 
     Route::get('storage', [Admin\StorageController::class, 'index'])->name('storage');
     Route::put('storage', [Admin\StorageController::class, 'update'])->name('storage.update');
+    Route::get('storage/import', [Admin\StorageController::class, 'import'])->name('storage.import');
+    Route::post('storage/import', [Admin\StorageController::class, 'importStore'])->name('storage.import.store');
     Route::post('storage/move/{lesson}', [Admin\StorageController::class, 'move'])->name('storage.move');
     Route::get('cohorts', [Admin\CohortController::class, 'index'])->name('cohorts');
     Route::get('cohorts/{cohort}', [Admin\CohortController::class, 'show'])->name('cohorts.show');
