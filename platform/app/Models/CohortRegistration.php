@@ -36,6 +36,11 @@ class CohortRegistration extends Model
         return $this->price ?? $this->cohort->price;
     }
 
+    public function attendances(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(CohortAttendance::class, 'registration_id');
+    }
+
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);

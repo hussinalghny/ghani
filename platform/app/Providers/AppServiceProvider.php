@@ -17,7 +17,7 @@ class AppServiceProvider extends ServiceProvider
     }
 
     /** آخر migration بالكود. لما يتغير بعد رفع تحديث، الجداول تتحدث تلقائيا (بدون SSH) */
-    public const SCHEMA = '2026_11_25_000002';
+    public const SCHEMA = '2026_11_27_000001';
 
     private function autoMigrate(): void
     {
@@ -45,6 +45,10 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         $this->autoMigrate();
+        if (! $this->app->runningInConsole()) {
+            // نسخة احتياطية يومية بالخلفية بعد ما يوصل الرد للزائر
+            $this->app->terminating(fn () => \App\Services\Backup::runIfDue());
+        }
         if (! $this->app->runningInConsole() && ! \App\Support\ThmanyahFont::ready()) {
             $this->app->terminating(fn () => \App\Support\ThmanyahFont::ensure());
         }

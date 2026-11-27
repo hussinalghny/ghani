@@ -204,6 +204,18 @@ jobs:
             http://127.0.0.1:8000/admin/storage/import); echo "$c import store"
           php artisan tinker --execute='$ls=App\Models\Lesson::where("video_path","like","r2:smart-defense/%")->with("section")->get(); foreach($ls as $l) echo "imported ".$l->title." | ".$l->section->title." | ".$l->duration." | ".($l->is_free_preview?"free":"paid").PHP_EOL;' | tee /tmp/imp.txt
           grep -q "imported مقدمة الكورس | الأساسيات R2 | 83 | free" /tmp/imp.txt && grep -q "imported تنصيب الأدوات | فحص الشبكات R2 | 83 | paid" /tmp/imp.txt || fail=1
+          # النسخ الاحتياطي: ملف SQL مضغوط ينرفع (للخادم الوهمي) ويسترجع صح بقاعدة جديدة
+          X=$(curl -s -c $J -b $J http://127.0.0.1:8000/admin/storage | tee /tmp/out | grep -o 'name="csrf-token" content="[^"]*"' | sed 's/.*content="//;s/"//')
+          c=$(curl -s -o /dev/null -w '%{http_code}' -c $J -b $J -X POST -d "_token=$X" http://127.0.0.1:8000/admin/backup); echo "$c backup now"; [ "$c" = "302" ] || fail=1
+          php artisan academy:backup || fail=1
+          php artisan tinker --execute='App\Services\Backup::dump("/tmp/b.sql.gz"); $sql=gzdecode(file_get_contents("/tmp/b.sql.gz")); $p=new PDO("sqlite:/tmp/restore.sqlite"); $p->exec($sql); echo "restored users ".$p->query("select count(*) from users")->fetchColumn()." regs ".$p->query("select count(*) from cohort_registrations")->fetchColumn().PHP_EOL; echo "live users ".App\Models\User::count().PHP_EOL;' | tee /tmp/rs.txt
+          U1=$(grep -o "restored users [0-9]*" /tmp/rs.txt | grep -o "[0-9]*$"); U2=$(grep -o "live users [0-9]*" /tmp/rs.txt | grep -o "[0-9]*$"); [ -n "$U1" ] && [ "$U1" = "$U2" ] || fail=1
+          # مسح التذاكر عند الباب
+          X=$(curl -s -c $J -b $J http://127.0.0.1:8000/admin/cohorts/smart-defense/checkin | tee /tmp/out | grep -o 'name="csrf-token" content="[^"]*"' | sed 's/.*content="//;s/"//'); grep -q 'jsQR' /tmp/out || fail=1
+          for code in "http://127.0.0.1:8000/ticket/$RC" "$RC" "GA-ZZZZZZ"; do
+            r=$(curl -s -c $J -b $J -X POST -H "X-CSRF-TOKEN: $X" -H 'Accept: application/json' -H 'Content-Type: application/json' -d "{\"code\":\"$code\"}" http://127.0.0.1:8000/admin/cohorts/smart-defense/checkin | php -r '$j=json_decode(stream_get_contents(STDIN)); echo $j->state." ".$j->today;'); echo "scan $code => $r"; echo "$r" >> /tmp/scans.txt
+          done
+          [ "$(sed -n 1p /tmp/scans.txt)" = "ok 1" ] && [ "$(sed -n 2p /tmp/scans.txt)" = "again 1" ] && [ "$(sed -n 3p /tmp/scans.txt | cut -d' ' -f1)" = "bad" ] || fail=1
           php artisan tinker --execute='App\Models\Setting::put(["r2_endpoint"=>""]);'
           php artisan tinker --execute='App\Models\Setting::put(["r2_enabled"=>"0"]); App\Models\Lesson::find('$L')->update(["video_path"=>"videos/2026-11/test.mp4"]);'
           # لقطات HTML للتصميم (تنفتح محليا ويا ملفات public)

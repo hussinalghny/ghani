@@ -28,6 +28,25 @@
 </form>
 
 @if ($conf['has_secret'])
+<div class="panel" style="margin-bottom:16px" id="backups">
+    <div class="row-between" style="flex-wrap:wrap;gap:10px">
+        <div><h2 style="margin:0">النسخ الاحتياطي</h2>
+            <p class="muted small" style="margin:4px 0 0">نسخة من قاعدة البيانات كل 24 ساعة تنحفظ على R2 تلقائيا (آخر <span class="ltr">30</span> نسخة). آخر نسخة: <b>{{ $lastBackup ? \Carbon\Carbon::createFromTimestamp($lastBackup)->timezone('Asia/Baghdad')->format('Y/m/d H:i') : 'ما صارت بعد' }}</b></p></div>
+        <form method="POST" action="{{ route('admin.backup') }}">@csrf<button class="btn btn-primary" type="submit">نسخة الآن</button></form>
+    </div>
+    @if ($backupError)<p class="small" style="color:var(--danger)">ما كدرت أقرا النسخ: {{ $backupError }}</p>@endif
+    @if ($backups)
+        <div class="table-wrap" style="border:0;margin-top:10px">
+            <table class="table"><thead><tr><th>النسخة</th><th>الحجم</th><th></th></tr></thead><tbody>
+            @foreach ($backups as $b)
+                <tr><td class="ltr tiny">{{ basename($b['key']) }}</td><td class="ltr tiny">{{ round($b['size'] / 1024) }} KB</td><td><a class="btn btn-plain btn-sm" href="{{ route('admin.backup.download', ['key' => $b['key']]) }}">تنزيل</a></td></tr>
+            @endforeach
+            </tbody></table>
+        </div>
+        <p class="tiny muted" style="margin:6px 0 0">للاسترجاع: phpMyAdmin بهوستنجر ← قاعدة البيانات ← Import ← اختار ملف النسخة.</p>
+    @endif
+</div>
+
 <div class="panel" style="margin-bottom:16px">
     <div class="row-between" style="flex-wrap:wrap;gap:10px">
         <div><h2 style="margin:0">استيراد فيديوهات رفعتها على R2</h2><p class="muted small" style="margin:4px 0 0">ارفع من لوحة كلاودفلير بمجلدات، والمنصة تسوي الفصول والدروس وتقرا مدة كل فيديو.</p></div>

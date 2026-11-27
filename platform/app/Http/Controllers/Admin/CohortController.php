@@ -27,7 +27,7 @@ class CohortController extends Controller
     {
         $status = $request->query('status', 'all');
         $q = $request->query('q');
-        $regs = $cohort->registrations()->with(['user:id,name,phone,balance', 'discount', 'cohort'])
+        $regs = $cohort->registrations()->with(['user:id,name,phone,balance', 'discount', 'cohort'])->withCount(['attendances', 'attendances as today_count' => fn ($q) => $q->where('day', now('Asia/Baghdad')->toDateString())])
             ->when($status !== 'all', fn ($w) => $w->where('status', $status))
             ->when($q, fn ($w) => $w->where(fn ($x) => $x->where('name', 'like', "%$q%")->orWhere('phone', 'like', "%$q%")->orWhere('code', 'like', "%$q%")))
             ->orderByRaw("case status when 'paid' then 0 when 'pending' then 1 when 'waitlist' then 2 else 3 end")->latest()->paginate(60)->withQueryString();
@@ -115,24 +115,40 @@ class CohortController extends Controller
             'paid' => $svc->markPaid($registration),
             'cancel' => $registration->update(['status' => 'cancelled']),
             'pending' => $registration->update(['status' => 'pending', 'created_at' => now()]),
-            'checkin' => $registration->update(['checked_in_at' => $registration->checked_in_at ? null : now()]),
+            'checkin' => $this->toggleToday($registration, $request->user()->id),
         };
 
         return back()->with('success', 'تم.');
     }
 
+    /** تسجيل/إلغاء حضور اليوم يدويا */
+    private function toggleToday(CohortRegistration $r, int $by): void
+    {
+        $day = now('Asia/Baghdad')->toDateString();
+        $a = \App\Models\CohortAttendance::where('registration_id', $r->id)->where('day', $day)->first();
+        if ($a) {
+            $a->delete();
+
+            return;
+        }
+        \App\Models\CohortAttendance::create(['registration_id' => $r->id, 'day' => $day, 'scanned_at' => now(), 'scanned_by' => $by]);
+        if (! $r->checked_in_at) {
+            $r->update(['checked_in_at' => now()]);
+        }
+    }
+
     public function csv(Cohort $cohort)
     {
-        $rows = $cohort->registrations()->with('discount', 'cohort')->orderBy('status')->orderBy('created_at')->get();
+        $rows = $cohort->registrations()->with('discount', 'cohort')->withCount('attendances')->orderBy('status')->orderBy('created_at')->get();
 
         return response()->streamDownload(function () use ($rows) {
             $out = fopen('php://output', 'w');
             fwrite($out, "\xEF\xBB\xBF");
-            fputcsv($out, ['الرمز', 'الاسم', 'الهاتف', 'الإيميل', 'العمل/الدراسة', 'المستوى', 'الحالة', 'كود الخصم', 'المبلغ', 'تاريخ التسجيل', 'تاريخ الدفع', 'الحضور', 'ملاحظات']);
+            fputcsv($out, ['الرمز', 'الاسم', 'الهاتف', 'الإيميل', 'العمل/الدراسة', 'المستوى', 'الحالة', 'كود الخصم', 'المبلغ', 'تاريخ التسجيل', 'تاريخ الدفع', 'أيام الحضور', 'ملاحظات']);
             foreach ($rows as $r) {
                 fputcsv($out, [$r->code, $r->name, $r->phone, $r->email, $r->job, CohortRegistration::LEVELS[$r->level] ?? $r->level,
                     CohortRegistration::STATUSES[$r->status] ?? $r->status, $r->discount?->code, $r->finalPrice(), $r->created_at?->format('Y-m-d H:i'), $r->paid_at?->format('Y-m-d H:i'),
-                    $r->checked_in_at ? 'حضر' : '', $r->notes]);
+                    $r->attendances_count, $r->notes]);
             }
             fclose($out);
         }, 'registrations-'.$cohort->slug.'.csv', ['Content-Type' => 'text/csv; charset=UTF-8']);

@@ -166,6 +166,10 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
     Route::put('cohorts/{cohort}', [Admin\CohortController::class, 'update'])->name('cohorts.update');
     Route::post('cohorts/{cohort}/discounts', [Admin\CohortController::class, 'storeDiscount'])->name('cohorts.discounts.store');
     Route::post('discounts/{discount}/toggle', [Admin\CohortController::class, 'toggleDiscount'])->name('cohorts.discounts.toggle');
+    Route::get('cohorts/{cohort}/checkin', [Admin\CheckinController::class, 'index'])->name('cohorts.checkin');
+    Route::post('cohorts/{cohort}/checkin', [Admin\CheckinController::class, 'scan'])->name('cohorts.checkin.scan');
+    Route::post('backup', [Admin\StorageController::class, 'backup'])->name('backup');
+    Route::get('backup/download', [Admin\StorageController::class, 'backupDownload'])->name('backup.download');
     Route::get('cohorts/{cohort}/csv', [Admin\CohortController::class, 'csv'])->name('cohorts.csv');
     Route::post('cohort-registrations/{registration}/{action}', [Admin\CohortController::class, 'act'])->name('cohorts.act')->whereIn('action', ['paid', 'cancel', 'checkin', 'pending']);
 

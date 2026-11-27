@@ -15,6 +15,7 @@
         <h2 style="margin:0">المسجلين</h2>
         <div class="row" style="gap:6px;flex-wrap:wrap">
             @foreach (['all' => 'الكل', 'paid' => 'مؤكد', 'pending' => 'بانتظار الدفع', 'waitlist' => 'الانتظار', 'cancelled' => 'ملغي'] as $k => $v)<a href="{{ route('admin.cohorts.show', [$cohort, 'status' => $k]) }}" @class(['pill', 'active' => $status === $k])>{{ $v }}</a>@endforeach
+            <a class="btn btn-primary btn-sm" href="{{ route('admin.cohorts.checkin', $cohort) }}">@include('partials.icon', ['n' => 'check-circle', 'class' => 'icon icon-sm']) مسح التذاكر</a>
             <a class="btn btn-plain btn-sm" href="{{ route('admin.cohorts.csv', $cohort) }}">@include('partials.icon', ['n' => 'download', 'class' => 'icon icon-sm']) تصدير Excel</a>
             <a class="btn btn-plain btn-sm" href="{{ route('cohort.show', $cohort) }}" target="_blank">@include('partials.icon', ['n' => 'external', 'class' => 'icon icon-sm']) الصفحة</a>
         </div>
@@ -22,7 +23,7 @@
     <form method="GET" class="row" style="margin-top:12px;gap:8px"><input type="hidden" name="status" value="{{ $status }}"><input class="input" name="q" value="{{ request('q') }}" placeholder="ابحث بالاسم أو الهاتف أو رمز التذكرة" aria-label="بحث" style="flex:1"><button class="btn btn-plain" type="submit">بحث</button></form>
     <div class="table-wrap" style="border:0;margin-top:12px">
         <table class="table">
-            <thead><tr><th>الرمز</th><th>الاسم</th><th>الهاتف</th><th>المستوى</th><th>المبلغ</th><th>الحالة</th><th>التسجيل</th><th>حضور</th><th></th></tr></thead>
+            <thead><tr><th>الرمز</th><th>الاسم</th><th>الهاتف</th><th>المستوى</th><th>المبلغ</th><th>الحالة</th><th>التسجيل</th><th>الحضور</th><th></th></tr></thead>
             <tbody>
             @forelse ($regs as $r)
                 <tr>
@@ -33,7 +34,7 @@
                     <td class="ltr">{{ number_format($r->finalPrice()) }}@if ($r->discount)<div class="tiny muted">{{ $r->discount->code }}</div>@endif</td>
                     <td><span @class(['badge', 'badge-green' => $r->status === 'paid', 'badge-gold' => $r->status === 'pending', 'badge-gray' => in_array($r->status, ['cancelled', 'waitlist'])])>{{ \App\Models\CohortRegistration::STATUSES[$r->status] }}{{ $r->paid_by === 'auto' ? ' · تلقائي' : '' }}</span></td>
                     <td class="tiny ltr">{{ $r->created_at->timezone('Asia/Baghdad')->format('m/d H:i') }}</td>
-                    <td>@if ($r->status === 'paid')<form method="POST" action="{{ route('admin.cohorts.act', [$r, 'checkin']) }}">@csrf<button class="btn btn-sm {{ $r->checked_in_at ? 'btn-primary' : 'btn-plain' }}" type="submit">{{ $r->checked_in_at ? 'حضر' : 'تسجيل حضور' }}</button></form>@endif</td>
+                    <td>@if ($r->status === 'paid')<div class="tiny ltr" style="margin-bottom:4px">{{ $r->attendances_count ?? 0 }} / 12</div><form method="POST" action="{{ route('admin.cohorts.act', [$r, 'checkin']) }}">@csrf<button class="btn btn-sm {{ $r->today_count ? 'btn-primary' : 'btn-plain' }}" type="submit">{{ $r->today_count ? 'حاضر اليوم' : 'حضور اليوم' }}</button></form>@endif</td>
                     <td class="row" style="gap:4px">
                         @if (in_array($r->status, ['pending', 'waitlist', 'cancelled']))<form method="POST" action="{{ route('admin.cohorts.act', [$r, 'paid']) }}" data-confirm="تأكيد المقعد يدويا (دفع كاش أو تحويل تأكدت منه)؟">@csrf<button class="btn btn-plain btn-sm" type="submit">تأكيد يدوي</button></form>@endif
                         @if ($r->status === 'waitlist')<form method="POST" action="{{ route('admin.cohorts.act', [$r, 'pending']) }}">@csrf<button class="btn btn-plain btn-sm" type="submit">انطيه مقعد</button></form>@endif
