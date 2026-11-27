@@ -1,6 +1,6 @@
 @extends('layouts.admin')
 @section('heading', 'المحادثات')
-@section('sub', auth()->user()->isInstructor() ? 'أسئلة طلاب كورساتك' : 'الدعم ورسائل المدربين')
+@section('sub', auth()->user()->isInstructor() ? 'أسئلة طلاب كورساتك' : (auth()->user()->isSupport() ? 'رسائل الدعم من الطلاب' : 'الدعم ورسائل المدربين'))
 
 @section('content')
 <div class="pills" style="margin-bottom:16px">

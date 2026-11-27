@@ -111,6 +111,7 @@ class CohortController extends Controller
 
     public function act(Request $request, CohortRegistration $registration, string $action, CohortService $svc)
     {
+        abort_if($request->user()->isSupport() && $action !== 'checkin', 403, 'الدعم الفني يسجل الحضور فقط.');
         match ($action) {
             'paid' => $svc->markPaid($registration),
             'cancel' => $registration->update(['status' => 'cancelled']),

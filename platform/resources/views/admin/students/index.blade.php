@@ -1,14 +1,18 @@
 @extends('layouts.admin')
 @section('heading', request('role') === 'reseller' ? 'الموزعون' : 'الطلاب')
+@unless (auth()->user()->isSupport())
 @section('actions')<a href="{{ route('admin.students.create') }}" class="btn btn-primary btn-sm">@include('partials.icon', ['n' => 'plus', 'class' => 'icon icon-sm']) حساب جديد</a>@endsection
+@endunless
 
 @section('content')
 <form class="toolbar" method="GET">
     <div class="search">@include('partials.icon', ['n' => 'search'])<input class="input" name="q" value="{{ request('q') }}" placeholder="الاسم أو رقم الهاتف"></div>
+    @unless (auth()->user()->isSupport())
     <select class="input" name="role" style="max-width:180px" onchange="this.form.submit()">
         <option value="">كل الحسابات</option>
         @foreach ($roles as $k => $v)<option value="{{ $k }}" @selected(request('role') === $k)>{{ $v }}</option>@endforeach
     </select>
+    @endunless
 </form>
 <div class="table-wrap">
     <table class="table">

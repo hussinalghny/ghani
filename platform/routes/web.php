@@ -90,7 +90,7 @@ Route::middleware(['auth', 'role:reseller'])->prefix('reseller')->name('reseller
 });
 
 // ---------- صندوق المحادثات (الأدمن والمدربين) ----------
-Route::middleware(['auth', 'role:admin,instructor'])->get('/inbox', [App\Http\Controllers\ChatController::class, 'inbox'])->name('inbox');
+Route::middleware(['auth', 'role:admin,instructor,support'])->get('/inbox', [App\Http\Controllers\ChatController::class, 'inbox'])->name('inbox');
 
 // ---------- إدارة محتوى الكورس (الأدمن، والمدرب على كورساته فقط) ----------
 Route::middleware(['auth', 'role:admin,instructor', 'course.owner'])->prefix('admin')->name('admin.')->group(function () {
@@ -115,6 +115,20 @@ Route::middleware(['auth', 'role:admin,instructor'])->get('/teach', [App\Http\Co
 Route::middleware(['auth', 'role:admin,instructor'])->post('/teach/questions/{question}', [App\Http\Controllers\TeachController::class, 'answer'])->name('teach.answer');
 Route::middleware(['auth', 'role:admin'])->post('/teach/reviews/{review}', [App\Http\Controllers\TeachController::class, 'toggleReview'])->name('teach.review');
 
+// ---------- الدعم الفني (والأدمن): الطلاب، المحادثات، الحضوري ----------
+Route::middleware(['auth', 'role:admin,support'])->prefix('admin')->name('admin.')->group(function () {
+    Route::get('students', [Admin\StudentController::class, 'index'])->name('students.index');
+    Route::get('students/{user}', [Admin\StudentController::class, 'show'])->name('students.show')->whereNumber('user');
+    Route::put('students/{user}', [Admin\StudentController::class, 'update'])->name('students.update')->whereNumber('user');
+    Route::post('students/{user}/devices/reset', [Admin\StudentController::class, 'resetDevices'])->name('students.devices.reset');
+    Route::post('devices/{device}/block', [Admin\StudentController::class, 'toggleDevice'])->name('devices.toggle');
+    Route::get('cohorts', [Admin\CohortController::class, 'index'])->name('cohorts');
+    Route::get('cohorts/{cohort}', [Admin\CohortController::class, 'show'])->name('cohorts.show');
+    Route::get('cohorts/{cohort}/checkin', [Admin\CheckinController::class, 'index'])->name('cohorts.checkin');
+    Route::post('cohorts/{cohort}/checkin', [Admin\CheckinController::class, 'scan'])->name('cohorts.checkin.scan');
+    Route::post('cohort-registrations/{registration}/{action}', [Admin\CohortController::class, 'act'])->name('cohorts.act')->whereIn('action', ['paid', 'cancel', 'checkin', 'pending']);
+});
+
 // ---------- لوحة التحكم ----------
 Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->group(function () {
     Route::get('/', [Admin\DashboardController::class, 'index'])->name('dashboard');
@@ -138,16 +152,11 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
     Route::post('vouchers/batch/{batch}/disable', [Admin\VoucherController::class, 'disableBatch'])->name('vouchers.disableBatch');
     Route::post('vouchers/{voucher}/toggle', [Admin\VoucherController::class, 'toggle'])->name('vouchers.toggle');
 
-    Route::get('students', [Admin\StudentController::class, 'index'])->name('students.index');
     Route::get('students/create', [Admin\StudentController::class, 'create'])->name('students.create');
     Route::post('students', [Admin\StudentController::class, 'store'])->name('students.store');
-    Route::get('students/{user}', [Admin\StudentController::class, 'show'])->name('students.show');
-    Route::put('students/{user}', [Admin\StudentController::class, 'update'])->name('students.update');
     Route::post('students/{user}/wallet', [Admin\StudentController::class, 'wallet'])->name('students.wallet');
     Route::post('students/{user}/enroll', [Admin\StudentController::class, 'enroll'])->name('students.enroll');
     Route::delete('students/{user}/enroll/{enrollment}', [Admin\StudentController::class, 'unenroll'])->name('students.unenroll');
-    Route::post('students/{user}/devices/reset', [Admin\StudentController::class, 'resetDevices'])->name('students.devices.reset');
-    Route::post('devices/{device}/block', [Admin\StudentController::class, 'toggleDevice'])->name('devices.toggle');
 
     Route::get('app', [Admin\AppReleaseController::class, 'edit'])->name('app');
     Route::post('app', [Admin\AppReleaseController::class, 'update'])->name('app.update');
@@ -161,17 +170,12 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
     Route::get('storage/import', [Admin\StorageController::class, 'import'])->name('storage.import');
     Route::post('storage/import', [Admin\StorageController::class, 'importStore'])->name('storage.import.store');
     Route::post('storage/move/{lesson}', [Admin\StorageController::class, 'move'])->name('storage.move');
-    Route::get('cohorts', [Admin\CohortController::class, 'index'])->name('cohorts');
-    Route::get('cohorts/{cohort}', [Admin\CohortController::class, 'show'])->name('cohorts.show');
     Route::put('cohorts/{cohort}', [Admin\CohortController::class, 'update'])->name('cohorts.update');
     Route::post('cohorts/{cohort}/discounts', [Admin\CohortController::class, 'storeDiscount'])->name('cohorts.discounts.store');
     Route::post('discounts/{discount}/toggle', [Admin\CohortController::class, 'toggleDiscount'])->name('cohorts.discounts.toggle');
-    Route::get('cohorts/{cohort}/checkin', [Admin\CheckinController::class, 'index'])->name('cohorts.checkin');
-    Route::post('cohorts/{cohort}/checkin', [Admin\CheckinController::class, 'scan'])->name('cohorts.checkin.scan');
     Route::post('backup', [Admin\StorageController::class, 'backup'])->name('backup');
     Route::get('backup/download', [Admin\StorageController::class, 'backupDownload'])->name('backup.download');
     Route::get('cohorts/{cohort}/csv', [Admin\CohortController::class, 'csv'])->name('cohorts.csv');
-    Route::post('cohort-registrations/{registration}/{action}', [Admin\CohortController::class, 'act'])->name('cohorts.act')->whereIn('action', ['paid', 'cancel', 'checkin', 'pending']);
 
     Route::get('settings', [Admin\SettingsController::class, 'edit'])->name('settings');
     Route::put('settings', [Admin\SettingsController::class, 'update'])->name('settings.update');

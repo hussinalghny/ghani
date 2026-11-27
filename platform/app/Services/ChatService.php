@@ -38,6 +38,9 @@ class ChatService
     public function staffScope(User $staff): Builder
     {
         $q = Conversation::query()->with(['user:id,name,phone', 'instructor:id,name', 'course:id,title', 'lastMessage']);
+        if ($staff->isSupport()) {
+            $q->where('type', 'support');
+        }
         if ($staff->isInstructor()) {
             $q->whereHas('instructor', fn ($i) => $i->where('user_id', $staff->id));
         }
@@ -48,6 +51,10 @@ class ChatService
     public function canAccess(User $user, Conversation $c): bool
     {
         if ($c->user_id === $user->id || $user->isAdmin()) {
+            return true;
+        }
+
+        if ($user->isSupport() && $c->type === 'support') {
             return true;
         }
 
@@ -104,7 +111,7 @@ class ChatService
             'body' => $m->body,
             'mine' => $m->sender_id === $viewer->id,
             'sender' => $m->sender->name ?? '',
-            'staff' => in_array($m->sender->role ?? '', ['admin', 'instructor'], true),
+            'staff' => in_array($m->sender->role ?? '', ['admin', 'instructor', 'support'], true),
             'time' => $m->created_at->format('H:i'),
             'date' => $m->created_at->toDateString(),
             'created_at' => $m->created_at->toIso8601String(),

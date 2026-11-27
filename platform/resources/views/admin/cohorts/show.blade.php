@@ -3,6 +3,7 @@
 @section('sub', 'المسجلين، التأكيد، الحضور، وتفاصيل الصفحة')
 
 @section('content')
+@php($admin = auth()->user()->isAdmin())
 <div class="kpis">
     <div class="kpi"><span>مقاعد مؤكدة</span><strong class="ltr">{{ $stats['paid'] }} / {{ $cohort->seats }}</strong></div>
     <div class="kpi"><span>بانتظار الدفع</span><strong class="ltr">{{ $stats['pending'] }}</strong><em>محجوزة <span class="ltr">48</span> ساعة</em></div>
@@ -16,7 +17,9 @@
         <div class="row" style="gap:6px;flex-wrap:wrap">
             @foreach (['all' => 'الكل', 'paid' => 'مؤكد', 'pending' => 'بانتظار الدفع', 'waitlist' => 'الانتظار', 'cancelled' => 'ملغي'] as $k => $v)<a href="{{ route('admin.cohorts.show', [$cohort, 'status' => $k]) }}" @class(['pill', 'active' => $status === $k])>{{ $v }}</a>@endforeach
             <a class="btn btn-primary btn-sm" href="{{ route('admin.cohorts.checkin', $cohort) }}">@include('partials.icon', ['n' => 'check-circle', 'class' => 'icon icon-sm']) مسح التذاكر</a>
+            @if ($admin)
             <a class="btn btn-plain btn-sm" href="{{ route('admin.cohorts.csv', $cohort) }}">@include('partials.icon', ['n' => 'download', 'class' => 'icon icon-sm']) تصدير Excel</a>
+            @endif
             <a class="btn btn-plain btn-sm" href="{{ route('cohort.show', $cohort) }}" target="_blank">@include('partials.icon', ['n' => 'external', 'class' => 'icon icon-sm']) الصفحة</a>
         </div>
     </div>
@@ -36,9 +39,11 @@
                     <td class="tiny ltr">{{ $r->created_at->timezone('Asia/Baghdad')->format('m/d H:i') }}</td>
                     <td>@if ($r->status === 'paid')<div class="tiny ltr" style="margin-bottom:4px">{{ $r->attendances_count ?? 0 }} / 12</div><form method="POST" action="{{ route('admin.cohorts.act', [$r, 'checkin']) }}">@csrf<button class="btn btn-sm {{ $r->today_count ? 'btn-primary' : 'btn-plain' }}" type="submit">{{ $r->today_count ? 'حاضر اليوم' : 'حضور اليوم' }}</button></form>@endif</td>
                     <td class="row" style="gap:4px">
+                        @if ($admin)
                         @if (in_array($r->status, ['pending', 'waitlist', 'cancelled']))<form method="POST" action="{{ route('admin.cohorts.act', [$r, 'paid']) }}" data-confirm="تأكيد المقعد يدويا (دفع كاش أو تحويل تأكدت منه)؟">@csrf<button class="btn btn-plain btn-sm" type="submit">تأكيد يدوي</button></form>@endif
                         @if ($r->status === 'waitlist')<form method="POST" action="{{ route('admin.cohorts.act', [$r, 'pending']) }}">@csrf<button class="btn btn-plain btn-sm" type="submit">انطيه مقعد</button></form>@endif
                         @if ($r->status !== 'cancelled')<form method="POST" action="{{ route('admin.cohorts.act', [$r, 'cancel']) }}" data-confirm="إلغاء هذا التسجيل؟">@csrf<button class="btn btn-plain btn-sm" type="submit">إلغاء</button></form>@endif
+                        @endif
                     </td>
                 </tr>
             @empty
@@ -50,6 +55,7 @@
     {{ $regs->links() }}
 </div>
 
+@if ($admin)
 <div class="panel" style="margin-bottom:16px" id="discounts">
     <h2>أكواد الخصم</h2>
     <form method="POST" action="{{ route('admin.cohorts.discounts.store', $cohort) }}" class="grid" style="grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;align-items:end">
@@ -114,6 +120,7 @@
     </div>
     <button class="btn btn-primary" type="submit">حفظ</button>
 </form>
+@endif
 @endsection
 @push('scripts')
 <script>

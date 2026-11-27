@@ -41,6 +41,11 @@ class User extends Authenticatable
         return $this->role === 'instructor';
     }
 
+    public function isSupport(): bool
+    {
+        return $this->role === 'support';
+    }
+
     public function isStaff(): bool
     {
         return in_array($this->role, ['admin', 'instructor'], true);

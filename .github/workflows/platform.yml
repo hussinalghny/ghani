@@ -218,6 +218,24 @@ jobs:
           [ "$(sed -n 1p /tmp/scans.txt)" = "ok 1" ] && [ "$(sed -n 2p /tmp/scans.txt)" = "again 1" ] && [ "$(sed -n 3p /tmp/scans.txt | cut -d' ' -f1)" = "bad" ] || fail=1
           php artisan tinker --execute='App\Models\Setting::put(["r2_endpoint"=>""]);'
           php artisan tinker --execute='App\Models\Setting::put(["r2_enabled"=>"0"]); App\Models\Lesson::find('$L')->update(["video_path"=>"videos/2026-11/test.mp4"]);'
+          # رول الدعم الفني: يوصل للطلاب والمحادثات والحضوري فقط
+          php artisan tinker --execute='$u=new App\Models\User; $u->forceFill(["name"=>"دعم","phone"=>"07700000011","password"=>Illuminate\Support\Facades\Hash::make("Support@2026"),"role"=>"support"])->save();'
+          SID=$(php artisan tinker --execute='echo App\Models\User::where("role","student")->value("id");' | tail -1)
+          AID=$(php artisan tinker --execute='echo App\Models\User::where("role","admin")->value("id");' | tail -1)
+          S=/tmp/sup.txt
+          TOK=$(curl -s -c $S -b $S http://127.0.0.1:8000/login | grep -o 'name="_token" value="[^"]*"' | head -1 | sed 's/.*value="//;s/"//')
+          c=$(curl -s -o /dev/null -w '%{redirect_url}' -c $S -b $S -X POST -d "_token=$TOK&phone=07700000011&password=Support@2026" http://127.0.0.1:8000/login); echo "support login -> $c"
+          for pair in "/inbox 200" "/admin/students 200" "/admin/students/$SID 200" "/admin/cohorts 200" "/admin/cohorts/smart-defense 200" "/admin/cohorts/smart-defense/checkin 200" "/admin 403" "/admin/settings 403" "/admin/payments 403" "/admin/storage 403" "/admin/vouchers 403" "/admin/students/create 403" "/admin/students/$AID 403"; do
+            set -- $pair; c=$(curl -s -o /tmp/out -w '%{http_code}' -c $S -b $S http://127.0.0.1:8000$1); echo "$c support $1"; [ "$c" = "$2" ] || fail=1
+          done
+          curl -s -c $S -b $S http://127.0.0.1:8000/admin/cohorts/smart-defense > /tmp/out; grep -q 'أكواد الخصم' /tmp/out && { echo "support sees discounts"; fail=1; }
+          curl -s -c $S -b $S http://127.0.0.1:8000/admin/students/$SID > /tmp/out; grep -q 'تعديل الرصيد' /tmp/out && { echo "support sees wallet"; fail=1; }
+          X=$(grep -o 'name="csrf-token" content="[^"]*"' /tmp/out | sed 's/.*content="//;s/"//')
+          c=$(curl -s -o /dev/null -w '%{http_code}' -c $S -b $S -X POST -d "_token=$X&direction=credit&amount=5000" http://127.0.0.1:8000/admin/students/$SID/wallet); echo "$c support wallet"; [ "$c" = "403" ] || fail=1
+          c=$(curl -s -o /dev/null -w '%{http_code}' -c $S -b $S -X POST -d "_token=$X&_method=PUT&name=x&phone=07766637444&role=student&password=Hacked@2026" http://127.0.0.1:8000/admin/students/$AID); echo "$c support edit admin"; [ "$c" = "403" ] || fail=1
+          c=$(curl -s -o /dev/null -w '%{http_code}' -c $S -b $S -X POST -d "_token=$X&_method=PUT&name=Student&phone=$(php artisan tinker --execute='echo App\Models\User::find('$SID')->phone;' | tail -1)&role=admin&is_active=1" http://127.0.0.1:8000/admin/students/$SID); echo "$c support edit student"; [ "$c" = "302" ] || fail=1
+          R=$(php artisan tinker --execute='echo App\Models\User::find('$SID')->role;' | tail -1); echo "student role after: $R"; [ "$R" = "student" ] || fail=1
+          c=$(curl -s -o /dev/null -w '%{http_code}' -c $J -b $J http://127.0.0.1:8000/admin/students/create); echo "$c admin students/create"; [ "$c" = "200" ] || fail=1
           # لقطات HTML للتصميم (تنفتح محليا ويا ملفات public)
           mkdir -p /tmp/snap && cp -r public/css public/img public/js /tmp/snap/; ls public/fonts/thmanyah || echo "NO THMANYAH FONTS"
           c=$(curl -s -o /dev/null -w '%{http_code}' -c $J -b $J http://127.0.0.1:8000/); echo "$c home (logged in)"; [ "$c" = "200" ] || fail=1

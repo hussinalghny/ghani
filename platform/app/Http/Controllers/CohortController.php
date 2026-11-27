@@ -112,7 +112,7 @@ class CohortController extends Controller
     public function ticket(Request $request, CohortRegistration $registration)
     {
         $user = $request->user();
-        abort_unless($registration->user_id === $user->id || $user->isAdmin(), 404);
+        abort_unless($registration->user_id === $user->id || $user->isAdmin() || $user->isSupport(), 404);
 
         return view('site.cohort-ticket', ['r' => $registration->load('cohort')]);
     }

@@ -14,13 +14,17 @@
 <body>
 <div class="admin">
     <aside class="side" id="side">
-        <a class="brand" href="{{ auth()->user()->isAdmin() ? route('admin.dashboard') : route('teach') }}"><img src="{{ asset('img/logo-light.png') }}" alt="Ghani Academy"></a>
+        <a class="brand" href="{{ auth()->user()->isAdmin() ? route('admin.dashboard') : (auth()->user()->isSupport() ? route('inbox') : route('teach')) }}"><img src="{{ asset('img/logo-light.png') }}" alt="Ghani Academy"></a>
         @php($me = auth()->user())
         @php($inboxUnread = app(\App\Services\ChatService::class)->staffScope($me)->sum('staff_unread'))
         @if ($me->isInstructor())
         <a href="{{ route('teach') }}" @class(['active' => request()->routeIs('teach', 'admin.courses.*', 'admin.lessons.*')])>@include('partials.icon', ['n' => 'dashboard']) لوحتي وكورساتي</a>
         @endif
         <a href="{{ route('inbox') }}" @class(['active' => request()->routeIs('inbox', 'chat.*')])>@include('partials.icon', ['n' => 'whatsapp']) المحادثات @if ($inboxUnread)<span class="badge badge-gold ltr" style="margin-inline-start:auto">{{ $inboxUnread }}</span>@endif</a>
+        @if ($me->isSupport())
+        <a href="{{ route('admin.students.index') }}" @class(['active' => request()->routeIs('admin.students.*')])>@include('partials.icon', ['n' => 'users']) الطلاب</a>
+        <a href="{{ route('admin.cohorts') }}" @class(['active' => request()->routeIs('admin.cohorts*')])>@include('partials.icon', ['n' => 'users']) الكورسات الحضورية</a>
+        @endif
         @if ($me->isAdmin())
         <a href="{{ route('admin.dashboard') }}" @class(['active' => request()->routeIs('admin.dashboard')])>@include('partials.icon', ['n' => 'dashboard']) الرئيسية</a>
         <div class="grp">المحتوى</div>
