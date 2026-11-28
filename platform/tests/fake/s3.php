@@ -20,7 +20,28 @@ if ($path === '/ghani-videos' && ($_GET['list-type'] ?? '') === '2') {
     echo '</ListBucketResult>';
     exit;
 }
-// أي ملف: بايتات فيها mvhd بمدة 83 ثانية
+// أي ملف: MP4 حقيقي الشكل بحجم 3,000,000 بايت ومدته 83 ثانية.
+// «مقدمة» الـ moov بالبداية، والباقي بالنهاية بعد mdat (مثل أغلب ملفات الكاميرا والمونتاج)
+$size = 3000000;
+$box = fn ($type, $body) => pack('N', 8 + strlen($body)).$type.$body;
+$ftyp = $box('ftyp', 'isom'.pack('N', 512).'isomiso2avc1mp41');
+$mvhd = $box('mvhd', "\0\0\0\0".pack('N', 0).pack('N', 0).pack('N', 1000).pack('N', 83000).str_repeat("\0", 80));
+$moov = $box('moov', $mvhd.$box('trak', str_repeat("\0", 200)));
+$mdatLen = $size - strlen($ftyp) - strlen($moov);
+$mdat = pack('N', $mdatLen).'mdat'.str_repeat("\0", $mdatLen - 8);
+$file = str_contains($path, 'مقدمة') ? $ftyp.$moov.$mdat : $ftyp.$mdat.$moov;
 header('Content-Type: video/mp4');
-http_response_code(isset($_SERVER['HTTP_RANGE']) ? 206 : 200);
-echo str_repeat("\0", 64).'mvhd'.pack('C', 0)."\0\0\0".pack('N', 0).pack('N', 0).pack('N', 1000).pack('N', 83000).str_repeat("\0", 64);
+header('Accept-Ranges: bytes');
+if (preg_match('/bytes=(\d+)-(\d*)/', $_SERVER['HTTP_RANGE'] ?? '', $m)) {
+    $a = (int) $m[1];
+    $b = $m[2] === '' ? $size - 1 : min((int) $m[2], $size - 1);
+    if ($a >= $size) {
+        http_response_code(416);
+        exit;
+    }
+    http_response_code(206);
+    header("Content-Range: bytes $a-$b/$size");
+    echo substr($file, $a, $b - $a + 1);
+    exit;
+}
+echo $file;

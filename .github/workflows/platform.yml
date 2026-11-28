@@ -202,6 +202,8 @@ jobs:
             --data-urlencode "items[0][on]=1" --data-urlencode "items[0][key]=smart-defense/01 الأساسيات/01 - مقدمة الكورس.mp4" --data-urlencode "items[0][size]=3000000" --data-urlencode "items[0][title]=مقدمة الكورس" --data-urlencode "items[0][section]=الأساسيات R2" --data-urlencode "items[0][free]=1" \
             --data-urlencode "items[1][on]=1" --data-urlencode "items[1][key]=smart-defense/02 فحص الشبكات/01 - تنصيب الأدوات.mp4" --data-urlencode "items[1][size]=3000000" --data-urlencode "items[1][title]=تنصيب الأدوات" --data-urlencode "items[1][section]=فحص الشبكات R2" \
             http://127.0.0.1:8000/admin/storage/import); echo "$c import store"
+          curl -s -c $J -b $J "http://127.0.0.1:8000/admin/storage/import?folder=smart-defense/" | grep -q 'نحسب مدة الدروس' || { echo "durations panel missing"; fail=1; }
+          R=$(curl -s -c $J -b $J -X POST -H "X-CSRF-TOKEN: $X" -H 'Accept: application/json' -d "course_id=$CID" http://127.0.0.1:8000/admin/storage/durations); echo "durations $R"; echo "$R" | grep -q '"done":2' && echo "$R" | grep -q '"left":0' || fail=1
           php artisan tinker --execute='$ls=App\Models\Lesson::where("video_path","like","r2:smart-defense/%")->with("section")->get(); foreach($ls as $l) echo "imported ".$l->title." | ".$l->section->title." | ".$l->duration." | ".($l->is_free_preview?"free":"paid").PHP_EOL;' | tee /tmp/imp.txt
           grep -q "imported مقدمة الكورس | الأساسيات R2 | 83 | free" /tmp/imp.txt && grep -q "imported تنصيب الأدوات | فحص الشبكات R2 | 83 | paid" /tmp/imp.txt || fail=1
           # النسخ الاحتياطي: ملف SQL مضغوط ينرفع (للخادم الوهمي) ويسترجع صح بقاعدة جديدة

@@ -110,7 +110,10 @@ class StorageController extends Controller
             return redirect()->route('admin.storage')->with('error', 'ما كدرت أقرا R2: '.$e->getMessage());
         }
 
-        return view('admin.storage-import', compact('root', 'prefix', 'tree', 'courses'));
+        // دروس مستوردة بعد ما انحسبت مدتها (مثلا الصفحة انسكرت بالنص): نكمل حسابها
+        $fill = session('fill') ?? Lesson::where('duration', 0)->where('video_path', 'like', R2::PREFIX.'%')->value('course_id');
+
+        return view('admin.storage-import', compact('root', 'prefix', 'tree', 'courses', 'fill'));
     }
 
     /** يسوي الفصول والدروس من الملفات المختارة (ويقرا مدة كل فيديو) */
@@ -144,18 +147,14 @@ class StorageController extends Controller
                 $sec = $course->sections()->create(['title' => $it['section'], 'sort' => ++$nextSection]);
                 $sections[$it['section']] = $sec;
             }
-            $duration = 0;
-            try {
-                $duration = R2::mp4Duration($it['key'], (int) ($it['size'] ?? 0));
-            } catch (\Throwable) {
-            }
+            // المدة تنحسب بعدين على دفعات (durations) حتى الاستيراد ما يتأخر ويطلع 504
             Lesson::create([
                 'course_id' => $course->id,
                 'section_id' => $sec->id,
                 'title' => $it['title'],
                 'type' => 'video',
                 'video_path' => $path,
-                'duration' => $duration,
+                'duration' => 0,
                 'is_free_preview' => ! empty($it['free']),
                 'sort' => (int) Lesson::where('section_id', $sec->id)->max('sort') + 1,
             ]);
@@ -163,7 +162,42 @@ class StorageController extends Controller
         }
         cache()->forget('api.home');
 
-        return redirect()->route('admin.storage.import', ['folder' => $request->input('folder')])->with('success', 'انضاف '.$made.' درس لكورس '.$course->title.'.');
+        return redirect()->route('admin.storage.import', ['folder' => $request->input('folder')])
+            ->with('success', 'انضاف '.$made.' درس لكورس '.$course->title.'.')->with('fill', $course->id);
+    }
+
+    /** يحسب مدة دروس R2 اللي مدتها صفر، دفعة كل طلب (أقل من 20 ثانية) */
+    public function durations(Request $request)
+    {
+        $data = $request->validate(['course_id' => ['required', 'exists:courses,id']]);
+        @set_time_limit(60);
+        $q = fn () => Lesson::where('course_id', $data['course_id'])->where('duration', 0)->where('video_path', 'like', R2::PREFIX.'%');
+        $tried = (array) $request->input('skip', []);
+        $start = microtime(true);
+        $done = 0;
+        $failed = [];
+        foreach ($q()->whereNotIn('id', $tried)->orderBy('id')->limit(40)->get() as $lesson) {
+            if (microtime(true) - $start > 18) {
+                break;
+            }
+            $sec = 0;
+            try {
+                $sec = R2::mp4Duration(substr($lesson->video_path, strlen(R2::PREFIX)), 0);
+            } catch (\Throwable) {
+            }
+            if ($sec > 0) {
+                $lesson->update(['duration' => $sec]);
+                $done++;
+            } else {
+                $failed[] = $lesson->id;
+            }
+        }
+
+        return response()->json([
+            'done' => $done,
+            'failed' => $failed,
+            'left' => $q()->whereNotIn('id', array_merge($tried, $failed))->count(),
+        ]);
     }
 
     public function backup()

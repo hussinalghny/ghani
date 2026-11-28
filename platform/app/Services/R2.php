@@ -90,10 +90,10 @@ class R2
         return "$scheme://$host$uri?$qs&X-Amz-Signature=$sig";
     }
 
-    private static function get(string $url, array $headers = []): array
+    private static function get(string $url, array $headers = [], int $timeout = 60): array
     {
         $ch = curl_init($url);
-        curl_setopt_array($ch, [CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 60, CURLOPT_CONNECTTIMEOUT => 15, CURLOPT_HTTPHEADER => $headers]);
+        curl_setopt_array($ch, [CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => $timeout, CURLOPT_CONNECTTIMEOUT => 15, CURLOPT_HTTPHEADER => $headers]);
         $body = curl_exec($ch);
         $code = curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
         $err = curl_error($ch);
@@ -137,19 +137,57 @@ class R2
     }
 
     /** مدة فيديو MP4 بالثواني من الـ moov atom (بدون تنزيل الفيديو كامل) */
+    /**
+     * مدة الفيديو من صندوق mvhd: نمشي على صناديق الملف بقطع صغيرة (64KB) بدل ما ننزل ميغات.
+     * يشتغل إذا الـ moov بالبداية أو بالنهاية (بعد mdat)، وبأقصى 6 طلبات.
+     */
     public static function mp4Duration(string $key, int $size, ?array $conf = null): int
     {
         $url = static::presign($key, 300, $conf);
-        foreach ([[0, 524287], [max(0, $size - 2097152), $size - 1]] as [$a, $b]) {
-            try {
-                [, $buf] = static::get($url, ['Range: bytes='.$a.'-'.$b]);
-            } catch (\Throwable) {
-                continue;
+        $off = 0;
+        for ($req = 0; $req < 6; $req++) {
+            if ($size && $off >= $size) {
+                break;
             }
-            $sec = static::parseMvhd($buf);
-            if ($sec > 0) {
-                return $sec;
+            $end = $off + 65535;
+            if ($size) {
+                $end = min($end, $size - 1);
             }
+            [, $buf] = static::get($url, ['Range: bytes='.$off.'-'.$end], 20);
+            $len = strlen($buf);
+            if ($len < 8) {
+                break;
+            }
+            $p = 0;
+            while ($p + 8 <= $len) {
+                $bs = unpack('N', substr($buf, $p, 4))[1];
+                $type = substr($buf, $p + 4, 4);
+                $hdr = 8;
+                if ($bs === 1) {
+                    if ($p + 16 > $len) {
+                        break;
+                    }
+                    $bs = unpack('N', substr($buf, $p + 8, 4))[1] * 4294967296 + unpack('N', substr($buf, $p + 12, 4))[1];
+                    $hdr = 16;
+                } elseif ($bs === 0) {
+                    $bs = $size ? $size - ($off + $p) : PHP_INT_MAX;
+                }
+                if ($type === 'moov') {
+                    $sec = static::parseMvhd(substr($buf, $p, 4096));
+                    if ($sec > 0) {
+                        return $sec;
+                    }
+                    if ($p === 0 || $p + 4096 <= $len) {
+                        return 0; // moov بدون mvhd واضح
+                    }
+                    break; // الـ moov مقصوص بنهاية القطعة: نجيبه من بدايته
+                }
+                if ($bs < $hdr) {
+                    return 0; // ملف مو MP4 أو خربان
+                }
+                $p += $bs;
+            }
+            $off += $p;
         }
 
         return 0;

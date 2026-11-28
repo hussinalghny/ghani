@@ -3,6 +3,11 @@
 @section('sub', 'اختار مجلد الكورس، راجع الدروس، واضغط استيراد')
 
 @section('content')
+@if ($fill)
+<div class="panel" id="dur" style="margin-bottom:16px" data-course="{{ $fill }}">
+    <strong>نحسب مدة الدروس…</strong> <span class="muted" id="dur-t">لا تسكر الصفحة لحد ما يخلص.</span>
+</div>
+@endif
 <div class="panel" style="margin-bottom:16px">
     <h2>شلون ترتب الملفات</h2>
     <p class="muted small" style="margin:0 0 8px">مجلد لكل كورس، وبداخله مجلد لكل فصل (اختياري)، والفيديوهات مرقمة حتى تنرتب صح:</p>
@@ -62,3 +67,25 @@
 </form>
 @endif
 @endsection
+@push('scripts')
+<script>
+(function () {
+  var box = document.getElementById('dur'); if (!box) return;
+  var t = document.getElementById('dur-t'), skip = [], total = 0, tries = 0;
+  var token = document.querySelector('meta[name="csrf-token"]').content;
+  function step() {
+    var body = new FormData(); body.append('course_id', box.dataset.course);
+    skip.forEach(function (id) { body.append('skip[]', id); });
+    fetch('{{ route('admin.storage.durations') }}', { method: 'POST', headers: { 'X-CSRF-TOKEN': token, 'Accept': 'application/json' }, body: body })
+      .then(function (r) { if (!r.ok) throw r; return r.json(); })
+      .then(function (j) {
+        tries = 0; total += j.done; skip = skip.concat(j.failed);
+        if (j.left > 0) { t.textContent = 'خلصت ' + total + '، باقي ' + j.left + '…'; step(); }
+        else { box.querySelector('strong').textContent = 'تمت.'; t.textContent = 'انحسبت مدة ' + total + ' درس' + (skip.length ? '، و' + skip.length + ' ما انقرت مدتها (تكدر تكتبها يدويا من المنهج).' : '.'); }
+      })
+      .catch(function () { if (++tries < 4) { setTimeout(step, 3000); } else { t.textContent = 'توقف الحساب. حدث الصفحة بعدين وراح يكمل من مكانه.'; } });
+  }
+  step();
+})();
+</script>
+@endpush
