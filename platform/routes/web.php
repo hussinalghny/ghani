@@ -173,6 +173,11 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
     Route::put('cohorts/{cohort}', [Admin\CohortController::class, 'update'])->name('cohorts.update');
     Route::post('cohorts/{cohort}/discounts', [Admin\CohortController::class, 'storeDiscount'])->name('cohorts.discounts.store');
     Route::post('discounts/{discount}/toggle', [Admin\CohortController::class, 'toggleDiscount'])->name('cohorts.discounts.toggle');
+    Route::get('discounts', [Admin\DiscountController::class, 'index'])->name('discounts');
+    Route::post('discounts', [Admin\DiscountController::class, 'store'])->name('discounts.store');
+    Route::post('discounts/{discount}/active', [Admin\DiscountController::class, 'toggle'])->name('discounts.toggle');
+    Route::get('reports/sales', [Admin\ReportController::class, 'sales'])->name('reports.sales');
+    Route::get('reports/sales.csv', [Admin\ReportController::class, 'csv'])->name('reports.sales.csv');
     Route::post('backup', [Admin\StorageController::class, 'backup'])->name('backup');
     Route::get('backup/download', [Admin\StorageController::class, 'backupDownload'])->name('backup.download');
     Route::get('cohorts/{cohort}/csv', [Admin\CohortController::class, 'csv'])->name('cohorts.csv');

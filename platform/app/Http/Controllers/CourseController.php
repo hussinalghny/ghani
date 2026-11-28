@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Category;
 use App\Models\Course;
+use App\Models\DiscountCode;
 use App\Models\LessonProgress;
 use App\Services\CertificateService;
 use App\Services\EnrollmentService;
@@ -63,7 +64,16 @@ class CourseController extends Controller
         $canReview = $enrolled && $progress >= \App\Services\Community::REVIEW_MIN_PROGRESS;
         $students = $course->enrollments()->count();
 
-        return view('site.course', compact('course', 'lessonsCount', 'totalDuration', 'enrolled', 'progress', 'done', 'related', 'reviews', 'breakdown', 'myReview', 'canReview', 'students'));
+        // كود الخصم من الرابط (?code=) أو من فورم «تطبيق»
+        $disc = null;
+        $discError = null;
+        if (! $enrolled && ! $course->isFree() && $request->filled('code')) {
+            $r = DiscountCode::check($request->query('code'), $course, null, $user?->id);
+            is_string($r) ? $discError = $r : $disc = $r;
+        }
+        $price = $disc ? $disc->apply($course->finalPrice()) : $course->finalPrice();
+
+        return view('site.course', compact('course', 'lessonsCount', 'totalDuration', 'enrolled', 'progress', 'done', 'related', 'reviews', 'breakdown', 'myReview', 'canReview', 'students', 'disc', 'discError', 'price'));
     }
 
     public function review(Request $request, Course $course, CertificateService $certs)
@@ -82,7 +92,11 @@ class CourseController extends Controller
 
     public function enroll(Request $request, Course $course, EnrollmentService $service)
     {
-        $service->purchase($request->user(), $course);
+        $code = DiscountCode::check($request->input('code'), $course, null, $request->user()->id);
+        if (is_string($code)) {
+            return redirect()->route('courses.show', $course)->with('error', $code);
+        }
+        $service->purchase($request->user(), $course, $code);
 
         return redirect()->route('learn.show', $course)
             ->with('success', 'تم تسجيلك في '.$course->title.'. ابدأ من الدرس الأول.');

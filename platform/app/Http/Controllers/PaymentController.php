@@ -34,11 +34,22 @@ class PaymentController extends Controller
         }
         // المقعد الحضوري: المبلغ كامل دائما (الرصيد يدفع بزر «من رصيدي» إذا يكفي)
         // الكورس الإلكتروني: نطلب الفرق بس إذا عنده رصيد
+        $code = null;
+        if ($course && ! $reg && $request->filled('code')) {
+            $code = \App\Models\DiscountCode::check($request->input('code'), $course, null, $user->id);
+            if (is_string($code)) {
+                return redirect()->route('courses.show', $course)->with('error', $code);
+            }
+        }
+        $coursePrice = $course ? ($code ? $code->apply($course->finalPrice()) : $course->finalPrice()) : 0;
+        if ($course && ! $reg && $coursePrice <= (int) $user->balance) {
+            return redirect()->route('courses.show', [$course] + ($code ? ['code' => $code->code] : []))->with('success', 'رصيدك يكفي، سجل من زر «سجل الآن».');
+        }
         $base = $reg ? max(1000, $reg->finalPrice())
-            : ($course ? max(1000, $course->finalPrice() - (int) $user->balance) : (int) ($data['amount'] ?? 0));
+            : ($course ? max(1000, $coursePrice - (int) $user->balance) : (int) ($data['amount'] ?? 0));
 
         try {
-            $order = $this->payments->create($user, $data['method'], $base, $reg ? null : $course, $reg);
+            $order = $this->payments->create($user, $data['method'], $base, $reg ? null : $course, $reg, $code);
         } catch (AcademyException $e) {
             return back()->with('error', $e->getMessage());
         }

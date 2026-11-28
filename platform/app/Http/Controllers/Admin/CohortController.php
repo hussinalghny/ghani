@@ -39,7 +39,8 @@ class CohortController extends Controller
             'revenue' => $cohort->paidCount() * $cohort->price,
         ];
         $courses = Course::orderBy('title')->get(['id', 'title']);
-        $discounts = \App\Models\DiscountCode::where(fn ($q) => $q->whereNull('cohort_id')->orWhere('cohort_id', $cohort->id))->latest()->get();
+        $discounts = \App\Models\DiscountCode::whereIn('applies_to', ['cohort', 'all'])->whereNull('course_id')
+            ->where(fn ($q) => $q->whereNull('cohort_id')->orWhere('cohort_id', $cohort->id))->latest()->get();
         $stats['revenue'] = (int) $cohort->registrations()->where('status', 'paid')->get()->sum(fn ($r) => $r->finalPrice());
 
         return view('admin.cohorts.show', compact('cohort', 'regs', 'stats', 'status', 'courses', 'discounts'));

@@ -138,26 +138,40 @@
                 @else
                     <div class="buy-price">
                         @if ($course->isFree()) مجاني
-                        @else <span class="ltr">{{ iqd($course->finalPrice(), false) }}</span> د.ع
-                            @if ($course->finalPrice() < $course->price)<small class="ltr">{{ iqd($course->price, false) }}</small>@endif
+                        @elseif ($price === 0) <span>مجاني بالكود</span>
+                        @else <span class="ltr">{{ iqd($price, false) }}</span> د.ع
+                            @if ($price < $course->price)<small class="ltr">{{ iqd($course->price, false) }}</small>@endif
                         @endif
                     </div>
+                    @if (! $course->isFree())
+                        @if ($disc)
+                            <div class="u-code ok">كود <b class="ltr">{{ $disc->code }}</b> مطبق · خصم {{ $disc->label() }} <a href="{{ route('courses.show', $course) }}" class="tiny">إزالة</a></div>
+                        @else
+                            <form method="GET" action="{{ route('courses.show', $course) }}#buy" class="u-code-form">
+                                <label for="c-code" class="sr-only">كود الخصم</label>
+                                <input class="input ltr" id="c-code" name="code" dir="ltr" placeholder="كود الخصم" value="{{ request('code') }}" autocomplete="off" style="text-transform:uppercase" maxlength="40">
+                                <button class="btn btn-plain" type="submit">تطبيق</button>
+                            </form>
+                            @if ($discError)<small class="u-code-err">{{ $discError }}</small>@endif
+                        @endif
+                    @endif
                     @auth
                         <p class="small muted" style="margin:6px 0 16px">رصيدك: <span class="ltr">{{ iqd(auth()->user()->balance, false) }}</span> د.ع</p>
-                        @if (auth()->user()->balance >= $course->finalPrice())
-                            <form method="POST" action="{{ route('courses.enroll', $course) }}" data-once data-confirm="{{ $course->isFree() ? 'تسجيل في الكورس؟' : 'سيتم خصم '.iqd($course->finalPrice()).' من رصيدك. متأكد؟' }}">
+                        @if (auth()->user()->balance >= $price)
+                            <form method="POST" action="{{ route('courses.enroll', $course) }}" data-once data-confirm="{{ $price === 0 ? 'تسجيل في الكورس؟' : 'سيتم خصم '.iqd($price).' من رصيدك. متأكد؟' }}">
                                 @csrf
-                                <button class="btn btn-primary btn-block" type="submit">{{ $course->isFree() ? 'سجل مجانا' : 'سجل الآن' }}</button>
+                                @if ($disc)<input type="hidden" name="code" value="{{ $disc->code }}">@endif
+                                <button class="btn btn-primary btn-block" type="submit">{{ $price === 0 ? 'سجل مجانا' : 'سجل الآن' }}</button>
                             </form>
                         @else
                             @if (\App\Services\PaymentService::enabled())
-                                @include('partials.pay-methods', ['course' => $course])
+                                @include('partials.pay-methods', ['course' => $course, 'code' => $disc?->code])
                                 <p class="tiny" style="margin:10px 0 0;text-align:center">تحويل مباشر، والكورس ينفتح تلقائيا أول ما يوصل. أو</p>
                                 <a href="{{ route('wallet') }}" class="btn btn-plain btn-block" style="margin-top:6px">عندي قسيمة</a>
                             @else
                                 <a href="{{ route('wallet') }}" class="btn btn-primary btn-block">اشحن رصيدك للاشتراك</a>
                             @endif
-                            <p class="tiny" style="margin:10px 0 0;text-align:center">تحتاج <span class="ltr">{{ iqd($course->finalPrice() - auth()->user()->balance, false) }}</span> د.ع إضافية. عندك قسيمة؟ اكتبها بالمحفظة.</p>
+                            <p class="tiny" style="margin:10px 0 0;text-align:center">تحتاج <span class="ltr">{{ iqd($price - auth()->user()->balance, false) }}</span> د.ع إضافية. عندك قسيمة؟ اكتبها بالمحفظة.</p>
                         @endif
                     @else
                         <p class="small muted" style="margin:6px 0 16px">سجل حسابك واشحن رصيدك بقسيمة للاشتراك.</p>
@@ -177,7 +191,7 @@
 
 @unless ($enrolled)
 <div class="ga-buybar">
-    <div><b>@if ($course->isFree())مجاني@else<span class="ltr">{{ iqd($course->finalPrice(), false) }}</span> د.ع@endif</b><small>وصول كامل + شهادة</small></div>
+    <div><b>@if ($course->isFree())مجاني@else<span class="ltr">{{ iqd($price, false) }}</span> د.ع@endif</b><small>وصول كامل + شهادة</small></div>
     <a class="btn btn-primary" href="#buy">سجل الآن</a>
 </div>
 @endunless

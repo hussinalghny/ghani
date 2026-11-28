@@ -13,6 +13,11 @@ class PaymentOrder extends Model
 
     public const STATUSES = ['pending' => 'بانتظار التحويل', 'paid' => 'مدفوع', 'expired' => 'منتهي', 'cancelled' => 'ملغي'];
 
+    public function discountCode(): BelongsTo
+    {
+        return $this->belongsTo(DiscountCode::class);
+    }
+
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);

@@ -12,8 +12,8 @@ class EnrollmentService
 {
     public function __construct(private WalletService $wallet) {}
 
-    /** شراء كورس من رصيد المحفظة */
-    public function purchase(User $user, Course $course): Enrollment
+    /** شراء كورس من رصيد المحفظة، ويا كود خصم إذا موجود (يتحقق منه اللي يستدعي) */
+    public function purchase(User $user, Course $course, ?\App\Models\DiscountCode $code = null): Enrollment
     {
         if (! $course->is_published) {
             throw new AcademyException('هذا الكورس غير متاح حاليا.', 'unavailable');
@@ -22,14 +22,18 @@ class EnrollmentService
             throw new AcademyException('أنت مشترك في هذا الكورس.', 'already_enrolled');
         }
 
-        $price = $course->finalPrice();
+        $price = $code ? $code->apply($course->finalPrice()) : $course->finalPrice();
 
-        return DB::transaction(function () use ($user, $course, $price) {
+        return DB::transaction(function () use ($user, $course, $price, $code) {
             if ($price > 0) {
-                $this->wallet->debit($user, $price, 'purchase', 'شراء كورس: '.$course->title, 'course:'.$course->id);
+                $this->wallet->debit($user, $price, 'purchase', 'شراء كورس: '.$course->title.($code ? ' · كود '.$code->code : ''), 'course:'.$course->id);
+            }
+            $e = $this->enroll($user, $course, $price > 0 ? 'wallet' : ($code ? 'code' : 'free'), $price);
+            if ($code) {
+                $e->update(['discount_code_id' => $code->id]);
             }
 
-            return $this->enroll($user, $course, $price > 0 ? 'wallet' : 'free', $price);
+            return $e;
         });
     }
 

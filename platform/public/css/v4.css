@@ -383,3 +383,12 @@ h1, h2, h3, h4 { font-weight: 700; }
 .ch-disc { display: flex; gap: 8px; margin-bottom: 4px; }
 .ch-disc .input { flex: 1; min-height: 46px; }
 .ch-err { display: block; color: var(--danger, #C2364A); font-size: 13px; margin-top: 4px; }
+
+/* كود الخصم بصفحة الكورس */
+.u-code-form { display: flex; gap: 8px; margin: 12px 0 0; }
+.u-code-form .input { flex: 1; min-width: 0; height: 44px; }
+.u-code-form .btn { height: 44px; }
+.u-code { margin: 12px 0 0; padding: 9px 12px; border-radius: 12px; font-size: 13px; background: #E8F7EF; color: #136B40; display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.u-code a { margin-inline-start: auto; color: inherit; text-decoration: underline; }
+.u-code-err { display: block; margin-top: 6px; color: #C0392B; font-size: 12.5px; }
+html.dark .u-code { background: rgba(46, 160, 100, .16); color: #8FE0B5; }

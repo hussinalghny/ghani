@@ -3,6 +3,7 @@
     <form method="POST" action="{{ route('pay.store') }}" class="stack" style="gap:8px">
         @csrf
         @isset($course)<input type="hidden" name="course" value="{{ $course->id }}">@endisset
+        @if (! empty($code))<input type="hidden" name="code" value="{{ $code }}">@endif
         @isset($amountField)
             <div class="field" style="margin:0"><label for="pay_amount">المبلغ (د.ع)</label><input class="input" id="pay_amount" name="amount" type="number" min="1000" step="1000" dir="ltr" inputmode="numeric" required placeholder="50000"></div>
         @endisset

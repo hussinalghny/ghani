@@ -49,7 +49,7 @@ class PaymentService
         PaymentOrder::where('status', 'pending')->where('expires_at', '<', now())->update(['status' => 'expired']);
     }
 
-    public function create(User $user, string $method, int $base, ?Course $course = null, ?\App\Models\CohortRegistration $registration = null): PaymentOrder
+    public function create(User $user, string $method, int $base, ?Course $course = null, ?\App\Models\CohortRegistration $registration = null, ?\App\Models\DiscountCode $code = null): PaymentOrder
     {
         if (! self::enabled() || ! isset(self::methods()[$method])) {
             throw new AcademyException('الدفع المباشر غير متاح حاليا.', 'payments_disabled');
@@ -63,10 +63,14 @@ class PaymentService
         $open = PaymentOrder::where('user_id', $user->id)->where('status', 'pending')
             ->where('method', $method)->where('base_amount', $base)->where('course_id', $course?->id)->where('registration_id', $registration?->id)->first();
         if ($open) {
+            if ($code && $open->discount_code_id !== $code->id) {
+                $open->update(['discount_code_id' => $code->id]);
+            }
+
             return $open;
         }
 
-        return DB::transaction(function () use ($user, $method, $base, $course, $registration) {
+        return DB::transaction(function () use ($user, $method, $base, $course, $registration, $code) {
             $taken = PaymentOrder::where('status', 'pending')->lockForUpdate()->pluck('amount')->flip();
             $amount = null;
             for ($i = 0; $i < 60; $i++) {
@@ -83,6 +87,7 @@ class PaymentService
             return PaymentOrder::create([
                 'user_id' => $user->id, 'course_id' => $course?->id, 'registration_id' => $registration?->id, 'method' => $method,
                 'base_amount' => $base, 'amount' => $amount, 'expires_at' => now()->addHours(self::HOURS),
+                'discount_code_id' => $code?->id,
             ]);
         });
     }
@@ -182,7 +187,8 @@ class PaymentService
         }
         if ($done->course) {
             try {
-                $this->enrollments->purchase($done->user->refresh(), $done->course);
+                // الكود ينحسب حتى لو خلصت مدته بعد ما سوى الطلب
+                $this->enrollments->purchase($done->user->refresh(), $done->course, $done->discountCode);
                 $msg = 'تم الدفع وانفتح كورس '.$done->course->title.'. بالتوفيق.';
             } catch (AcademyException) {
                 // مشترك أصلا أو الكورس مخفي: المبلغ يبقى بالمحفظة

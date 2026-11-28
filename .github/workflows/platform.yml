@@ -236,6 +236,35 @@ jobs:
           c=$(curl -s -o /dev/null -w '%{http_code}' -c $S -b $S -X POST -d "_token=$X&_method=PUT&name=Student&phone=$(php artisan tinker --execute='echo App\Models\User::find('$SID')->phone;' | tail -1)&role=admin&is_active=1" http://127.0.0.1:8000/admin/students/$SID); echo "$c support edit student"; [ "$c" = "302" ] || fail=1
           R=$(php artisan tinker --execute='echo App\Models\User::find('$SID')->role;' | tail -1); echo "student role after: $R"; [ "$R" = "student" ] || fail=1
           c=$(curl -s -o /dev/null -w '%{http_code}' -c $J -b $J http://127.0.0.1:8000/admin/students/create); echo "$c admin students/create"; [ "$c" = "200" ] || fail=1
+          mkdir -p /tmp/snap
+          # أكواد الخصم للكورسات الإلكترونية + تقرير المبيعات
+          CID=$(php artisan tinker --execute='$c=App\Models\Course::where("slug","smart-defense")->first()->replicate(); $c->slug="cx-test"; $c->title="كورس تجربة"; $c->price=50000; $c->sale_price=null; $c->is_published=true; $c->save(); echo $c->id;' | tail -1)
+          X=$(curl -s -c $J -b $J http://127.0.0.1:8000/admin/discounts | tee /tmp/out | grep -o 'name="csrf-token" content="[^"]*"' | sed 's/.*content="//;s/"//')
+          for d in "WEB25 percent 25 course:$CID 1" "HALF percent 50 course 5" "COH10 percent 10 cohort 5"; do set -- $d
+            c=$(curl -s -o /dev/null -w '%{http_code}' -c $J -b $J -X POST -d "_token=$X&code=$1&type=$2&value=$3&target=$4&max_uses=$5" http://127.0.0.1:8000/admin/discounts); echo "$c add code $1"; [ "$c" = "302" ] || fail=1
+          done
+          curl -s -c $J -b $J http://127.0.0.1:8000/admin/discounts | grep -q 'WEB25' || { echo "codes list"; fail=1; }
+          mkstu() { php artisan tinker --execute='$u=new App\Models\User; $u->forceFill(["name"=>"'$2'","phone"=>"'$1'","password"=>Illuminate\Support\Facades\Hash::make("Stu@2026x"),"role"=>"student","balance"=>'$3'])->save();' >/dev/null
+            rm -f $4; local t=$(curl -s -c $4 -b $4 http://127.0.0.1:8000/login | grep -o 'name="_token" value="[^"]*"' | head -1 | sed 's/.*value="//;s/"//')
+            curl -s -o /dev/null -c $4 -b $4 -X POST -d "_token=$t&phone=$1&password=Stu@2026x" http://127.0.0.1:8000/login; }
+          K1=/tmp/k1; K2=/tmp/k2; K3=/tmp/k3
+          mkstu 07711110001 Ali $((37500)) $K1; mkstu 07711110002 Sara 0 $K2; mkstu 07711110003 Omar 0 $K3
+          curl -s -c $K1 -b $K1 "http://127.0.0.1:8000/course/cx-test?code=web25" > /tmp/out; grep -q '37,500' /tmp/out && grep -q 'مطبق' /tmp/out || { echo "code price not shown"; fail=1; }
+          curl -s -c $K1 -b $K1 "http://127.0.0.1:8000/course/cx-test?code=COH10" | grep -q 'كود الخصم غير صحيح' || { echo "cohort code accepted on course"; fail=1; }
+          X1=$(grep -o 'name="csrf-token" content="[^"]*"' /tmp/out | sed 's/.*content="//;s/"//')
+          c=$(curl -s -o /dev/null -w '%{http_code}' -c $K1 -b $K1 -X POST -d "_token=$X1&code=WEB25" http://127.0.0.1:8000/course/cx-test/enroll); echo "$c enroll with code"
+          R=$(php artisan tinker --execute='$u=App\Models\User::where("phone","07711110001")->first(); $e=App\Models\Enrollment::where("user_id",$u->id)->first(); echo ($e?->price_paid)."|".($e?->discountCode?->code)."|".$u->balance;' | tail -1); echo "enrollment: $R"; [ "$R" = "37500|WEB25|0" ] || fail=1
+          curl -s -c $K2 -b $K2 "http://127.0.0.1:8000/course/cx-test?code=WEB25" | grep -q 'انتهت استخداماته' || { echo "max uses not enforced"; fail=1; }
+          X2=$(curl -s -c $K3 -b $K3 "http://127.0.0.1:8000/course/cx-test?code=HALF" | grep -o 'name="csrf-token" content="[^"]*"' | sed 's/.*content="//;s/"//')
+          c=$(curl -s -o /dev/null -w '%{http_code}' -c $K3 -b $K3 -X POST -d "_token=$X2&method=qi&course=$CID&code=HALF" http://127.0.0.1:8000/pay); echo "$c pay with code"
+          R=$(php artisan tinker --execute='$o=App\Models\PaymentOrder::latest("id")->first(); echo $o->base_amount."|".$o->discountCode?->code; app(App\Services\PaymentService::class)->fulfill($o); $e=App\Models\Enrollment::where("user_id",$o->user_id)->where("course_id",$o->course_id)->first(); echo "|".($e?->price_paid)."|".($e?->discountCode?->code);' | tail -1); echo "order: $R"; [ "$R" = "25000|HALF|25000|HALF" ] || fail=1
+          curl -s -c $J -b $J http://127.0.0.1:8000/admin/reports/sales > /tmp/out; grep -q '37,500' /tmp/out && grep -q 'WEB25' /tmp/out && grep -q 'كورس تجربة' /tmp/out || { echo "sales report"; fail=1; }
+          for u in "/admin/reports/sales?from=2020-01-01&to=2020-01-31" "/admin/reports/sales?from=bad&to=x"; do c=$(curl -s -o /dev/null -w '%{http_code}' -c $J -b $J "http://127.0.0.1:8000$u"); echo "$c $u"; [ "$c" = "200" ] || fail=1; done
+          curl -s -c $J -b $J http://127.0.0.1:8000/admin/reports/sales.csv > /tmp/out; grep -q 'HALF' /tmp/out && grep -q '25000' /tmp/out || { echo "sales csv"; fail=1; }
+          for u in /admin/reports/sales /admin/discounts; do c=$(curl -s -o /dev/null -w '%{http_code}' -c $S -b $S http://127.0.0.1:8000$u); echo "$c support $u"; [ "$c" = "403" ] || fail=1; done
+          curl -s -c $J -b $J "http://127.0.0.1:8000/admin/reports/sales" | sed 's#http://127.0.0.1:8000/##g' > /tmp/snap/report.html
+          curl -s -c $J -b $J "http://127.0.0.1:8000/admin/discounts" | sed 's#http://127.0.0.1:8000/##g' > /tmp/snap/discounts.html
+          curl -s -c $K2 -b $K2 "http://127.0.0.1:8000/course/cx-test?code=HALF" | sed 's#http://127.0.0.1:8000/##g' > /tmp/snap/course-code.html
           # لقطات دليل الدعم الفني
           mkdir -p /tmp/snap
           php artisan tinker --execute='App\Models\User::where("phone","07700000011")->update(["name"=>"فريق الدعم"]); $s=App\Models\User::find('$SID'); $s->update(["name"=>"أحمد علي"]); $chat=app(App\Services\ChatService::class); $c=$chat->support($s); $chat->send($s,$c,"السلام عليكم، الكورس ما دا يفتح بالموبايل، يكول تجاوزت عدد الأجهزة"); $sup=App\Models\User::where("phone","07700000011")->first(); $chat->send($sup,$c,"هلا بيك بغني أكاديمي. صفرنالك الأجهزة، سجل دخول من جديد وراح يشتغل."); $chat->send($s,$c,"اشتغل، شكرا الكم"); $u2=new App\Models\User; $u2->forceFill(["name"=>"زينب حسن","phone"=>"07812345678","password"=>Illuminate\Support\Facades\Hash::make("Zz@123456"),"role"=>"student"])->save(); $c2=$chat->support($u2); $chat->send($u2,$c2,"حولت فلوس الكورس من ساعة وبعده ما تفعل");'
@@ -279,7 +308,7 @@ jobs:
             google-chrome --headless=new --no-sandbox --hide-scrollbars --force-device-scale-factor=1 --window-size=390,2200 --virtual-time-budget=6000 --screenshot=$PWD/shots/$f-m.png file://$PWD/$f.html 2>/dev/null || true
             google-chrome --headless=new --no-sandbox --hide-scrollbars --window-size=1440,1500 --virtual-time-budget=6000 --screenshot=$PWD/shots/$f-d.png file://$PWD/$f.html 2>/dev/null || true
           done
-          for f in g-admin-create g-admin-user g-admin-list g-sup-inbox g-sup-students g-sup-chat g-sup-student g-sup-cohorts g-sup-cohort; do
+          for f in report discounts course-code g-admin-create g-admin-user g-admin-list g-sup-inbox g-sup-students g-sup-chat g-sup-student g-sup-cohorts g-sup-cohort; do
             [ -f $f.html ] || continue
             google-chrome --headless=new --no-sandbox --hide-scrollbars --window-size=1280,860 --virtual-time-budget=6000 --screenshot=$PWD/shots/$f.png file://$PWD/$f.html 2>/dev/null || true
           done

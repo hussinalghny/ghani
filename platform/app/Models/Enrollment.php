@@ -11,7 +11,12 @@ class Enrollment extends Model
 
     protected $casts = ['expires_at' => 'datetime', 'completed_at' => 'datetime'];
 
-    public const SOURCES = ['wallet' => 'من الرصيد', 'voucher' => 'قسيمة', 'admin' => 'من الإدارة', 'free' => 'مجاني'];
+    public const SOURCES = ['wallet' => 'من الرصيد', 'voucher' => 'قسيمة', 'admin' => 'من الإدارة', 'free' => 'مجاني', 'code' => 'كود خصم كامل'];
+
+    public function discountCode(): BelongsTo
+    {
+        return $this->belongsTo(DiscountCode::class);
+    }
 
     public function user(): BelongsTo
     {
