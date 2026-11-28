@@ -13,7 +13,7 @@
         @forelse ($courses as $c)
             <tr>
                 <td style="width:80px">@if ($c->coverUrl())<img class="thumb" src="{{ $c->coverUrl() }}" alt="">@else<div class="thumb" style="background:url({{ asset('img/pattern-violet.svg') }}),var(--violet);background-size:120px"></div>@endif</td>
-                <td><strong>{{ $c->title }}</strong>@if ($c->is_featured) <span class="badge badge-gold">مميز</span>@endif<div class="tiny">{{ $c->instructor->name ?? 'بدون مدرب' }}</div></td>
+                <td><strong>{{ $c->title }}</strong>@if ($c->is_featured) <span class="badge badge-gold">مميز</span>@endif @if ($c->pin) <span class="badge">مثبت <span class="ltr">{{ $c->pin }}</span></span>@endif<div class="tiny">{{ $c->instructor->name ?? 'بدون مدرب' }}</div></td>
                 <td>{{ $c->category->name ?? '—' }}</td>
                 <td class="ltr">{{ $c->isFree() ? 'مجاني' : iqd($c->finalPrice(), false) }}</td>
                 <td class="ltr">{{ $c->lessons_count }}</td>

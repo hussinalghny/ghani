@@ -49,6 +49,7 @@ class CourseController extends Controller
             // المدرب يعدل المحتوى والنشر، والسعر والقسم والترتيب بيد الإدارة
             $request->merge($course->only(self::ADMIN_ONLY) + [
                 'is_featured' => $course->is_featured ? '1' : null,
+                'pin' => $course->pin,
                 'slug' => $course->slug,
             ]);
         }
@@ -104,6 +105,7 @@ class CourseController extends Controller
             'duration_label' => ['nullable', 'string', 'max:80'],
             'access_days' => ['nullable', 'integer', 'min:1', 'max:3650'],
             'sort' => ['nullable', 'integer'],
+            'pin' => ['nullable', 'integer', 'min:1', 'max:20'],
             'cover' => ['nullable', 'image', 'max:4096'],
         ], [], ['title' => 'العنوان', 'price' => 'السعر', 'category_id' => 'القسم']);
 

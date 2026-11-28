@@ -267,6 +267,10 @@ jobs:
           curl -s -c $J -b $J "http://127.0.0.1:8000/admin/reports/sales" | sed 's#http://127.0.0.1:8000/##g' > /tmp/snap/report.html
           curl -s -c $J -b $J "http://127.0.0.1:8000/admin/discounts" | sed 's#http://127.0.0.1:8000/##g' > /tmp/snap/discounts.html
           curl -s -c $K2 -b $K2 "http://127.0.0.1:8000/course/cx-test?code=HALF" | sed 's#http://127.0.0.1:8000/##g' > /tmp/snap/course-code.html
+          # تثبيت كورس بأول «الأكثر تسجيلا» (التطبيق والموقع)
+          php artisan tinker --execute='App\Models\Course::where("slug","cx-test")->first()->update(["pin"=>1]);'
+          curl -s http://127.0.0.1:8000/api/v1/home | php -r '$j=json_decode(stream_get_contents(STDIN),true); echo "popular first: ".$j["popular"][0]["slug"].PHP_EOL;' | tee /tmp/p.txt; grep -q "popular first: cx-test" /tmp/p.txt || fail=1
+          c=$(curl -s -o /tmp/out -w '%{http_code}' -c $J -b $J http://127.0.0.1:8000/admin/courses); echo "$c admin courses pinned"; grep -q 'مثبت' /tmp/out || fail=1
           # لقطات دليل الدعم الفني
           mkdir -p /tmp/snap
           php artisan tinker --execute='App\Models\User::where("phone","07700000011")->update(["name"=>"فريق الدعم"]); $s=App\Models\User::find('$SID'); $s->update(["name"=>"أحمد علي"]); $chat=app(App\Services\ChatService::class); $c=$chat->support($s); $chat->send($s,$c,"السلام عليكم، الكورس ما دا يفتح بالموبايل، يكول تجاوزت عدد الأجهزة"); $sup=App\Models\User::where("phone","07700000011")->first(); $chat->send($sup,$c,"هلا بيك بغني أكاديمي. صفرنالك الأجهزة، سجل دخول من جديد وراح يشتغل."); $chat->send($s,$c,"اشتغل، شكرا الكم"); $u2=new App\Models\User; $u2->forceFill(["name"=>"زينب حسن","phone"=>"07812345678","password"=>Illuminate\Support\Facades\Hash::make("Zz@123456"),"role"=>"student"])->save(); $c2=$chat->support($u2); $chat->send($u2,$c2,"حولت فلوس الكورس من ساعة وبعده ما تفعل");'

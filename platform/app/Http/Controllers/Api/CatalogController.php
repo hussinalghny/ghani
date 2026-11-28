@@ -41,7 +41,8 @@ class CatalogController extends Controller
 
             return [
                 'featured' => CourseResource::collection($base()->where('is_featured', true)->orderBy('sort')->take(6)->get())->toArray($request),
-                'popular' => CourseResource::collection($base()->orderByDesc('enrollments_count')->take(10)->get())->toArray($request),
+                // المثبتة أولا بترتيبها، وبعدها الأكثر تسجيلا
+                'popular' => CourseResource::collection($base()->orderByRaw('pin is null')->orderBy('pin')->orderByDesc('enrollments_count')->take(10)->get())->toArray($request),
                 'latest' => CourseResource::collection($base()->latest()->take(10)->get())->toArray($request),
                 'categories' => $this->categoryList()->values()->all(),
             ];

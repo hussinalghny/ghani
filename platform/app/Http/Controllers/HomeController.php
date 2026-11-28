@@ -25,7 +25,7 @@ class HomeController extends Controller
         ]);
 
         $popular = Course::published()->with(['category', 'instructor'])->withCount(['lessons', 'enrollments'])
-            ->orderByDesc('enrollments_count')->orderByDesc('is_featured')->take(8)->get();
+            ->orderByRaw('pin is null')->orderBy('pin')->orderByDesc('enrollments_count')->orderByDesc('is_featured')->take(8)->get();
 
         $continue = null;
         if ($user = auth()->user()) {
