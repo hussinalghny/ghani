@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="csrf-token" content="TUx35GbNp9BX2KYU3TklvpYmejoh7V39H7VuTh2K">
+    <meta name="robots" content="noindex, nofollow">
+    <title>لوحة التحكم · غني أكاديمي</title>
+    <link rel="icon" href="favicon.png">
+    <link href="https://fonts.googleapis.com/css2?family=Alexandria:wght@700;800&family=Readex+Pro:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/app.css?v=1">
+    <link rel="stylesheet" href="css/admin.css?v=1">
+</head>
+<body>
+<div class="admin">
+    <aside class="side" id="side">
+        <a class="brand" href="inbox"><img src="img/logo-light.png" alt="Ghani Academy"></a>
+                                <a href="inbox" class=""><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20l1.2-3.6A8 8 0 1 1 8 19z"/><path d="M9 9.5c0 3 2.5 5.5 5.5 5.5l1.3-1.3-2-1-1 .8a4 4 0 0 1-2.3-2.3l.8-1-1-2z" fill="currentColor" stroke="none"/></svg>
+ المحادثات <span class="badge badge-gold ltr" style="margin-inline-start:auto">1</span></a>
+                <a href="admin/students" class="active"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c1.2-3.4 3.7-5 6.5-5s5.3 1.6 6.5 5"/><path d="M16 4.5a3.5 3.5 0 0 1 0 7"/><path d="M18 15c1.7.6 3 2.2 3.5 5"/></svg>
+ الطلاب</a>
+        <a href="admin/cohorts" class=""><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c1.2-3.4 3.7-5 6.5-5s5.3 1.6 6.5 5"/><path d="M16 4.5a3.5 3.5 0 0 1 0 7"/><path d="M18 15c1.7.6 3 2.2 3.5 5"/></svg>
+ الكورسات الحضورية</a>
+                        <div class="bottom">
+            <a href="http://127.0.0.1:8000" target="_blank"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 4h6v6M20 4l-9 9M18 14v4a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4"/></svg>
+ عرض المنصة</a>
+            <form method="POST" action="logout"><input type="hidden" name="_token" value="TUx35GbNp9BX2KYU3TklvpYmejoh7V39H7VuTh2K" autocomplete="off"><button class="btn btn-plain btn-sm btn-block" style="margin-top:8px" type="submit">تسجيل الخروج</button></form>
+        </div>
+    </aside>
+    <main class="admin-main">
+        <div class="admin-top">
+            <div class="row">
+                <button class="btn btn-plain btn-sm admin-burger" type="button" onclick="document.getElementById('side').classList.toggle('open')" aria-label="القائمة"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+</button>
+                <div>
+                    <h1>أحمد علي<span class="dot">.</span></h1>
+                    <div class="sub"><span class="ltr">07701234567</span> · طالب · مسجل منذ 2026/11/28</div>                </div>
+            </div>
+            <div class="row"><a class="btn btn-plain btn-sm" href="https://wa.me/9647701234567" target="_blank"><svg class="icon icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20l1.2-3.6A8 8 0 1 1 8 19z"/><path d="M9 9.5c0 3 2.5 5.5 5.5 5.5l1.3-1.3-2-1-1 .8a4 4 0 0 1-2.3-2.3l.8-1-1-2z" fill="currentColor" stroke="none"/></svg>
+ واتساب</a></div>
+        </div>
+                <div class="grid" style="grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);gap:16px;align-items:start">
+    <div class="stack">
+        <div class="panel">
+            <h2>الكورسات</h2>
+                            <p class="muted small">غير مشترك بأي كورس.</p>
+                                </div>
+
+        <div class="panel">
+            <div class="row-between"><h2 style="margin:0">الأجهزة</h2>
+                <form method="POST" action="admin/students/2/devices/reset" data-confirm="تصفير الأجهزة يطلع الطالب من كل الأجهزة. متأكد؟"><input type="hidden" name="_token" value="TUx35GbNp9BX2KYU3TklvpYmejoh7V39H7VuTh2K" autocomplete="off"><button class="btn btn-ghost btn-sm" type="submit">تصفير الأجهزة</button></form>
+            </div>
+                            <div class="list-row">
+                    <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="6.5" y="2.5" width="11" height="19" rx="2.5"/><path d="M11 18.5h2"/></svg>
+                    <span style="flex:1">android<span class="tiny" style="display:block"><span class="ltr">127.0.0.1</span> · منذ 21 ثانية</span></span>
+                    <form method="POST" action="admin/devices/1/block"><input type="hidden" name="_token" value="TUx35GbNp9BX2KYU3TklvpYmejoh7V39H7VuTh2K" autocomplete="off"><button class="btn btn-danger btn-sm" type="submit">حظر</button></form>
+                </div>
+                    </div>
+
+        <div class="panel">
+            <h2>سجل المحفظة</h2>
+                            <p class="muted small">لا توجد عمليات.</p>
+                    </div>
+    </div>
+
+    <div class="stack">
+        <div class="wallet-card" style="min-height:160px">
+            <span class="lbl">الرصيد</span>
+            <div class="amt"><span class="ltr">0</span> <small>د.ع</small></div>
+        </div>
+        
+        <form class="panel" method="POST" action="admin/students/2">
+            <input type="hidden" name="_token" value="TUx35GbNp9BX2KYU3TklvpYmejoh7V39H7VuTh2K" autocomplete="off"> <input type="hidden" name="_method" value="PUT">            <h2>الحساب</h2>
+            <div class="field"><label for="u_name">الاسم</label><input class="input" id="u_name" name="name" value="أحمد علي" required></div>
+            <div class="field"><label for="u_phone">الهاتف</label><input class="input" id="u_phone" name="phone" dir="ltr" value="07701234567" required></div>
+                        <div class="field"><label for="u_pw">كلمة مرور جديدة (اختياري)</label><input class="input" id="u_pw" name="password" dir="ltr" minlength="8"></div>
+            <label class="switch" style="margin-bottom:16px"><input type="checkbox" name="is_active" value="1" checked> الحساب فعال</label>
+            <button class="btn btn-primary btn-block" type="submit">حفظ</button>
+        </form>
+    </div>
+</div>
+    </main>
+</div>
+<script src="js/app.js?v=1" defer></script>
+</body>
+</html>
