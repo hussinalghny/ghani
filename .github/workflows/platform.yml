@@ -245,7 +245,7 @@ jobs:
           done
           curl -s -c $J -b $J http://127.0.0.1:8000/admin/discounts | grep -q 'WEB25' || { echo "codes list"; fail=1; }
           mkstu() { php artisan tinker --execute='$u=new App\Models\User; $u->forceFill(["name"=>"'$2'","phone"=>"'$1'","password"=>Illuminate\Support\Facades\Hash::make("Stu@2026x"),"role"=>"student","balance"=>'$3'])->save();' >/dev/null
-            rm -f $4; local t=$(curl -s -c $4 -b $4 http://127.0.0.1:8000/login | grep -o 'name="_token" value="[^"]*"' | head -1 | sed 's/.*value="//;s/"//')
+            php artisan cache:clear >/dev/null 2>&1; rm -f $4; local t=$(curl -s -c $4 -b $4 http://127.0.0.1:8000/login | grep -o 'name="_token" value="[^"]*"' | head -1 | sed 's/.*value="//;s/"//')
             curl -s -o /dev/null -c $4 -b $4 -X POST -d "_token=$t&phone=$1&password=Stu@2026x" http://127.0.0.1:8000/login; }
           K1=/tmp/k1; K2=/tmp/k2; K3=/tmp/k3
           mkstu 07711110001 Ali $((37500)) $K1; mkstu 07711110002 Sara 0 $K2; mkstu 07711110003 Omar 0 $K3
@@ -256,7 +256,7 @@ jobs:
           R=$(php artisan tinker --execute='$u=App\Models\User::where("phone","07711110001")->first(); $e=App\Models\Enrollment::where("user_id",$u->id)->first(); echo ($e?->price_paid)."|".($e?->discountCode?->code)."|".$u->balance;' | tail -1); echo "enrollment: $R"; [ "$R" = "37500|WEB25|0" ] || fail=1
           curl -s -c $K2 -b $K2 "http://127.0.0.1:8000/course/cx-test?code=WEB25" | grep -q 'انتهت استخداماته' || { echo "max uses not enforced"; fail=1; }
           X2=$(curl -s -c $K3 -b $K3 "http://127.0.0.1:8000/course/cx-test?code=HALF" | grep -o 'name="csrf-token" content="[^"]*"' | sed 's/.*content="//;s/"//')
-          c=$(curl -s -o /dev/null -w '%{http_code}' -c $K3 -b $K3 -X POST -d "_token=$X2&method=qi&course=$CID&code=HALF" http://127.0.0.1:8000/pay); echo "$c pay with code"
+          c=$(curl -s -o /dev/null -w '%{http_code} %{redirect_url}' -c $K3 -b $K3 -X POST -d "_token=$X2&method=qi&course=$CID&code=HALF" http://127.0.0.1:8000/pay); echo "$c pay with code"
           R=$(php artisan tinker --execute='$o=App\Models\PaymentOrder::latest("id")->first(); echo $o->base_amount."|".$o->discountCode?->code; app(App\Services\PaymentService::class)->fulfill($o); $e=App\Models\Enrollment::where("user_id",$o->user_id)->where("course_id",$o->course_id)->first(); echo "|".($e?->price_paid)."|".($e?->discountCode?->code);' | tail -1); echo "order: $R"; [ "$R" = "25000|HALF|25000|HALF" ] || fail=1
           curl -s -c $J -b $J http://127.0.0.1:8000/admin/reports/sales > /tmp/out; grep -q '37,500' /tmp/out && grep -q 'WEB25' /tmp/out && grep -q 'كورس تجربة' /tmp/out || { echo "sales report"; fail=1; }
           for u in "/admin/reports/sales?from=2020-01-01&to=2020-01-31" "/admin/reports/sales?from=bad&to=x"; do c=$(curl -s -o /dev/null -w '%{http_code}' -c $J -b $J "http://127.0.0.1:8000$u"); echo "$c $u"; [ "$c" = "200" ] || fail=1; done
