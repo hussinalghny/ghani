@@ -60,7 +60,34 @@ class CatalogController extends Controller
             }
         }
 
-        return response()->json($catalog + ['continue' => $continue]);
+        return response()->json($catalog + ['continue' => $continue, 'banner' => self::banner()]);
+    }
+
+    /** بنر الرئيسية بالتطبيق: يتعدل من اللوحة (تطبيق الموبايل)، وnull إذا مطفي */
+    public static function banner(): ?array
+    {
+        if ((string) setting('banner_on', '1') === '0') {
+            return null;
+        }
+        $action = (string) (setting('banner_action') ?: 'courses');
+        [$type, $ref] = array_pad(explode(':', $action, 2), 2, null);
+        $go = match ($type) {
+            'course' => ($c = Course::published()->where('slug', $ref)->first()) ? ['type' => 'course', 'slug' => $c->slug] : ['type' => 'courses'],
+            'cohort' => ($h = \App\Models\Cohort::where('slug', $ref)->first()) ? ['type' => 'url', 'url' => route('cohort.show', $h)] : ['type' => 'courses'],
+            'url' => filter_var(setting('banner_url'), FILTER_VALIDATE_URL) ? ['type' => 'url', 'url' => setting('banner_url')] : ['type' => 'courses'],
+            default => ['type' => 'courses'],
+        };
+        $img = setting('banner_image');
+
+        return [
+            'badge' => (string) (setting('banner_badge') ?? 'غني أكاديمي'),
+            'title' => (string) (setting('banner_title') ?: 'ابدأ مهنتك الجديدة خلال 4 أسابيع'),
+            'text' => (string) (setting('banner_text') ?? '12 جلسة عملية، مشروع حقيقي، وشهادة إتمام.'),
+            'button' => (string) (setting('banner_button') ?? 'تصفح الكورسات'),
+            'color' => preg_match('/^#[0-9A-Fa-f]{6}$/', (string) setting('banner_color')) ? setting('banner_color') : '#5A35D6',
+            'image' => $img ? asset('storage/'.$img).'?v='.substr(md5($img), 0, 8) : null,
+            'action' => $go,
+        ];
     }
 
     public function categories()

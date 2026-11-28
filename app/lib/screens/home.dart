@@ -1,5 +1,7 @@
 import 'package:flutter/cupertino.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../api.dart';
 import '../ui.dart';
@@ -36,6 +38,8 @@ class HomeScreen extends StatelessWidget {
               final latest = asList(d['latest']);
               final cats = asList(d['categories']);
               final cont = d['continue'] == null ? null : asMap(d['continue']);
+              // البنر من اللوحة: مفتاح موجود وقيمته null = مطفي، وسيرفر قديم بدون المفتاح = البنر الافتراضي
+              final Map? banner = d.containsKey('banner') ? (d['banner'] == null ? null : asMap(d['banner'])) : const {};
               return ListView(padding: const EdgeInsets.only(bottom: 28), children: [
                 Padding(
                   padding: const EdgeInsets.fromLTRB(18, 8, 12, 0),
@@ -83,7 +87,7 @@ class HomeScreen extends StatelessWidget {
                   const _SecHead(title: 'كمل التعلم'),
                   Padding(padding: const EdgeInsets.symmetric(horizontal: 18), child: ContinueCard(data: cont)),
                 ],
-                Padding(padding: const EdgeInsets.fromLTRB(18, 20, 18, 0), child: _Banner(onTap: () => tab.value = 1)),
+                if (banner != null) Padding(padding: const EdgeInsets.fromLTRB(18, 20, 18, 0), child: _Banner(data: banner, onTap: () => _bannerTap(ctx, asMap(banner['action'])))),
                 if (popular.isNotEmpty) ...[
                   _SecHead(title: 'الأكثر تسجيلا', action: 'عرض الكل', onAction: () => tab.value = 1),
                   if (kDesktop)
@@ -212,40 +216,93 @@ class ContinueCard extends StatelessWidget {
   }
 }
 
+void _bannerTap(BuildContext ctx, Map a) {
+  switch (a['type']) {
+    case 'course':
+      if (a['slug'] is String) return openCourse(ctx, {'slug': a['slug']});
+    case 'url':
+      final u = Uri.tryParse('${a['url'] ?? ''}');
+      if (u != null && u.hasScheme) {
+        launchUrl(u, mode: LaunchMode.externalApplication);
+        return;
+      }
+  }
+  tab.value = 1;
+}
+
+Color _hex(Object? v, Color fallback) {
+  final s = '${v ?? ''}'.replaceAll('#', '');
+  final n = int.tryParse(s, radix: 16);
+  return s.length == 6 && n != null ? Color(0xFF000000 | n) : fallback;
+}
+
+/// بنر الرئيسية: نصوصه ولونه وصورته ووجهته من اللوحة (تطبيق الموبايل ← بنر الرئيسية)
 class _Banner extends StatelessWidget {
+  final Map data;
   final VoidCallback onTap;
-  const _Banner({required this.onTap});
+  const _Banner({required this.data, required this.onTap});
+  String _t(String k, String def) => data.containsKey(k) ? '${data[k] ?? ''}' : def;
   @override
   Widget build(BuildContext context) {
+    final badge = _t('badge', 'غني أكاديمي');
+    final title = _t('title', 'ابدأ مهنتك الجديدة خلال 4 أسابيع');
+    final text = _t('text', '12 جلسة عملية، مشروع حقيقي، وشهادة إتمام.');
+    final button = _t('button', 'تصفح الكورسات');
+    final image = data['image'] is String && (data['image'] as String).isNotEmpty ? data['image'] as String : null;
     return Pressable(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.all(20),
         clipBehavior: Clip.antiAlias,
-        decoration: BoxDecoration(color: C.violet, borderRadius: BorderRadius.circular(18)),
-        child: Stack(clipBehavior: Clip.none, children: [
-          Positioned(
-            left: -70,
-            bottom: -90,
-            child: Container(width: 200, height: 200, decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: Colors.white.withValues(alpha: .08), width: 28))),
+        decoration: BoxDecoration(color: _hex(data['color'], C.violet), borderRadius: BorderRadius.circular(18)),
+        child: Stack(children: [
+          if (image != null) ...[
+            Positioned.fill(child: CachedNetworkImage(imageUrl: image, fit: BoxFit.cover, fadeInDuration: const Duration(milliseconds: 150), errorWidget: (_, __, ___) => const SizedBox())),
+            Positioned.fill(
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: AlignmentDirectional.centerEnd,
+                    end: AlignmentDirectional.centerStart,
+                    colors: [const Color(0xFF120C33).withValues(alpha: .15), const Color(0xFF120C33).withValues(alpha: .78)],
+                  ),
+                ),
+              ),
+            ),
+          ] else
+            Positioned(
+              left: -70,
+              bottom: -90,
+              child: Container(width: 200, height: 200, decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: Colors.white.withValues(alpha: .08), width: 28))),
+            ),
+          Padding(
+            padding: const EdgeInsets.all(20),
+            child: SizedBox(
+              width: double.infinity,
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                if (badge.isNotEmpty) ...[
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 1),
+                    decoration: BoxDecoration(color: C.gold, borderRadius: BorderRadius.circular(6)),
+                    child: Text(badge, style: const TextStyle(color: C.night, fontWeight: FontWeight.w700, fontSize: 12)),
+                  ),
+                  const SizedBox(height: 10),
+                ],
+                if (title.isNotEmpty) Text(title, style: head(20, color: Colors.white)),
+                if (text.isNotEmpty) ...[
+                  const SizedBox(height: 4),
+                  Text(text, style: const TextStyle(color: Color(0xFFDDD4FF), fontSize: 13.5)),
+                ],
+                if (button.isNotEmpty) ...[
+                  const SizedBox(height: 14),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(10)),
+                    child: Text(button, style: const TextStyle(color: C.night, fontWeight: FontWeight.w700)),
+                  ),
+                ],
+              ]),
+            ),
           ),
-          Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 1),
-              decoration: BoxDecoration(color: C.gold, borderRadius: BorderRadius.circular(6)),
-              child: const Text('غني أكاديمي', style: TextStyle(color: C.night, fontWeight: FontWeight.w700, fontSize: 12)),
-            ),
-            const SizedBox(height: 10),
-            Text('ابدأ مهنتك الجديدة خلال 4 أسابيع', style: head(20, color: Colors.white)),
-            const SizedBox(height: 4),
-            const Text('12 جلسة عملية، مشروع حقيقي، وشهادة إتمام.', style: TextStyle(color: Color(0xFFDDD4FF), fontSize: 13.5)),
-            const SizedBox(height: 14),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(10)),
-              child: const Text('تصفح الكورسات', style: TextStyle(color: C.night, fontWeight: FontWeight.w700)),
-            ),
-          ]),
         ]),
       ),
     );

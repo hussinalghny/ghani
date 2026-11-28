@@ -267,6 +267,16 @@ jobs:
           curl -s -c $J -b $J "http://127.0.0.1:8000/admin/reports/sales" | sed 's#http://127.0.0.1:8000/##g' > /tmp/snap/report.html
           curl -s -c $J -b $J "http://127.0.0.1:8000/admin/discounts" | sed 's#http://127.0.0.1:8000/##g' > /tmp/snap/discounts.html
           curl -s -c $K2 -b $K2 "http://127.0.0.1:8000/course/cx-test?code=HALF" | sed 's#http://127.0.0.1:8000/##g' > /tmp/snap/course-code.html
+          # بنر التطبيق من اللوحة
+          curl -s http://127.0.0.1:8000/api/v1/home | php -r '$j=json_decode(stream_get_contents(STDIN),true); echo "banner default: ".$j["banner"]["title"]." | ".$j["banner"]["action"]["type"].PHP_EOL;' | tee /tmp/b.txt; grep -q "ابدأ مهنتك الجديدة خلال 4 أسابيع | courses" /tmp/b.txt || fail=1
+          X=$(curl -s -c $J -b $J http://127.0.0.1:8000/admin/app | tee /tmp/out | grep -o 'name="csrf-token" content="[^"]*"' | sed 's/.*content="//;s/"//'); grep -q 'بنر الرئيسية بالتطبيق' /tmp/out || fail=1
+          c=$(curl -s -o /dev/null -w '%{http_code}' -c $J -b $J -X POST --data-urlencode "_token=$X" --data-urlencode "banner_on=1" --data-urlencode "banner_badge=عرض" --data-urlencode "banner_title=خصم 25% على الدفاع الذكي" --data-urlencode "banner_text=" --data-urlencode "banner_button=احجز الآن" --data-urlencode "banner_color=#1B1446" --data-urlencode "banner_action=course:smart-defense" http://127.0.0.1:8000/admin/app/banner); echo "$c save banner"; [ "$c" = "302" ] || fail=1
+          curl -s http://127.0.0.1:8000/api/v1/home | php -r '$j=json_decode(stream_get_contents(STDIN),true); $b=$j["banner"]; echo "banner: ".$b["title"]."|".$b["text"]."|".$b["color"]."|".$b["action"]["type"].":".$b["action"]["slug"].PHP_EOL;' | tee /tmp/b.txt; grep -q "banner: خصم 25% على الدفاع الذكي||#1B1446|course:smart-defense" /tmp/b.txt || fail=1
+          curl -s -o /dev/null -c $J -b $J -X POST --data-urlencode "_token=$X" --data-urlencode "banner_title=x" --data-urlencode "banner_color=#5A35D6" --data-urlencode "banner_action=courses" http://127.0.0.1:8000/admin/app/banner
+          curl -s http://127.0.0.1:8000/api/v1/home | grep -q '"banner":null' && echo "banner off ok" || { echo "banner off failed"; fail=1; }
+          c=$(curl -s -o /dev/null -w '%{http_code}' -c $S -b $S http://127.0.0.1:8000/admin/app); echo "$c support /admin/app"; [ "$c" = "403" ] || fail=1
+          curl -s -o /dev/null -c $J -b $J -X POST --data-urlencode "_token=$X" --data-urlencode "banner_on=1" --data-urlencode "banner_title=ابدأ مهنتك الجديدة خلال 4 أسابيع" --data-urlencode "banner_badge=غني أكاديمي" --data-urlencode "banner_text=12 جلسة عملية، مشروع حقيقي، وشهادة إتمام." --data-urlencode "banner_button=تصفح الكورسات" --data-urlencode "banner_color=#5A35D6" --data-urlencode "banner_action=courses" http://127.0.0.1:8000/admin/app/banner
+          curl -s -c $J -b $J http://127.0.0.1:8000/admin/app | sed 's#http://127.0.0.1:8000/##g' > /tmp/snap/app-banner.html
           # لقطات دليل الدعم الفني
           mkdir -p /tmp/snap
           php artisan tinker --execute='App\Models\User::where("phone","07700000011")->update(["name"=>"فريق الدعم"]); $s=App\Models\User::find('$SID'); $s->update(["name"=>"أحمد علي"]); $chat=app(App\Services\ChatService::class); $c=$chat->support($s); $chat->send($s,$c,"السلام عليكم، الكورس ما دا يفتح بالموبايل، يكول تجاوزت عدد الأجهزة"); $sup=App\Models\User::where("phone","07700000011")->first(); $chat->send($sup,$c,"هلا بيك بغني أكاديمي. صفرنالك الأجهزة، سجل دخول من جديد وراح يشتغل."); $chat->send($s,$c,"اشتغل، شكرا الكم"); $u2=new App\Models\User; $u2->forceFill(["name"=>"زينب حسن","phone"=>"07812345678","password"=>Illuminate\Support\Facades\Hash::make("Zz@123456"),"role"=>"student"])->save(); $c2=$chat->support($u2); $chat->send($u2,$c2,"حولت فلوس الكورس من ساعة وبعده ما تفعل");'
@@ -310,7 +320,7 @@ jobs:
             google-chrome --headless=new --no-sandbox --hide-scrollbars --force-device-scale-factor=1 --window-size=390,2200 --virtual-time-budget=6000 --screenshot=$PWD/shots/$f-m.png file://$PWD/$f.html 2>/dev/null || true
             google-chrome --headless=new --no-sandbox --hide-scrollbars --window-size=1440,1500 --virtual-time-budget=6000 --screenshot=$PWD/shots/$f-d.png file://$PWD/$f.html 2>/dev/null || true
           done
-          for f in report discounts course-code g-admin-create g-admin-user g-admin-list g-sup-inbox g-sup-students g-sup-chat g-sup-student g-sup-cohorts g-sup-cohort; do
+          for f in app-banner report discounts course-code g-admin-create g-admin-user g-admin-list g-sup-inbox g-sup-students g-sup-chat g-sup-student g-sup-cohorts g-sup-cohort; do
             [ -f $f.html ] || continue
             google-chrome --headless=new --no-sandbox --hide-scrollbars --window-size=1280,860 --virtual-time-budget=6000 --screenshot=$PWD/shots/$f.png file://$PWD/$f.html 2>/dev/null || true
           done

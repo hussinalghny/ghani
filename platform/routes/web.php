@@ -160,6 +160,7 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
 
     Route::get('app', [Admin\AppReleaseController::class, 'edit'])->name('app');
     Route::post('app', [Admin\AppReleaseController::class, 'update'])->name('app.update');
+    Route::post('app/banner', [Admin\AppReleaseController::class, 'banner'])->name('app.banner');
 
     Route::get('notifications', [Admin\NotificationController::class, 'create'])->name('notifications');
     Route::post('notifications', [Admin\NotificationController::class, 'send'])->name('notifications.send');
