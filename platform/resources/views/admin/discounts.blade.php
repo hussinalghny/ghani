@@ -42,9 +42,9 @@
                     <td class="ltr"><strong>{{ $d->code }}</strong>@if ($d->note)<div class="tiny muted" dir="rtl">{{ $d->note }}</div>@endif</td>
                     <td>{{ $d->label() }}</td>
                     <td class="tiny">{{ $d->target() }}</td>
-                    <td class="ltr">{{ $d->uses() }}{{ $d->max_uses ? ' / '.$d->max_uses : '' }}</td>
-                    <td class="ltr">{{ number_format($d->revenue()) }}</td>
-                    <td class="tiny ltr">{{ $d->expires_at?->format('Y/m/d') ?? '—' }}</td>
+                    <td class="ltr" style="text-align:right">{{ $d->uses() }}{{ $d->max_uses ? ' / '.$d->max_uses : '' }}</td>
+                    <td class="ltr" style="text-align:right">{{ number_format($d->revenue()) }}</td>
+                    <td class="tiny ltr" style="text-align:right">{{ $d->expires_at?->format('Y/m/d') ?? '—' }}</td>
                     <td>@if ($link)<button class="btn btn-plain btn-sm copy-btn" type="button" data-copy="{{ $link }}">نسخ الرابط</button>@else<span class="tiny muted">يكتبه الطالب</span>@endif</td>
                     <td><form method="POST" action="{{ route('admin.discounts.toggle', $d) }}">@csrf<button class="btn btn-sm {{ $d->is_active ? 'btn-plain' : 'btn-primary' }}" type="submit">{{ $d->is_active ? 'إيقاف' : 'تفعيل' }}</button></form></td>
                 </tr>
