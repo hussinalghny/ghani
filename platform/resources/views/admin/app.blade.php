@@ -10,7 +10,7 @@
     @csrf
     <div class="row-between"><h2 style="margin:0">بنر الرئيسية بالتطبيق</h2>
         <label class="row" style="gap:8px"><input type="checkbox" name="banner_on" value="1" @checked($banner !== null)> ظاهر</label></div>
-    <p class="tiny muted" style="margin:4px 0 14px">يتغير بالتطبيق فورا بدون تحديث. يظهر بالرئيسية تحت «كمل التعلم».</p>
+    <p class="tiny muted" style="margin:4px 0 14px">يتغير فورا بالتطبيق من نسخة 27 وطالع، بدون تحديث جديد. يظهر بالرئيسية تحت «كمل التعلم».</p>
     <div class="grid" style="grid-template-columns:minmax(0,1fr) 320px;gap:18px;align-items:start">
         <div class="stack" style="gap:10px">
             <div class="grid" style="grid-template-columns:1fr 1fr;gap:10px">
